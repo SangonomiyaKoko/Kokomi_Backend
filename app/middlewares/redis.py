@@ -91,6 +91,20 @@ class RedisClient:
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
+    async def get_by_pipe(redis_key: str, keys: list) -> dict:
+        """用于统计api相关指标"""
+        redis_client = RedisConnection.get_connection()
+        data = []
+        pipe = redis_client.pipeline()
+        for key in keys:
+            pipe.get(redis_key.replace('{key}', key))
+        values = await pipe.execute()
+        for v in values:
+            data.append(int(v) if v else 0)
+        return JSONResponse.get_success_response(data)
+    
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
     async def incr(key: str) -> None:
         redis_client = RedisConnection.get_connection()
         await redis_client.incr(key)

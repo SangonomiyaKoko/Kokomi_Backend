@@ -18,6 +18,7 @@ from app.loggers import CSVWriter, log_queue
 from app.database import MysqlConnection
 from app.health import HealthManager, ServiceMetrics
 from app.apis.robot import BindAPI, TokenAPI
+from app.apis.platform import StatusAPI
 from app.middlewares import (
     IPAccessListManager, 
     RedisConnection,
@@ -151,6 +152,14 @@ async def root():
     测试接口连通性
     """
     return {'status':'ok','messgae':'Hello! Welcome to KokomiPlatform Interface.'}
+
+@app.get("/status/", summary="API指标", tags=['Default'])
+async def testRootPermission(page: str = 'api'):
+    """
+    获取API运行期间的部分指标
+    """
+    
+    return await StatusAPI.api_stats()
 
 @app.get("/permission/", summary="测试token权限", tags=['Default'])
 async def testRootPermission(role: str = Security(get_role)):
