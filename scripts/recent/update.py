@@ -214,7 +214,7 @@ def responeses_processing(responses: list):
                         ship_data[battle_type]['survived'],
                         max(
                             ship_data[battle_type]['assist_damage'], 
-                            ship_data[battle_type]['scouting_damage']
+                            ship_data[battle_type].get('scouting_damage', 0)
                         ),
                         ship_data[battle_type]['art_agro'],
                         ship_data[battle_type]['original_exp'],
