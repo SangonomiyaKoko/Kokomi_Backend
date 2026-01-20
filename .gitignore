@@ -2,6 +2,3 @@
 .env.prod
 __pycache__/
 *.pyc
-*.json
-*.db
-*.mo
