@@ -79,6 +79,10 @@ class JSONResponse:
     API_2025_InvalidAccessToken = {'status': 'ok','code': 2025,'message': 'InvalidAccessToken','data' : None}
     # 用户传入的ac值无效
     API_2026_InvalidAuthToken = {'status': 'ok','code': 2026,'message': 'InvalidAuthToken','data' : None}
+    # 不支持通过 ac 查询
+    API_2027_ACQueryNotSupported = {'status': 'ok','code': 2027,'message': 'ACQueryNotSupported','data' : None}
+    # 账号所在服务器不支持
+    API_2028_ServerNotSupported = {'status': 'ok','code': 2028,'message': 'ServerNotSupported','data' : None}
     # 
     API_20_ = {'status': 'ok','code': 20,'message': '','data' : None}
 

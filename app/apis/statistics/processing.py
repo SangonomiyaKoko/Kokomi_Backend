@@ -22,6 +22,7 @@ ProcessedData = {
     'avg_damage': 0,
     'avg_frags': 0.0,
     'avg_exp': 0,
+    'type': None,
     'rating': 0,
     'rating_next': 0,
     'win_rate_class': 0,
@@ -31,8 +32,12 @@ ProcessedData = {
 }
 
 def pvp_calculate_rating(region: str, data: Dict[str, Dict], server_data: dict):
+    if region == 'ru':
+        keys = ['pvp', 'pvp_solo', 'pvp_div2', 'pvp_div3', 'rating_solo', 'rating_div']
+    else:
+        keys = ['pvp', 'pvp_solo', 'pvp_div2', 'pvp_div3']
     for ship_id, ship_data in data.items():
-        for key in ['pvp', 'pvp_solo', 'pvp_div2', 'pvp_div3']:
+        for key in keys:
             RatingUtils.get_rating_by_data(
                 key,
                 ship_data[key],
@@ -54,6 +59,7 @@ def processing_overall_data(data: Dict[str, Dict], field: str):
             original_data['n_damage_dealt'] += ship_data['damage_rating']
             original_data['n_frags'] += ship_data['frags_rating']
     result = ProcessedData.copy()
+    result['type'] = 'pr'
     if original_data['battles_count'] == 0:
         result['battles_count'] = '-'
         result['win_rate'] = '-'
@@ -65,12 +71,12 @@ def processing_overall_data(data: Dict[str, Dict], field: str):
     else:
         result['battles_count'] = original_data['battles_count']
         result['win_rate'] = round(original_data['wins']/original_data['battles_count']*100,2)
-        result['avg_damage'] = int(original_data['damage_dealt']/original_data['battles_count'])
+        result['avg_damage'] = original_data['damage_dealt']//original_data['battles_count']
         result['avg_frags'] = round(original_data['frags']/original_data['battles_count'],2)
-        result['avg_exp'] = int(original_data['original_exp']/original_data['battles_count'])
+        result['avg_exp'] = original_data['original_exp']//original_data['battles_count']
         if original_data['value_battles_count'] != 0:
-            result['rating'] = int(original_data['personal_rating']/original_data['value_battles_count'])
-            rating_class, rating_next = RatingUtils.get_rating_class(result['rating'],True)
+            result['rating'] = original_data['personal_rating']//original_data['value_battles_count']
+            rating_class, rating_next = RatingUtils.get_pr_rating_class(result['rating'],True)
             result['rating_next'] = str(rating_next)
             result['win_rate_class'] = RatingUtils.get_content_class(0, result['win_rate'])
             result['avg_damage_class'] = RatingUtils.get_content_class(1, original_data['n_damage_dealt']/original_data['value_battles_count'])
@@ -78,7 +84,7 @@ def processing_overall_data(data: Dict[str, Dict], field: str):
             result['rating_class'] = rating_class
         else:
             result['rating'] = -1
-            rating_class, rating_next = RatingUtils.get_rating_class(-1,True)
+            rating_class, rating_next = RatingUtils.get_pr_rating_class(-1,True)
             result['rating_next'] = str(rating_next)
             result['win_rate_class'] = RatingUtils.get_content_class(0, -1)
             result['avg_damage_class'] = RatingUtils.get_content_class(1, -1)
@@ -242,3 +248,73 @@ def processing_pvp_chart(data: Dict[str, Dict], shipid_data: dict):
             }
         result[ship_tier-1][ship_type_dict[ship_type]] += ship_data['battles_count']
     return result
+
+def processing_cb_overall_data(data: list):
+    original_data = NoneProcessedData.copy()
+    for season in data:
+        for key in ['battles_count','wins','damage_dealt','frags','original_exp']:
+            original_data[key] += season[key]
+    result = ProcessedData.copy()
+    result['type'] = 'wr'
+    if original_data['battles_count'] == 0:
+        result['battles_count'] = '-'
+        result['win_rate'] = '-'
+        result['avg_damage'] = '-'
+        result['avg_frags'] = '-'
+        result['avg_exp'] = '-'
+        result['rating'] = '0.0%'
+        result['rating_next'] = '0'
+    else:
+        result['battles_count'] = original_data['battles_count']
+        result['win_rate'] = round(original_data['wins']/original_data['battles_count']*100,2)
+        result['avg_damage'] = original_data['damage_dealt']//original_data['battles_count']
+        result['avg_frags'] = round(original_data['frags']/original_data['battles_count'],2)
+        result['avg_exp'] = original_data['original_exp']//original_data['battles_count']
+        result['rating'] = result['win_rate']
+        rating_class, rating_next = RatingUtils.get_wr_rating_class(result['rating'])
+        result['rating_next'] = str(rating_next)
+        result['win_rate_class'] = RatingUtils.get_content_class(0, result['win_rate'])
+        result['avg_damage_class'] = RatingUtils.get_content_class(1, -1)
+        result['avg_frags_class'] = RatingUtils.get_content_class(2, -1)
+        result['rating_class'] = rating_class
+        result['battles_count'] = '{:,}'.format(result['battles_count']).replace(',', ' ')
+        result['win_rate'] = '{:.2f}%'.format(result['win_rate'])
+        result['avg_damage'] = '{:,}'.format(result['avg_damage']).replace(',', ' ')
+        result['avg_frags'] = '{:.2f}'.format(result['avg_frags'])
+        result['avg_exp'] = '{:,}'.format(result['avg_exp']).replace(',', ' ')
+        result['rating'] = '{:.2f}%'.format(result['rating'])
+    return result
+
+def processing_cb_seasons_data(data: list):
+    seasons = []
+    for season in data:
+        if season['battles_count'] == 0:
+            continue
+        result = {
+            'season_id': season['season_id'],
+            'battles_count': 0,
+            'win_rate': 0.0,
+            'avg_damage': 0,
+            'avg_frags': 0.0,
+            'avg_exp': 0,
+            'win_rate_class': 0,
+            'avg_damage_class': 0,
+            'avg_frags_class': 0
+        }
+        result['battles_count'] = season['battles_count']
+        result['win_rate'] = round(season['wins']/season['battles_count']*100,2)
+        result['avg_damage'] = season['damage_dealt']//season['battles_count']
+        result['avg_frags'] = round(season['frags']/season['battles_count'],2)
+        result['avg_exp'] = season['original_exp']//season['battles_count']
+        result['win_rate_class'] = RatingUtils.get_content_class(0, result['win_rate'])
+        result['avg_damage_class'] = RatingUtils.get_content_class(1, -1)
+        result['avg_frags_class'] = RatingUtils.get_content_class(2, -1)
+        result['battles_count'] = '{:,}'.format(result['battles_count']).replace(',', ' ')
+        result['win_rate'] = '{:.2f}%'.format(result['win_rate'])
+        result['avg_damage'] = '{:,}'.format(result['avg_damage']).replace(',', ' ')
+        result['avg_frags'] = '{:.2f}'.format(result['avg_frags'])
+        result['avg_exp'] = '{:,}'.format(result['avg_exp']).replace(',', ' ')
+        seasons.append(result)
+    seasons.sort(key=lambda x: x['season_id'], reverse=True)
+    return seasons
+

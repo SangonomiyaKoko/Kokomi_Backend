@@ -1,6 +1,6 @@
 import asyncio
 
-from .endpoints import VORTEX_API_ENDPOINTS, CLAN_API_ENDPOINTS
+from .endpoints import VORTEX_API_ENDPOINTS, CLAN_API_ENDPOINTS, OFFICIAL_API_ENDPOINTS
 from .client import HttpClient
 from .response import JSONResponse
 from app.loggers import ExceptionLogger
@@ -8,12 +8,15 @@ from app.utils import JsonUtils, GameUtils, TimeUtils
 from app.constants import ClanColor
 from app.models import PlatyerModel
 from app.health import ServiceMetrics
+from app.core import EnvConfig
 from app.schemas import UserBasicData, ClanBaseData
 
 from .processing import (
     processing_user_basic, 
     processing_season,
-    processing_pvp_data
+    processing_pvp_data,
+    processing_cb_achieve,
+    processing_cb_seasons
 )
 
 def varify_responses(responses: list | dict):
@@ -905,5 +908,46 @@ class ExternalAPI:
             {
                 'original_data': result,
                 'record': record
+            }
+        )
+        
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_cb(region: str, account_id: int):
+        base_url = OFFICIAL_API_ENDPOINTS[region]
+        config = EnvConfig.get_config()
+        if region == 'ru':
+            api_token = config.LESTA_API_TOKEN
+        else:
+            api_token = config.WG_API_TOKEN
+        urls = [
+            f'{base_url}/wows/clans/seasonstats/?application_id={api_token}&account_id={account_id}',
+            f'{base_url}/wows/account/achievements/?application_id={api_token}&account_id={account_id}'
+        ]
+        tasks = []
+        responses = []
+        async with asyncio.Semaphore(len(urls)):
+            for url in urls:
+                tasks.append(HttpClient.get_offical_user_data(url))
+            responses = await asyncio.gather(*tasks)
+        now_time = TimeUtils.now_iso()
+        await ServiceMetrics.http_incrby(region, now_time[:10], len(urls))
+        error_count, error_return = varify_responses(responses)
+        if error_count != None:
+            await ServiceMetrics.http_error_incrby(region, now_time[:10], error_count)
+            return error_return
+        for response in responses:
+            if response['data'] is None:
+                return JSONResponse.API_3012_FailedToFetchDataFromAPI
+            if response['data']['meta']['hidden'] != None:
+                return JSONResponse.API_3005_UserHiddenProfite
+        if responses[0]['data']['data'][str(account_id)] is None:
+            return JSONResponse.API_3003_UserDataisNone
+        season_data = processing_cb_seasons(responses[0]['data']['data'][str(account_id)])
+        achievements = processing_cb_achieve(region, responses[1]['data']['data'][str(account_id)])
+        return JSONResponse.get_success_response(
+            {
+                'seasons': season_data,
+                'achievements': achievements
             }
         )

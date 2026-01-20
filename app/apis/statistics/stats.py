@@ -9,7 +9,9 @@ from .processing import (
     processing_overall_data, 
     processing_battle_type_data,
     processing_ship_type_data,
-    processing_pvp_chart
+    processing_pvp_chart,
+    processing_cb_overall_data,
+    processing_cb_seasons_data
 )
 
 class StatsAPI:
@@ -79,5 +81,51 @@ class StatsAPI:
         data['statistics']['ship_type'] = processing_ship_type_data(original_data, 'pvp', shipid_data)
         data['statistics']['chart'] = processing_pvp_chart(original_data, shipid_data)
         data['statistics']['record'] = result['data']['record']
+
+        return JSONResponse.get_success_response(data)
+    
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_cb(
+        region: str,
+        account_id: int
+    ):
+        region_id = GameUtils.get_region_id(region)
+        if region_id == 5:
+            return JSONResponse.API_2028_ServerNotSupported
+        redis_key = f"token:ac:{account_id}"
+        result = await RedisClient.get(redis_key)
+        if result['code'] != 1000:
+            return result
+        if result['data']:
+            ac = result['data'].get('ac')
+        else:
+            ac = None
+        if ac:
+            return JSONResponse.API_2027_ACQueryNotSupported
+        # 先读数据库，读不到数据再请求
+        result = await PlatyerModel.get_user_brief(region_id, account_id)
+        if result['code'] != 1000:
+            return result
+        if result['data'] is None:
+            # 数据库中无用户数据，进行网络请求获取数据
+            result = await ExternalAPI.get_user_brief(region, account_id, ac)
+            if result['code'] != 1000:
+                return result
+        data = {
+            'type': 'clan_battle',
+            'basic': result['data'],
+            'statistics': {}
+        }
+        result = await ExternalAPI.get_user_cb(region,account_id)
+        if result['code'] != 1000:
+            return result
+        data['statistics'] = {
+            'overall': {},
+            'achievements': result['data']['achievements'],
+            'seasons': {}
+        }
+        data['statistics']['overall'] = processing_cb_overall_data(result['data']['seasons'])
+        data['statistics']['seasons'] = processing_cb_seasons_data(result['data']['seasons'])
 
         return JSONResponse.get_success_response(data)

@@ -26,3 +26,12 @@ async def getUserBasic(
         return JSONResponse.API_2007_IllegalAccoutID
     result = await StatsAPI.get_user_pvp(region, account_id, field, include_old)
     return result
+@router.get("/accounts/{region}/{account_id}/clanbattle/", summary="获取用户cw数据")
+async def getUserCW(
+    region: Region = Path(...), 
+    account_id: int = Path(...)
+):
+    if GameUtils.check_aid_and_rid(region, account_id) == False:
+        return JSONResponse.API_2007_IllegalAccoutID
+    result = await StatsAPI.get_user_cb(region, account_id)
+    return result

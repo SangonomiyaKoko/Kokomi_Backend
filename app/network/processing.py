@@ -101,3 +101,77 @@ def processing_pvp_data(responses: list, fields: list, include_old: bool):
                 if field_data[key] > record[key]:
                     record[key] = field_data[key]
     return result, record
+
+def processing_cb_season(data: dict):
+    result = []
+    battleCount = 0
+    wins = 0
+    damage = 0 # 总伤害
+    frags = 0
+    exp = 0
+    for i in data["seasons"]:
+        seasonId = i["season_id"]
+        if seasonId >= 100:
+            continue
+        season = {}
+        season["season_id"] = seasonId
+        battles = i["battles_count"]
+        battleCount += battles
+        season["battles"] = battles
+        win = i["wins"]
+        wins+= win
+        season["winrate"] = round(win / battles * 100, 2)
+        damage1 = i["damage_dealt"]
+        damage += damage1
+        season["avg_damage"] =  damage1 // battles
+        kill = i["frags"]
+        frags += kill
+        season["avg_frags"] = round(kill / battles, 2)
+        ixp = i["xp"]
+        exp += ixp
+        season["avg_exp"] = ixp // battles
+        result.append(season)
+    total = {}
+    total["battles_count"] = battleCount
+    total["win_rate"] = round(wins / battleCount * 100, 2)
+    total["avg_damage"] = damage // battleCount
+    total["avg_frags"] = round(frags / battleCount, 2) 
+    total["avg_exp"] = exp // battleCount
+    result.sort(key=lambda x: x['season_id'], reverse=True)
+    return total, result
+
+def processing_cb_achieve(region: str, response: dict):
+    result = {
+        0: 0,
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0
+    }
+    if response is None:
+        return result
+    if region == 'ru':
+        realm_data = GameData.LESTA_CLAN_SEAESON_LIST
+    else:
+        realm_data = GameData.WG_CLAN_SEAESON_LIST
+    for index, count in response['battle'].items():
+        if index in realm_data:
+            result[realm_data[index]] += count
+    return result
+
+def processing_cb_seasons(data: dict):
+    result = []
+    for i in data["seasons"]:
+        seasonId = i["season_id"]
+        if seasonId >= 100:
+            continue
+        season = {
+            'season_id': seasonId,
+            'battles_count': i["battles"],
+            'wins': i["wins"],
+            'damage_dealt': i["damage_dealt"],
+            'frags': i['frags'],
+            'original_exp': i["xp"]
+        }
+        result.append(season)
+    return result

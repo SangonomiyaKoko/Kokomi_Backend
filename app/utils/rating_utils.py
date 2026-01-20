@@ -39,7 +39,7 @@ class RatingUtils:
         n_dmg = max(0, (r_dmg - 0.4) / (1 - 0.4))
         n_frags = max(0, (r_frags - 0.1) / (1 - 0.1))
         # Step 3 - PR value:
-        if game_type in ['rank', 'rank_solo']:
+        if game_type in ['rank', 'rank_solo', 'rating_solo', 'rating_div']:
             personal_rating = 600 * n_dmg + 350 * n_frags + 400 * n_wins
         else:
             personal_rating = 700 * n_dmg + 300 * n_frags + 150 * n_wins
@@ -48,7 +48,7 @@ class RatingUtils:
         ship_data['frags_rating'] = round((actual_frags / expected_frags) * battles_count, 6)
         return
     
-    def get_rating_class(
+    def get_pr_rating_class(
         rating: int | float, 
         show_eggshell: bool = False
     ):
@@ -66,13 +66,22 @@ class RatingUtils:
                 if rating < data[i]:
                     return i + 1, int(data[i]-rating)
             return 8, int(rating - 2450)
+    
+    def get_wr_rating_class(rating: int | float):
+        if rating == -1:
+            return 0, 0
+        data = [40, 45, 50, 52.5, 55, 60, 67]
+        for i in range(len(data)):
+            if rating < data[i]:
+                return i + 1, round(data[i]-rating, 2)
+        return 8, round(rating - 67, 2)
         
     def get_content_class(
         index: int, 
         value: int | float
     ) -> int:
         index_list = [
-            [45, 49, 51, 52.5, 55, 60, 70],
+            [40, 45, 50, 52.5, 55, 60, 67],
             [0.8, 0.95, 1.0, 1.1, 1.2, 1.4, 1.7],
             [0.2, 0.3, 0.6, 1.0, 1.3, 1.5, 2],
             [750, 1100, 1350, 1550, 1750, 2100, 2450]

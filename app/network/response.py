@@ -41,6 +41,8 @@ class JSONResponse:
     API_3010_UserNameNotFound = {'status': 'ok','code': 3010,'message': 'UserNameNotFound','data' : None}
     # 工会名称未有匹配结果
     API_3011_ClanNameNotFound = {'status': 'ok','code': 3011,'message': 'ClanNameNotFound','data' : None}
+    # 从官方api接口获取数据失败
+    API_3012_FailedToFetchDataFromAPI = {'status': 'ok','code': 3012,'message': 'FailedToFetchDataFromAPI','data' : None}
 
     # ERROR
 
