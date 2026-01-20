@@ -1,3 +1,6 @@
+from app.constants import GameData
+
+
 def processing_user_basic(user_basic: dict):
     data = {
         'pve': 0 if user_basic['pve'] == {} else user_basic['pve']['battles_count'],
@@ -55,7 +58,7 @@ def processing_season(season_data: dict, rank_data: dict) -> dict:
     sorted_dict = dict(sorted(result.items(), reverse=True))
     return sorted_dict
 
-def processing_pvp_data(responses: list, fields: list):
+def processing_pvp_data(responses: list, fields: list, include_old: bool):
     # 处理pvp数据，支持pvp_solo/pvp_div2/pvp_div3
     result = {}
     record = {
@@ -70,6 +73,8 @@ def processing_pvp_data(responses: list, fields: list):
         response = responses[i]
         field = fields[i]
         for ship_id, ship_data in response.items():
+            if include_old is False and ship_id in GameData.OLD_SHIP_ID_LIST:
+                continue
             field_data = ship_data[field]
             if field_data == {}:
                 continue

@@ -31,7 +31,8 @@ class StatsAPI:
     async def get_user_pvp(
         region: str,
         account_id: int,
-        field: str = None
+        field: str = None,
+        include_old: bool = True
     ):
         region_id = GameUtils.get_region_id(region)
         redis_key = f"token:ac:{account_id}"
@@ -56,7 +57,7 @@ class StatsAPI:
             'basic': result['data'],
             'statistics': {}
         }
-        result = await ExternalAPI.get_user_pvp(region, account_id, ac, field)
+        result = await ExternalAPI.get_user_pvp(region, account_id, ac, field, include_old)
         if result['code'] != 1000:
             return result
         data['statistics'] = {

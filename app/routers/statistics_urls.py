@@ -16,8 +16,13 @@ async def getUserBasic(region: Region = Path(...), account_id: int = Path(...)):
     return result
 
 @router.get("/accounts/{region}/{account_id}/overall/", summary="获取用户总体数据")
-async def getUserBasic(region: Region = Path(...), account_id: int = Path(...), field: PVPField = Query(PVPField.PVP)):
+async def getUserBasic(
+    region: Region = Path(...), 
+    account_id: int = Path(...), 
+    field: PVPField = Query(PVPField.PVP),
+    include_old: bool = Query(True)
+):
     if GameUtils.check_aid_and_rid(region, account_id) == False:
         return JSONResponse.API_2007_IllegalAccoutID
-    result = await StatsAPI.get_user_pvp(region, account_id, field)
+    result = await StatsAPI.get_user_pvp(region, account_id, field, include_old)
     return result

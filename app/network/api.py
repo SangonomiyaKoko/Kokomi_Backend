@@ -865,7 +865,7 @@ class ExternalAPI:
         
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_pvp(region: str, account_id: int, ac1: str = None, field: str = 'pvp'):
+    async def get_user_pvp(region: str, account_id: int, ac1: str = None, field: str = 'pvp', include_old: bool = True):
         base_url = VORTEX_API_ENDPOINTS[region]
         if field == 'pvp':
             urls = [
@@ -900,7 +900,7 @@ class ExternalAPI:
             if 'statistics' not in response['data'][str(account_id)]:
                 return JSONResponse.API_3003_UserDataisNone
             data.append(response['data'][str(account_id)]['statistics'])
-        result, record = processing_pvp_data(data,fields)
+        result, record = processing_pvp_data(data,fields,include_old)
         return JSONResponse.get_success_response(
             {
                 'original_data': result,
