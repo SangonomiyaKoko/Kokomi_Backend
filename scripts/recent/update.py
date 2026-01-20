@@ -212,7 +212,10 @@ def responeses_processing(responses: list):
                         ship_data[battle_type]['damage_dealt'],
                         ship_data[battle_type]['frags'],
                         ship_data[battle_type]['survived'],
-                        ship_data[battle_type]['assist_damage'],
+                        max(
+                            ship_data[battle_type]['assist_damage'], 
+                            ship_data[battle_type]['scouting_damage']
+                        ),
                         ship_data[battle_type]['art_agro'],
                         ship_data[battle_type]['original_exp'],
                         ship_data[battle_type]['planes_killed'],
@@ -419,6 +422,7 @@ async def update(
                     redis_client.incrby(key, error_count)
                     return error_return
                 user_basic = resp[0]
+                update_base(region_id, account_id, user_basic)
                 if user_basic:
                     user_basic = user_basic[str(account_id)]
                 if 'hidden_profile' in user_basic:
@@ -467,12 +471,22 @@ async def update(
                         win_rate = round(user_basic['statistics']['pvp']['wins']/pvp_count*100,4)
                         avg_damage = round(user_basic['statistics']['pvp']['damage_dealt']/pvp_count,4)
                         avg_frags = round(user_basic['statistics']['pvp']['frags']/pvp_count,4)
-                    battle_dict, statis_dict = responeses_processing([
-                        resp[1][str(account_id)]['statistics'],
-                        resp[2][str(account_id)]['statistics'],
-                        resp[3][str(account_id)]['statistics'],
-                        resp[4][str(account_id)]['statistics']
-                    ])
+                    if region_id == 4:
+                        battle_dict, statis_dict = responeses_processing([
+                            resp[1][str(account_id)]['statistics'],
+                            resp[2][str(account_id)]['statistics'],
+                            resp[3][str(account_id)]['statistics'],
+                            resp[4][str(account_id)]['statistics'],
+                            resp[5][str(account_id)]['statistics'],
+                            resp[6][str(account_id)]['statistics']
+                        ])
+                    else:
+                        battle_dict, statis_dict = responeses_processing([
+                            resp[1][str(account_id)]['statistics'],
+                            resp[2][str(account_id)]['statistics'],
+                            resp[3][str(account_id)]['statistics'],
+                            resp[4][str(account_id)]['statistics']
+                        ])
                     if date1_data[0] == 0 or date1_data[6] == None:
                         user_cache = {}
                         ships_cache = []
