@@ -517,10 +517,15 @@ async def update(
                         # 对于启用recents用户计算数据
                         if enable_daily:
                             recents_data = {}
-                            redis_key = f"recent:{region_id}:{account_id}:{int(time.time())}"
+                            region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
+                            region = region_dict[region_id]
+                            redis_key = f"recent:{region}:{account_id}:{int(time.time())}"
                             for ship_id, ship_refer in diff_ship_ids:
                                 if ship_refer == None:
-                                    old_data = [[],[],[],[]]
+                                    if region_id == 4:
+                                        old_data = [[],[],[],[],[],[]]
+                                    else:
+                                        old_data = [[],[],[],[]]
                                 else:
                                     cursor.execute("""
                                         SELECT 
