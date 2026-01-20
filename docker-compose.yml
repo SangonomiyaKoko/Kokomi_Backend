@@ -1,0 +1,110 @@
+services:
+  api: # 主API服务器
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    container_name: backend-api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug
+    env_file:
+      - .env.dev
+    ports:
+      - "8000:8000"
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  celery: # 负责消费MQ中的任务，更新用户的基本信息
+    build: .
+    volumes:
+      - ./logs:/app/logs
+    container_name: backend-celery
+    command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=2
+    env_file:
+      - .env.dev
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  account: # 定期遍历数据库，查找需要更新用户的id，提交给MQ
+    build: .
+    volumes:
+      - ./logs:/app/logs
+    container_name: scheduler-account
+    command: python scripts/scheduler/account/main.py
+    env_file:
+      - .env.dev
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  cache: # 更新用户的船只缓存数据
+    build: .
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    container_name: scheduler-cache
+    command: python scripts/scheduler/cache/main.py
+    env_file:
+      - .env.dev
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  users: # 更新工会的成员数据
+    build: .
+    volumes:
+      - ./logs:/app/logs
+    container_name: scheduler-users
+    command: python scripts/scheduler/users/main.py
+    env_file:
+      - .env.dev
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  clan: # 更新工会的数据
+    build: .
+    volumes:
+      - ./logs:/app/logs
+    container_name: scheduler-clan
+    command: python scripts/scheduler/clan/main.py
+    env_file:
+      - .env.dev
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  recent: # 更新工会的成员数据
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    container_name: backend-recent
+    command: python scripts/recent/main.py
+    env_file:
+      - .env.dev
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"

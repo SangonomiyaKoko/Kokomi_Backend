@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Authorization Success</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f7f7;
+        height: 100vh;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      .icon {
+        font-size: 48px;
+        color: #2ecc71;
+        margin-bottom: 5px;
+      }
+      h1 {
+        color: #2c3e50;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        font-size: 40px;
+      }
+      .info {
+        background: white;
+        padding: 12px 32px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        min-width: 400px;
+        opacity: 0.6;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 10px 0;
+        font-size: 16px;
+        color: #222;
+      }
+
+      .row .label {
+        font-weight: bold;
+        color: #111;
+      }
+
+      .row .value {
+        color: #222;
+        text-align: right;
+        margin-left: 20px;
+      }
+      .footer {
+        margin-top: 18px;
+        font-size: 14px;
+        color: #7b7b7b;
+      }
+      .footer a {
+        color: #0366d6;
+        text-decoration: none;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+      .bg-image {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("https://i0.hdslb.com/bfs/new_dyn/7d52110cb1ddb10ed4dc5dc560579ec5517120416.png");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover; /* 高度填满，水平居中 */
+        opacity: 0.4; /* 调整透明度 */
+        z-index: -1; /* 放到最底层 */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="icon">✔</div>
+    <h1>Authorization Successful</h1>
+
+    <div class="info">
+      <div class="row">
+        <span class="label">Region:</span>
+        <span class="value">{{ region }}</span>
+      </div>
+      <div class="row">
+        <span class="label">Username:</span>
+        <span class="value">{{ username }}</span>
+      </div>
+      <div class="row">
+        <span class="label">Token Expiration:</span>
+        <span class="value">{{ expires_at }}</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      View project on
+      <a href="https://github.com/SangonomiyaKoko/Kokomi_Bot" target="_blank">
+        GitHub
+      </a>
+    </div>
+    <div class="bg-image"></div>
+  </body>
+</html>
