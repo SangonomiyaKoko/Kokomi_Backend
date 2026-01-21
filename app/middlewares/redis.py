@@ -97,7 +97,7 @@ class RedisClient:
         data = []
         pipe = redis_client.pipeline()
         for key in keys:
-            pipe.get(redis_key.replace('{key}', key))
+            pipe.get(redis_key.replace('key', key))
         values = await pipe.execute()
         for v in values:
             data.append(int(v) if v else 0)
