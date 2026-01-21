@@ -7,7 +7,7 @@ load_dotenv()
 CLIENT_NAME = 'SchedulerClan'
 LOG_LEVEL = 'debug'
 LOG_DIR = '/app/logs'
-REFRESH_INTERVAL = 3600
+REFRESH_INTERVAL = 300
 
 # 通过api获取season数据
 # 更新SeasonID同时要创建对应的表

@@ -1,9 +1,9 @@
 import requests
 import pymysql
 import traceback
-from datetime import datetime
+from datetime import datetime, time
 from logger import logger
-from settings import SEASON_ID
+from settings import SEASON_ID, SEASON_FINISH, SEASON_START
 from middlewares import db_pool, redis_client
 
 
@@ -22,6 +22,46 @@ CLAN_COLOR_INDEX = {
     13408614: 4,
     11776947: 5,
 }
+
+# weekday: 周一=0 ... 周日=6
+WEEKLY_WINDOWS = {
+    0: [  # 周一
+        (time(2, 0), time(6, 29)),
+        (time(8, 30), time(12, 59)),
+    ],
+    2: [  # 周三
+        (time(19, 30), time(23, 59)),
+    ],
+    3: [  # 周四
+        (time(2, 0), time(6, 29)),
+        (time(8, 30), time(12, 59)),
+        (time(19, 30), time(23, 59)),
+    ],
+    4: [  # 周五
+        (time(2, 0), time(6, 29)),
+        (time(8, 30), time(12, 59)),
+    ],
+    5: [  # 周六
+        (time(19, 30), time(23, 59)),
+    ],
+    6: [  # 周日
+        (time(2, 0), time(6, 29)),
+        (time(8, 30), time(12, 59)),
+        (time(19, 30), time(23, 59)),
+    ]
+}
+
+def is_cb_active() -> bool:
+    now_ts = int(datetime.timestamp())
+    if not (SEASON_START <= now_ts <= SEASON_FINISH):
+        return False
+    now = datetime.fromtimestamp(now_ts)
+    weekday = now.weekday()
+    current_time = now.time()
+    for start, end in WEEKLY_WINDOWS.get(weekday, []):
+        if start <= current_time < end:
+            return True
+    return False
 
 def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
