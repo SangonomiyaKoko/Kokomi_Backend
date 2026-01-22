@@ -1,0 +1,29 @@
+﻿@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "KokomiPJ_Dashboard_ReqStats";
+}
+
+<div id="app" class="page">
+    <a-card v-cloak title="KokomiPJ_Dashboard_ReqStats" body-style="display:flex;align-items:baseline;justify-content:center;min-height:90vh">
+      我还没做，先就这样吧
+    </a-card>
+</div>
+
+@section scripts {
+<script type="module" >
+    const { createApp, reactive, computed, onMounted, onBeforeUnmount, ref } = Vue;
+    const activeLink = '@Url.Action("ReqStats", "APIStatus")';
+    const app = createApp({
+        setup() {
+           
+            return { navItems, onCardClick };
+         }
+    });
+
+    app.use(antd);
+    app.mount('#app');
+</script>
+<style>
+        
+</style>
+}

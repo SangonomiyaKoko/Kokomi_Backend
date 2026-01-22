@@ -1,0 +1,206 @@
+﻿@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "KokomiPJ_Dashboard_NavPage";
+}
+
+<div id="app" class="page">
+    <a-card v-cloak title="KokomiPJ_Dashboard_NavPage" body-style="display:flex;align-items:baseline;justify-content:center;min-height:90vh">
+        <a-row :gutter="[32,32]" class="nav-wrap">
+            <a-col v-for="item in navItems"
+                    :key="item.key"
+                    :xs="24" :sm="12" :md="8" :lg="6">
+                <a-tooltip :title="item.desc ">
+                    <a-card hoverable
+                            class="nav-card"
+                            :class="{ 'is-disabled': !item.enabled }"
+                            @@click="onCardClick(item)">
+                        <template #cover>
+                            <!-- API 动画封面(手动画真的好吗?不管了先弄上去) -->
+                            <div v-if="item.coverType === 'api'" class="cover cover-api">
+                                <div class="api-scan"></div>
+                                <div class="api-bars">
+                                    <span v-for="n in 12"
+                                            :key="n"
+                                            class="bar"
+                                            :style="{ animationDelay: (n * 0.08) + 's' }"></span>
+                                </div>
+                                <div class="api-label">Req/s • Latency • Errors</div>
+                            </div>
+
+                            <!--骨架封面 -->
+                            <div v-else style="padding:15px;">
+                                <a-skeleton :loading="true" active avatar>
+
+                                </a-skeleton>
+                            </div>
+                        </template>
+
+                        <div class="nav-title">
+                            {{ item.title }}
+                        </div>
+                        <div class="nav-desc">{{ item.desc }}</div>
+                    </a-card>
+                </a-tooltip>
+            </a-col>
+        </a-row>
+    </a-card>
+</div>
+
+@section scripts {
+<script type="module" >
+    const { createApp, reactive, computed, onMounted, onBeforeUnmount, ref } = Vue;
+    const activeLink = '@Url.Action("ReqStats", "APIStatus")';
+    const app = createApp({
+        setup() {
+            const navItems = ref([
+                { key: "api",  title: "API Opertaion Status", desc: "ReqStats / Health Check", link: activeLink, enabled: true,  coverType: "api" },
+                { key: "rank", title: "Kokomi_Ranking", desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
+                { key: "es",   title: "ES Index Management", desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
+                { key: "wf",   title: "Scheduled Task Scheduling", desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
+                { key: "xxxx1",   title: "XXXX",   desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
+                { key: "xxxx2",  title: "XXXX",   desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
+                { key: "xxxx3",  title: "XXXX",   desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
+                { key: "xxxx4",  title: "XXXX",   desc: "c", link: null, enabled: false, coverType: "soon" },
+            ]);
+
+            const onCardClick = (item) => {
+                if (!item.enabled ) {
+                    // Ant Design Vue message（全局反馈组件）:contentReference[oaicite:2]{index=2}
+                    antd?.message?.info?.("Coming Soon ~ ✨");
+                    return;
+                }
+                    window.open(item.link, "_blank", "noopener");
+            };
+
+            return { navItems, onCardClick };
+         }
+    });
+
+    app.use(antd);
+    app.mount('#app');
+</script>
+<style>
+    [v-cloak] {
+        display: none;
+    }
+    .nav-wrap {
+        padding: 16px;
+        width: 66%;
+        margin: 0 auto; 
+    }
+    @@media (max-width: 992px) {
+    .nav-wrap
+    {
+        width: 100%;
+    }
+
+    }
+    .nav-card { height: 240px; }
+    .nav-title { font-size: 16px; font-weight: 600; margin-top: 10px; display:flex; align-items:center; gap:8px; }
+    .nav-desc { opacity: .75; margin-top: 6px; }
+
+    /* 禁用态：仍 hover，但鼠标样式/色调不同（不使用 pointer-events:none） */
+    .is-disabled { opacity: .70; cursor: not-allowed; }
+    .is-disabled .ant-card { cursor: not-allowed; }
+
+    .tag {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(0,0,0,.06);
+        font-weight: 500;
+    }
+
+    /* ====== Cover 基础 ====== */
+    .cover{
+        height: 120px;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid rgba(0,0,0,.06);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        user-select: none;
+    }
+
+    /* ====== ① API：跳动柱状 + 扫描高光 ====== */
+    /* 1) 覆盖 antd 的 .ant-card-cover > * { display:block; width:100%; } */
+    .nav-card .ant-card-cover > .cover {
+        display: flex; 
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 2) API 封面 */
+    .nav-card .ant-card-cover > .cover-api {
+        flex-direction: column;
+    }
+
+    /* 3) bars 居中 */
+    .cover-api .api-bars {
+        width: 80%;
+        max-width: 360px; 
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+    }
+    .cover-api{
+        background: linear-gradient(135deg, #e6f7ff 0%, #f6ffed 100%);
+        flex-direction: column; 
+        align-items: center;
+        justify-content: center;
+    }
+
+    .api-bars{
+        width: 80%;
+        height: 56px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center; 
+        gap: 6px;
+        z-index: 1;
+        margin-bottom: 18px; 
+    }
+
+    .api-bars .bar{
+        flex: 1;
+        height: 30%;
+        border-radius: 6px 6px 2px 2px;
+        background: rgba(24,144,255,.55);
+        animation: apiBar 1.2s ease-in-out infinite;
+        transform-origin: bottom;
+    }
+
+    @@keyframes apiBar{
+        0%,100%{ transform: scaleY(.35); opacity:.55; }
+        50%{ transform: scaleY(1); opacity:1; }
+    }
+
+    .api-scan{
+        position:absolute;
+        inset: -30% -60%;
+        background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.55) 50%, transparent 100%);
+        transform: rotate(12deg);
+        animation: scan 2.2s linear infinite;
+    }
+
+    @@keyframes scan{
+        0%{ transform: translateX(-35%) rotate(12deg); }
+        100%{ transform: translateX(35%) rotate(12deg); }
+    }
+
+    .api-label{
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%); 
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        opacity: .65;
+        pointer-events: none;
+    }
+
+</style>
+}

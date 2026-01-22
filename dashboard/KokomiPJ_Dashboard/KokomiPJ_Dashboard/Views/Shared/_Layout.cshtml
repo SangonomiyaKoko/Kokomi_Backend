@@ -1,0 +1,79 @@
+﻿@{
+    Layout = null;
+    var title = ViewBag.Title ?? "KokomiPJ_Dashboard";
+}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1" />
+    <title>@title</title>
+
+    <!-- AntD Reset（本地） -->
+    <link href="~/lib/antd/reset.min.css" rel="stylesheet" />
+
+    <style>
+        html, body {
+            background: #f5f5f5;
+        }
+
+        .page {
+            padding: 12px;
+        }
+    </style>
+
+    @RenderSection("head", required: false)
+</head>
+<body>
+    @RenderBody()
+
+    <!-- 1) 引入Vue（本地） -->
+    <script src="~/lib/Vue/vue.global.prod.js"></script>
+
+
+    <!-- 2) Day.js -->
+    <script src="~/lib/AntD/dayjs.min.js"></script>
+
+
+    <!-- 3) Day.js 插件 -->
+    <script src="~/lib/AntD/advancedFormat.min.js"></script>
+    <script src="~/lib/AntD/customParseFormat.min.js"></script>
+    <script src="~/lib/AntD/weekday.min.js"></script>
+    <script src="~/lib/AntD/localeData.min.js"></script>
+    <script src="~/lib/AntD/weekOfYear.min.js"></script>
+    <script src="~/lib/AntD/weekYear.min.js"></script>
+    <script src="~/lib/AntD/quarterOfYear.min.js"></script>
+    <script src="~/lib/AntD/localizedFormat.min.js"></script>
+
+
+
+    <!-- 3.2) 设置 Day.js 中文 -->
+    <script src="~/lib/AntD/zh-cn.min.js"></script>
+
+
+    <!-- 3.3) 安装插件 + 切中文 -->
+    <script>
+        (function () {
+          if (window.dayjs) {
+            function ext(x){ if (x) dayjs.extend(x); }
+            ext(window.dayjs_plugin_advancedFormat);
+            ext(window.dayjs_plugin_customParseFormat);
+            ext(window.dayjs_plugin_weekday);
+            ext(window.dayjs_plugin_localeData);
+            ext(window.dayjs_plugin_weekOfYear);
+            ext(window.dayjs_plugin_weekYear);
+            ext(window.dayjs_plugin_quarterOfYear);
+            ext(window.dayjs_plugin_localizedFormat);
+
+            try { if (typeof dayjs.locale === 'function') dayjs.locale('zh-cn'); } catch(e){}
+          }
+        })();
+    </script>
+
+    <!-- 4) Ant Design Vue -->
+    <script src="~/lib/AntD/antd-with-locales.min.js"></script>
+
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>
