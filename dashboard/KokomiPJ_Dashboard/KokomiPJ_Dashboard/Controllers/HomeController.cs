@@ -1,5 +1,3 @@
-
-
 namespace KokomiPJ_Dashboard.Controllers;
 
 /// <summary>

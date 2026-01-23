@@ -12,18 +12,12 @@ public sealed class  KokomiAPIOptions
     public bool UseMock { get; set; } = true;
 
     /// <summary>
-    /// Mock JSON 文件路径（相对 ContentRoot 或输出目录）
-    /// 例如：Mocks/response.json
+    /// Mock JSON 文件路径
     /// </summary>
-    public string MockJsonPath { get; set; } = "Mocks/response.json";
+    public string MockJsonPath { get; set; } = "Contents/Mocks/KKMReqMocks/response_1768999593248.json";
 
     /// <summary>
-    /// 真实 API BaseUrl（例如：https://your-api-host）
+    /// 真实 API BaseUrl（例如：https://localhost:8000）
     /// </summary>
     public string BaseUrl { get; set; } = "";
-
-    /// <summary>
-    /// 真实 API Endpoint（例如：/APIStatus/ReqStats）
-    /// </summary>
-    public string Endpoint { get; set; } = "/APIStatus/ReqStats";
 }

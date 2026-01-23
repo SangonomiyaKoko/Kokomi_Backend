@@ -4,26 +4,126 @@
 }
 
 <div id="app" class="page">
-    <a-card v-cloak title="KokomiPJ_Dashboard_ReqStats" body-style="display:flex;align-items:baseline;justify-content:center;min-height:90vh">
-      我还没做，先就这样吧
-    </a-card>
+    <a-space align="start">
+        <a-card v-cloak title="KokomiPJ_Dashboard_ReqStats" style="width:50vw" body-style="display:flex;align-items:baseline;justify-content:center;min-height:90vh;background-color:gary">
+            <a-row :gutter="[16, 24]">
+               <a-col :span="24">
+                    <a-row justify="space-evenly">
+
+                        <a-col v-for="item in todayStatsList"
+                               :key="item.label"
+                               :span="4">
+                            <a-card hoverable>
+                                <a-statistic :title="item.label"
+                                             :value="item.value">
+                                </a-statistic>
+                            </a-card>
+                        </a-col>
+
+                   </a-row>
+               </a-col>
+
+                <a-col :span="24" >
+                    <a-card title="API Request Today">
+                        <div ref="chartTodayEl" class="chart"></div>
+                    </a-card>
+                </a-col>
+
+                <a-col :span="24">
+                    <a-card>
+                        chart_2
+                    </a-card>
+                </a-col>
+
+                <a-col :span="24">
+                    <a-card>
+                        chart_3
+                    </a-card>
+                </a-col>
+
+                <a-col :span="24">
+                    <a-card>
+                        chart_4
+                    </a-card>
+                </a-col>
+
+            </a-row>
+        </a-card>
+    </a-space>
+
 </div>
 
 @section scripts {
+    <script src="~/js/echarts/echarts.min.js"></script>
 <script type="module" >
+   
+    var serverApiData =  @Html.Raw(ViewBag.apiData ?? "null");
     const { createApp, reactive, computed, onMounted, onBeforeUnmount, ref } = Vue;
-    const activeLink = '@Url.Action("ReqStats", "APIStatus")';
     const app = createApp({
         setup() {
-           
-            return { navItems, onCardClick };
-         }
+            //获取后端给的api信息
+            const apiData = ref(serverApiData.data);
+
+            //#region 处理第一行的信息展示卡片区域数据
+
+            const todayStatsList = ref(
+                    Object.entries(apiData.value.metrics.today).map(([key, value]) => ({
+                label: key,
+                value: value
+                }))
+            )
+
+            //#endregion
+            
+            //#region 处理第二行，API请求信息折线图
+            const chartTodayEl = ref(null);
+            let chartToday = null;
+
+            // ✅ 生成折线图 option（你的结构：keys + series）
+            const buildTodayLineOption = (model) => {
+                return {
+                    tooltip: { trigger: "axis" },
+                    grid: { left: 40, right: 16, top: 20, bottom: 30 },
+                    xAxis: { type: "category", data: model.keys },
+                    yAxis: { type: "value" },
+                    series: (model.series || []).map(s => ({
+                    name: s.name,
+                    type: "line",          
+                    data: s.data,          
+                    smooth: true,
+                    symbolSize: 6,
+                    connectNulls: true    // null 处断开；想连起来改 true :contentReference[oaicite:2]{index=2}
+                    }))
+                };
+            };
+            const handleResize = () => chartToday && chartToday.resize();
+            //#endregion
+           onMounted(() => {
+            const model = apiData.value.metrics.api_request_today;
+            if (!model || !chartTodayEl.value) return;
+            chartToday = echarts.init(chartTodayEl.value);
+            chartToday.setOption(buildTodayLineOption(model));
+
+            window.addEventListener("resize", handleResize);
+          });
+
+          onBeforeUnmount(() => {
+            window.removeEventListener("resize", handleResize);
+            chartToday && chartToday.dispose(); // 释放资源避免泄漏 :contentReference[oaicite:4]{index=4}
+            chartToday = null;
+          });
+
+           return { apiData,todayStatsList, chartTodayEl };
+        }
     });
 
     app.use(antd);
     app.mount('#app');
 </script>
 <style>
-        
+        .chart {
+            height: 260px;
+            width: 100%;
+        }
 </style>
 }

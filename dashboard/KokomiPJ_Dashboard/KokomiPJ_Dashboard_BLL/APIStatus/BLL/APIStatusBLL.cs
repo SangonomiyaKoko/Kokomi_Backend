@@ -1,16 +1,13 @@
-﻿
-using KokomiPJ_Dashboard_BLL.APIStatus.IBLL;
-using KokomiPJ_Dashboard_BLL.Models;
+﻿using KokomiPJ_Dashboard_BLL.APIStatus.IBLL;
 using KokomiPJ_Dashboard_BLL.Models.Dtos.KokomiAPI;
 
-using Microsoft.Extensions.Options;
 
 namespace KokomiPJ_Dashboard_BLL.APIStatus.BLL;
 
 /// <summary>
-/// 
+/// API请求业务类
 /// </summary>
-public class APIStatusBLL:IAPIStatusBLL
+public class APIStatusBLL:DBServiceBase,IAPIStatusBLL
 {
     #region 私有属性
 
@@ -93,7 +90,7 @@ public class APIStatusBLL:IAPIStatusBLL
     /// </summary>
     private async Task<ApiEnvelopeRaw<ApiStatusDataRaw>> RequestRealApiAsync(CancellationToken ct)
     {
-        var json = await _httpClient.GetStringAsync(_opt.Endpoint, ct);
+        var json = await _httpClient.GetStringAsync(_opt.BaseUrl+ "status/?page=api", ct);
 
         var dto = JsonConvert.DeserializeObject<ApiEnvelopeRaw<ApiStatusDataRaw>>(json);
 

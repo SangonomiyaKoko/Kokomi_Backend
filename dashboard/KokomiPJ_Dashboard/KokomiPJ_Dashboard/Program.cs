@@ -19,6 +19,23 @@ public class Program
 
         //往DI容器内注入HttpclientFactory
         builder.Services.AddHttpClient();
+
+        //读取Appsetting.json中的API选项相关作为
+        builder.Services.Configure<KokomiAPIOptions>(
+        builder.Configuration.GetSection("KokomiAPIOptions"));
+
+        //为API请求业务注入HttpClient
+        builder.Services.AddHttpClient<IAPIStatusBLL, APIStatusBLL>((sp, client) =>
+        {
+            var opt = sp.GetRequiredService
+            <Microsoft.Extensions.Options.IOptions<KokomiAPIOptions>>().Value;
+
+            if (!string.IsNullOrWhiteSpace(opt.BaseUrl))
+                client.BaseAddress = new Uri(opt.BaseUrl);
+
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+
         var app = builder.Build();
 
        
