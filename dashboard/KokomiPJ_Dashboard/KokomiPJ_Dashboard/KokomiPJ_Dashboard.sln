@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KokomiPJ_Dashboard", "KokomiPJ_Dashboard.csproj", "{FD15FB70-58B5-40FC-910F-10B648CAA0C6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0000_UI", "0000_UI", "{5B607498-2EA0-42F5-9968-232B6FFE3205}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0001_BLL", "0001_BLL", "{26999F5F-9D42-4D8F-8DFA-CD0BCA841FDB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KokomiPJ_Dashboard_BLL", "..\KokomiPJ_Dashboard_BLL\KokomiPJ_Dashboard_BLL.csproj", "{0FBB4B95-AF61-485D-A554-E7C8387477DA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0003_Utils", "0003_Utils", "{D6965D37-93A3-44AF-B0DC-7919128FD459}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FD15FB70-58B5-40FC-910F-10B648CAA0C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD15FB70-58B5-40FC-910F-10B648CAA0C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD15FB70-58B5-40FC-910F-10B648CAA0C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD15FB70-58B5-40FC-910F-10B648CAA0C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FBB4B95-AF61-485D-A554-E7C8387477DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FBB4B95-AF61-485D-A554-E7C8387477DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FBB4B95-AF61-485D-A554-E7C8387477DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FBB4B95-AF61-485D-A554-E7C8387477DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FD15FB70-58B5-40FC-910F-10B648CAA0C6} = {5B607498-2EA0-42F5-9968-232B6FFE3205}
+		{0FBB4B95-AF61-485D-A554-E7C8387477DA} = {26999F5F-9D42-4D8F-8DFA-CD0BCA841FDB}
+	EndGlobalSection
+EndGlobal
