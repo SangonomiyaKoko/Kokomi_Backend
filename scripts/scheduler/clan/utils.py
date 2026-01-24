@@ -284,7 +284,7 @@ def update_clan_season(clan_season: dict):
                     battle_time = last_battle_time
                     if battles == 1:
                         temp_list = None
-                        temp_list = [battle_time, clan_id, region_id, team_number]
+                        temp_list = [battle_time, region_id, clan_id, team_number]
                         if wins == 1:
                             temp_list += ['victory']
                         else:
@@ -299,9 +299,9 @@ def update_clan_season(clan_season: dict):
                         if (
                             new_team_data[team_number]['stage_type'] and 
                             new_team_data[team_number]['stage_progress'] != None and 
-                            new_team_data[team_number]['stage_progress'] != '[]'
+                            new_team_data[team_number]['stage_progress'] != []
                         ):
-                            stage_progress = eval(new_team_data[team_number]['stage_progress'])
+                            stage_progress = new_team_data[team_number]['stage_progress']
                             if stage_progress[len(stage_progress) - 1] == 1:
                                 temp_list += ['+★']
                             else:
@@ -314,11 +314,11 @@ def update_clan_season(clan_season: dict):
                             new_team_data[team_number]['division_rating'],
                             new_team_data[team_number]['public_rating'],
                             new_team_data[team_number]['stage_type'],
-                            new_team_data[team_number]['stage_progress']
+                            str(new_team_data[team_number]['stage_progress']) if new_team_data[team_number]['stage_progress'] else None
                         ]
                         insert_data_list.append(temp_list)
                     else:
-                        temp_list = [battle_time, clan_id, region_id, team_number]
+                        temp_list = [battle_time, region_id, clan_id, team_number]
                         if wins == 2:
                             insert_data_list.append(temp_list+['victory'])
                             insert_data_list.append(temp_list+['victory'])
@@ -336,7 +336,7 @@ def update_clan_season(clan_season: dict):
                     battle_time = last_battle_time
                     if battles == 1:
                         temp_list = None
-                        temp_list = [battle_time, clan_id, region_id, team_number]
+                        temp_list = [battle_time, region_id, clan_id, team_number]
                         if wins == 1:
                             temp_list += ['victory']
                         else:
@@ -348,11 +348,11 @@ def update_clan_season(clan_season: dict):
                             new_team_data[team_number]['division_rating'],
                             new_team_data[team_number]['public_rating'],
                             new_team_data[team_number]['stage_type'],
-                            new_team_data[team_number]['stage_progress']
+                            str(new_team_data[team_number]['stage_progress']) if new_team_data[team_number]['stage_progress'] else None
                         ]
                         insert_data_list.append(temp_list)
                     else:
-                        temp_list = [battle_time, clan_id, region_id, team_number]
+                        temp_list = [battle_time, region_id, clan_id, team_number]
                         if wins == 2:
                             insert_data_list.append(temp_list+['victory'])
                             insert_data_list.append(temp_list+['victory'])
@@ -404,8 +404,8 @@ def update_clan_season(clan_season: dict):
         ])
         for insert_data in insert_data_list:
             if len(insert_data) == 13:
-                sql = """
-                    INSERT INTO clan_battle_s%s (
+                sql = f"""
+                    INSERT INTO clan_battle_s{SEASON_ID} (
                         battle_time, 
                         region_id, 
                         clan_id, 
@@ -423,10 +423,10 @@ def update_clan_season(clan_season: dict):
                         FROM_UNIXTIME(%s),%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s
                     );
                 """
-                cursor.execute(sql, [SEASON_ID] + insert_data)
+                cursor.execute(sql, insert_data)
             else:
-                sql = """
-                    INSERT INTO clan_battle_s%s (
+                sql = f"""
+                    INSERT INTO clan_battle_s{SEASON_ID} (
                         battle_time, 
                         region_id, 
                         clan_id, 
@@ -436,7 +436,7 @@ def update_clan_season(clan_season: dict):
                         FROM_UNIXTIME(%s),%s,%s,%s,%s
                     );
                 """
-                cursor.execute(sql,[SEASON_ID] + insert_data)
+                cursor.execute(sql,insert_data)
         conn.commit()
         return result
     except Exception as e:

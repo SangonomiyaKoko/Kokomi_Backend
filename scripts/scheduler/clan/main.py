@@ -14,7 +14,8 @@ def main():
         # 设置一个key标记程序正在运行
         redis_client.set(f'status:{CLIENT_NAME}', 1, ex=REFRESH_INTERVAL+60)
         st = time.time() # 程序开始运行时间，计算后续休眠时间
-        if is_cb_active == True:
+        # if is_cb_active() == True:
+        if True:
             total_clan_ids = []
             region_name_list = {1: 'Asia',2: 'Eu',3: 'Na',4: 'Ru',5: 'Cn'}
             # 俄服不计入
