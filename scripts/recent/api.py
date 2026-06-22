@@ -92,7 +92,7 @@ async def fetch_user_recent_data(
         account_id: 用户 ID
 
     Returns:
-        成功时返回 [basic_data, ships_data, pvp_data] 三个响应
+        成功时返回 [basic_data, ships_data] 响应
         失败时返回 None
     """
     try:

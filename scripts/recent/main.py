@@ -17,10 +17,11 @@ from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from exception import write_exception
-from updater import UserStats, UserUpdater, UserRecentUpdater
+from updater import UserStats, UserUpdater
+from refresher import UserRecentUpdater
 from syncer import UserStatsSyncer
 from api import fetch_user_recent_data
-from db_ops import get_recent_users
+from db_ops import get_recent_users, disable_user
 from utils import get_current_timestamp
 from settings import (
     REGION, 
@@ -62,13 +63,21 @@ def progress_iterable(
             yield item
 
 async def worker(mysql_connection: Connection, redis_client: Redis, async_client: AsyncClient):
+    # 待更新用户列表
+    # [user_id, level, limit, user_stats, stats_time], ...
     update_list = []
+    # 待删除用户列表
+    disable_list = []
+
     try:
         with mysql_connection.cursor() as cursor:
             rows = get_recent_users(cursor)
             for row in rows:
+                if row[0] != 2023619512:
+                    continue
                 # 不可用用户直接退出
                 if row[3] == 0:
+                    disable_list.append(row[0])
                     continue
 
                 # 用户level信息
@@ -104,10 +113,11 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
         current_timestamp = get_current_timestamp()
         
         try:
+            # 检查用户数据是否需要更新
             # 对比mysql和sqlite数据库中用户的基本数据
-            # 找出需要更新的用户
             result = UserUpdater.main(
                 account_id=account_id,
+                user_limit=user_limit,
                 current_timestamp=current_timestamp,
                 user_latest_stats=user_stats,
                 user_update_time=update_time
@@ -157,14 +167,14 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 continue
 
             try:
-                await UserRecentUpdater.main(
+                result = await UserRecentUpdater.main(
                     account_id=account_id,
                     user_level=user_level,
-                    user_limit=user_limit,
                     responses=responses,
                     current_timestamp=current_timestamp,
                     update_timestamp=update_timestamp
                 )
+                logger.info(f'{account_id} | {result}')
             finally:
                 redis_client.delete(lock_key)
         except Exception as e:

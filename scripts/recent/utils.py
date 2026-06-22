@@ -34,3 +34,15 @@ def get_reset_date(current_timestamp: int) -> int:
     reset_timestamp = current_timestamp + TIMEZOEN * 3600 - SERVER_RESET_OFFSET * 3600
     strftime = datetime.fromtimestamp(reset_timestamp, timezone.utc).strftime("%Y%m%d")
     return int(strftime)
+
+def get_reset_date_list(current_timestamp: int, start_date: int) -> list:
+    result = []
+    for _ in range(1000):
+        reset_timestamp = current_timestamp + TIMEZOEN * 3600 - SERVER_RESET_OFFSET * 3600
+        strftime = int(datetime.fromtimestamp(reset_timestamp, timezone.utc).strftime("%Y%m%d"))
+        result.append(strftime)
+        if strftime == start_date:
+            break
+        current_timestamp -= 86400
+    result.reverse()
+    return result   

@@ -21,3 +21,13 @@ def get_recent_users(cursor: Cursor):
     """
     cursor.execute(sql)
     return cursor.fetchall()
+
+def disable_user(cursor: Cursor, account_id: int):
+    sql = """
+        UPDATE T_user_config 
+        SET 
+            user_level = 0, 
+            storage_limit = 0 
+        WHERE account_id = %s;
+    """
+    cursor.execute(sql, [account_id])

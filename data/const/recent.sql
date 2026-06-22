@@ -33,14 +33,13 @@ CREATE TABLE IF NOT EXISTS ship_latest_cache (
 -- 日期-快照映射表
 -- 将一个日期下的所有船只快照索引打包成JSON对象
 CREATE TABLE IF NOT EXISTS daily_snapshot_index (
-
-    id               INTEGER      PRIMARY KEY,
+    id                INTEGER      PRIMARY KEY,
 
     snapshot_date     INT          UNIQUE,                    -- 快照日期，格式：YYYYMMDD（唯一）
     ship_count        INT          DEFAULT 0,                 -- 该映射刷新时间
     ship_map          TEXT         NOT NULL,                  -- 该映射刷新时间
 
-    updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
+    updated_at        DATETIME     DEFAULT CURRENT_TIMESTAMP
 );
 
 
