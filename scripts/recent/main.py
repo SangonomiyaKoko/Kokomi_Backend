@@ -89,7 +89,7 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                     update_list.append([row[0],user_level,user_limit,None,None])
                     continue
                 
-                # 用户在数据库中的最新stats数据
+                # 读取用户在数据库中的最新stats数据
                 user_stats = UserStats(
                     is_public=row[4],
                     total_battles=row[5],
@@ -109,10 +109,18 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
         )
     
     for account_id, user_level, user_limit, user_stats, update_time in update_list:
-        # 只读取一次时间戳避免计算日期时出现不一致问题
-        current_timestamp = get_current_timestamp()
-        
         try:
+            # 只读取一次时间戳避免计算日期时出现不一致问题
+            current_timestamp = get_current_timestamp()
+
+            # 设置分布式锁防止出现并发写问题
+            lock_key = f"refresh_lock:recent:{account_id}"
+            lock_acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
+            if not lock_acquired:
+                # 获取锁失败则直接跳过
+                logger.info(f'{account_id} | Failed to acquire lock')
+                continue
+
             # 检查用户数据是否需要更新
             # 对比mysql和sqlite数据库中用户的基本数据
             result = UserUpdater.main(
@@ -122,9 +130,12 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 user_latest_stats=user_stats,
                 user_update_time=update_time
             )
-            if not result:
-                continue
 
+            # # 对于没有变动的用户不需要更新
+            # if not result:
+            #     continue
+            
+            # 读取用户的最新数据
             responses = await fetch_user_recent_data(async_client, redis_client, account_id)
             if not responses:
                 logger.info(f'{account_id} | Failed to obtain data')
@@ -132,7 +143,7 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 
             basic_data = responses[0]
             
-            # 刷新 MySQL 的用户基础信息
+            # 先刷新 MySQL 的用户基础信息
             try:
                 update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data)
             except Exception as e:
@@ -156,27 +167,19 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 basic_data is None or 
                 'statistics' not in basic_data
             ):
+                if account_id not in disable_list:
+                    disable_list.append(account_id)
                 logger.info(f'{account_id} | User not found')
                 continue
 
-            # 设置分布式锁防止出现并发写问题
-            lock_key = f"refresh_lock:recent:{account_id}"
-            lock_acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
-            if not lock_acquired:
-                logger.info(f'{account_id} | Failed to acquire lock')
-                continue
-
-            try:
-                result = await UserRecentUpdater.main(
-                    account_id=account_id,
-                    user_level=user_level,
-                    responses=responses,
-                    current_timestamp=current_timestamp,
-                    update_timestamp=update_timestamp
-                )
-                logger.info(f'{account_id} | {result}')
-            finally:
-                redis_client.delete(lock_key)
+            result = await UserRecentUpdater.main(
+                account_id=account_id,
+                user_level=user_level,
+                responses=responses,
+                current_timestamp=current_timestamp,
+                update_timestamp=update_timestamp
+            )
+            logger.info(f'{account_id} | {result}')
         except Exception as e:
             error_name = type(e).__name__
             logger.error(f'{account_id} | Refresh failed: {error_name}')
@@ -185,6 +188,9 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 error_name=error_name,
                 error_info=traceback.format_exc()
             )
+        finally:
+            # 删除分布式锁
+            redis_client.delete(lock_key)
 
 async def main():
     redis_client = None

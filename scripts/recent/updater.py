@@ -264,8 +264,7 @@ class UserUpdater:
                         continue
 
                     # 缺失某个日期的数据
-                    cls._insert_daily_summary(cursor, summary_date, last_summary_date)
-                    logger.debug(f'{account_id} | Fixed row: {summary_date} - {last_summary_date}')
+                    cls._insert_daily_summary(cursor, summary_date, list(daily_summary[last_summary_date]))
                     conn.commit()
                 
                 last_daily_summary = daily_summary[last_summary_date]

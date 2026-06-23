@@ -59,8 +59,11 @@ class UserRecentUpdater:
         sql = """
             SELECT 
                 is_public, 
+                total_battles, 
+                pve_battles, 
                 pvp_battles, 
                 ranked_battles, 
+                karma, 
                 index_table, 
                 updated_at
             FROM user_daily_summary 
@@ -240,6 +243,18 @@ class UserRecentUpdater:
         """
         cursor.execute(sql, [snapshot_date, ship_count, ship_map])
 
+    @staticmethod
+    def _update_snapshot_index(cursor: Cursor, snapshot_date: int, ship_count: int, ship_map: dict):
+        sql = """
+            UPDATE daily_snapshot_index 
+            SET 
+                ship_count = ?, 
+                ship_map = ?
+            WHERE snapshot_date = ?;
+        """
+        cursor.execute(sql, [ship_count, ship_map, snapshot_date])
+
+    @staticmethod
     def _calc_recent_diff(ship_id: int, new_list: list, old_list: list) -> list:
         modes = ['pvp_solo', 'pvp_div2', 'pvp_div3', 'rank_solo']
         params = []
@@ -257,7 +272,7 @@ class UserRecentUpdater:
 
             # 计算各字段差值（新 - 旧）
             delta_battles = new_data[0] - old_data[0]
-            if delta_battles <= 0 or delta_battles >= 3:
+            if delta_battles <= 0:
                 continue
 
             delta_wins = new_data[1] - old_data[1]
@@ -283,7 +298,8 @@ class UserRecentUpdater:
 
         return params
 
-    def _read_daily_snapshot(cursor: Cursor, ship_id: int, snapshot_date: int):
+    @staticmethod
+    def _read_ship_snapshot(cursor: Cursor, ship_id: int, snapshot_date: int):
         sql = """
             SELECT snapshot_data 
             FROM ship_daily_snapshot 
@@ -292,26 +308,6 @@ class UserRecentUpdater:
         """
         cursor.execute(sql, [ship_id, snapshot_date])
         return cursor.fetchone()
-
-    def _refresh_snapshot_index(cursor: Cursor, existing: bool, snapshot_date: int, ship_count: int, ship_map: dict):
-        if existing:
-            sql = """
-                UPDATE daily_snapshot_index 
-                SET 
-                    ship_count = ?, 
-                    ship_map = ?
-                WHERE snapshot_date = ?;
-            """
-            cursor.execute(sql, [ship_count, ship_map, snapshot_date])
-        else:
-            sql = """
-                INSERT INTO daily_snapshot_index (
-                    snapshot_date, ship_count, ship_map
-                ) VALUES (
-                    ?,?,?
-                );
-            """
-            cursor.execute(sql, [snapshot_date, ship_count, ship_map])
 
     @staticmethod
     def _refresh_latest_cache(cursor: Cursor, params: dict):
@@ -333,6 +329,12 @@ class UserRecentUpdater:
                     snapshot_date = ?, 
                     updated_at = CURRENT_TIMESTAMP 
                 WHERE ship_id = ?;
+            """
+            cursor.executemany(sql, params['update'])
+        
+        if len(params['delete']) > 0:
+            sql = """
+                DELETE FROM ship_latest_cache WHERE ship_id = ?;
             """
             cursor.executemany(sql, params['update'])
 
@@ -359,6 +361,7 @@ class UserRecentUpdater:
             """
             cursor.executemany(sql, params['update'])
 
+    @staticmethod
     def _insert_user_recent_stats(cursor: Cursor, rows: list):
         if len(rows) > 0:
             sql = """
@@ -472,7 +475,8 @@ class UserRecentUpdater:
         latest_ship_map = {}
         latest_ship_cache = {
             'insert': [],
-            'update': []
+            'update': [],
+            'delete': []
         }
         latest_shapshot = {
             'insert': [],
@@ -494,16 +498,28 @@ class UserRecentUpdater:
             ])
             
             # 数据库中没有用户数据
-            if now_daily_summary[0] is None and now_daily_summary[1] is None and now_ship_cache == {}:
+            if now_daily_summary[0] is None and now_daily_summary[1] is None:
                 for ship_id, ship_data in latest_dict.items():
-                    latest_ship_cache['insert'].append([
-                        ship_id, ship_data['battles'], reset_date[1]
-                    ])
-                    latest_shapshot['insert'].append([
-                        ship_id, reset_date[1], cls._ship_snapshot_encode(ship_data['values'])
-                    ])
+                    if ship_id not in now_ship_cache:
+                        latest_ship_cache['insert'].append([
+                            ship_id, ship_data['battles'], reset_date[1]
+                        ])
+                        latest_shapshot['insert'].append([
+                            ship_id, reset_date[1], cls._ship_snapshot_encode(ship_data['values'])
+                        ])
+                        latest_ship_map[ship_id] = reset_date[1]
+                    else:
+                        latest_ship_cache['update'].append([
+                            ship_id, ship_data['battles'], reset_date[1]
+                        ])
+                        if ship_data['battles'] == now_ship_cache[ship_id][0]:
+                            latest_ship_map[ship_id] = now_ship_cache[ship_id][1]
+                        else:
+                            latest_shapshot['insert'].append([
+                                ship_id, reset_date[1], cls._ship_snapshot_encode(ship_data['values'])
+                            ])
+                            latest_ship_map[ship_id] = reset_date[1]
                     latest_ship_count += 1
-                    latest_ship_map[ship_id] = reset_date[1]
 
                 try:
                     cursor.execute("BEGIN IMMEDIATE")
@@ -528,72 +544,111 @@ class UserRecentUpdater:
                 finally:
                     cursor.close()
 
-            return 'New user'
+                return 'New user'
             
-        return 'Success'
-        # 用户有本地缓存数据，但是没有今日数据的updated_at
-        # 可能是异常导致的数据存在缺失
-        if local_date_summary[4] is None:
-            changed_rows = 0
-            yesterday = get_reset_date(current_timestamp-86400)
+            # 有昨日数据但是没有今日数据，先复制一份昨日数据到今日下
+            if now_daily_summary[0] is None and now_daily_summary[1]:
+                user_latest_stats = UserStats(
+                    is_public=now_daily_summary[1][0],
+                    total_battles=now_daily_summary[1][1],
+                    pve_battles=now_daily_summary[1][2],
+                    pvp_battles=now_daily_summary[1][3],
+                    ranked_battles=now_daily_summary[1][4],
+                    karma=now_daily_summary[1][5]
+                )
+                cls._insert_daily_summary(cursor, reset_date[0], user_latest_stats, now_daily_summary[1][6], now_daily_summary[1][7])
+                now_daily_summary[0] = now_daily_summary[1].copy()
+                conn.commit()
+            
+            # 正常用户
+            changed_count = 0
+            changed_list = {}
+            insert_recent_list = []
+
+            if (
+                user_level == 2 and 
+                current_timestamp - now_daily_summary[0][7] <= 3600
+            ):
+                is_pro = True
+            else:
+                is_pro = False
+
             for ship_id, ship_data in latest_dict.items():
-                if ship_id not in local_dict:
-                    changed_rows += 1
+                # 基于数据库中本地的ship_cache来分类数据
+                # 1. ship_id不在本地缓存中，插入新船只
+                # 2. 船只的数据和本地缓存中存在差异，更新船只信息
+                # 3. 数据没有修改，沿用旧数据索引
+                if ship_id not in now_ship_cache:
                     latest_ship_cache['insert'].append([
-                        ship_id, ship_data['battles'], yesterday
+                        ship_id, ship_data['battles'], reset_date[0]
                     ])
                     latest_shapshot['insert'].append([
-                        ship_id, yesterday, cls._ship_snapshot_encode(ship_data['values'])
+                        ship_id, reset_date[0], cls._ship_snapshot_encode(ship_data['values'])
                     ])
+
+                    # 处理pro权限用户
+                    if is_pro:
+                        changed_list[ship_id] = [ship_data['values'], [None] * 4]
+
+                    changed_count += 1
                     latest_ship_count += 1
-                    latest_ship_map[ship_id] = yesterday
-                elif ship_data['battles'] != local_dict[ship_id][0]:
-                    changed_rows += 1
-                    latest_ship_cache['insert'].append([
-                        int(ship_id), ship_data['battles'], yesterday
+                    latest_ship_map[ship_id] = reset_date[0]
+                elif ship_data['battles'] != now_ship_cache[ship_id][0]:
+                    latest_ship_cache['update'].append([
+                        ship_data['battles'], reset_date[0], int(ship_id)
                     ])
-                    latest_shapshot['insert'].append([
-                        ship_id, yesterday, cls._ship_snapshot_encode(ship_data['values'])
-                    ])
+                    if now_ship_cache[ship_id][1] == reset_date[0]:
+                        latest_shapshot['update'].append([
+                            reset_date[0], cls._ship_snapshot_encode(ship_data['values']), ship_id
+                        ])
+                    else:
+                        latest_shapshot['insert'].append([
+                            ship_id, reset_date[0], cls._ship_snapshot_encode(ship_data['values'])
+                        ])
+                        
+                    # 处理pro权限用户
+                    if is_pro and ship_data['battles'] > now_ship_cache[ship_id][0]:
+                        local_snapshot = cls._read_ship_snapshot(cursor, ship_id, now_ship_cache[ship_id][1])
+                        if local_snapshot:
+                            local_snapshot = cls._ship_snapshot_decode(local_snapshot[0])
+                            changed_list[ship_id] = [ship_data['values'], local_snapshot]
+
+                    changed_count += 1
                     latest_ship_count += 1
-                    latest_ship_map[ship_id] = now_date
+                    latest_ship_map[ship_id] = reset_date[0]
                 else:
                     # 本地数据和最新数据间没有修改
                     latest_ship_count += 1
-                    latest_ship_map[ship_id] = local_dict[ship_id][1]
-            
-            # 没有数据改变
-            if changed_rows == 0:
-                try:
-                    cursor.execute("BEGIN IMMEDIATE")
-                    cls._update_daily_summary(cursor, yesterday, user_latest_stats, yesterday, update_timestamp)
-                    cls._update_daily_summary(cursor, now_date, user_latest_stats, yesterday, update_timestamp)
-                    cls._refresh_snapshot_index(cursor, False, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
-                    cursor.execute("COMMIT")
+                    latest_ship_map[ship_id] = now_ship_cache[ship_id][1]
 
-                    logger.debug(f'{account_id} | Fix database / No changed (2005)')
-                except Exception as e:
-                    cursor.execute("ROLLBACK")
-                    error_name = type(e).__name__
-                    logger.error(f'{account_id} | Database operation error: {error_name}')
-                    write_exception(
-                        error_type="DatabaseError",
-                        error_name=error_name,
-                        error_info=traceback.format_exc()
-                    )
-                finally:
-                    cursor.close()
-                    
-                return 
-            
-            # 有数据改变
+            # 在本地缓存中但是不在用户的最新数据中，删除
+            for ship_id, _ in now_ship_cache.items():
+                if ship_id not in latest_dict:
+                    changed_count += 1
+                    latest_ship_cache['delete'].append(ship_id)
+
+            # 存在近期数据
+            if changed_list != {}:
+                for ship_id, ship_data in changed_list.items():
+                    diff_params = cls._calc_recent_diff(ship_id, ship_data[0], ship_data[1])
+                    insert_recent_list = diff_params
+
+            logger.info(f'{account_id} | {changed_count} {insert_recent_list}')
+
             try:
                 cursor.execute("BEGIN IMMEDIATE")
-                cls._update_daily_summary(cursor, yesterday, user_latest_stats, yesterday, update_timestamp)
-                cls._update_daily_summary(cursor, now_date, user_latest_stats, yesterday, update_timestamp)
-                cls._refresh_snapshot_index(cursor, False, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
+                if changed_count == 0:
+                    cls._update_daily_summary(cursor, reset_date[0], user_latest_stats, now_daily_summary[0][6], update_timestamp)
+                else:
+                    cls._update_daily_summary(cursor, reset_date[0], user_latest_stats, reset_date[0], update_timestamp)
+                    if now_daily_summary[0][6] == str(reset_date[0]):
+                        cls._update_snapshot_index(cursor, reset_date[0], latest_ship_count, cls._ship_map_encode(latest_ship_map))
+                    else:
+                        cls._insert_snapshot_index(cursor, reset_date[0], latest_ship_count, cls._ship_map_encode(latest_ship_map))
                 cls._refresh_latest_cache(cursor, latest_ship_cache)
                 cls._refresh_daily_snapshot(cursor, latest_shapshot)
+                cls._insert_user_recent_stats(cursor, insert_recent_list)
+
                 cursor.execute("COMMIT")
             except Exception as e:
                 cursor.execute("ROLLBACK")
@@ -604,86 +659,6 @@ class UserRecentUpdater:
                     error_name=error_name,
                     error_info=traceback.format_exc()
                 )
-                return 
-            logger.debug(f'{account_id} | Fix database / Changed (2006)')
-            return
-        
-        # 正常用户
-        changed_rows = 0
-        changed_list = {}
-        insert_recent_list = []
-
-        if (
-            user_level == 2 and 
-            current_timestamp - local_date_summary[4] <= 7200
-        ):
-            is_pro = True
-        else:
-            is_pro = False
-
-        for ship_id, ship_data in latest_dict.items():
-            if ship_id not in local_dict:
-                changed_rows += 1
-                latest_ship_cache['insert'].append([
-                    ship_id, ship_data['battles'], now_date
-                ])
-                latest_shapshot['insert'].append([
-                    ship_id, now_date, cls._ship_snapshot_encode(ship_data['values'])
-                ])
-
-                # 处理pro权限用户
-                if is_pro:
-                    changed_list[ship_id] = [ship_data['values'], [None]*4]
-
-                latest_ship_count += 1
-                latest_ship_map[ship_id] = now_date
-            elif ship_data['battles'] != local_dict[ship_id][0]:
-                changed_rows += 1
-                latest_ship_cache['update'].append([
-                    ship_data['battles'], now_date, int(ship_id)
-                ])
-                if local_dict[ship_id][1] == now_date:
-                    latest_shapshot['update'].append([
-                        now_date, cls._ship_snapshot_encode(ship_data['values']), ship_id
-                    ])
-                else:
-                    latest_shapshot['insert'].append([
-                        ship_id, now_date, cls._ship_snapshot_encode(ship_data['values'])
-                    ])
-                    
-                # 处理pro权限用户
-                if is_pro and ship_data['battles'] > local_dict[ship_id][0]:
-                    local_snapshot = cls._read_daily_snapshot(cursor, ship_id, local_dict[ship_id][1])
-                    if local_snapshot:
-                        local_snapshot = cls._ship_snapshot_decode(local_snapshot[0])
-                        changed_list[ship_id] = [ship_data['values'], local_snapshot]
-
-                latest_ship_count += 1
-                latest_ship_map[ship_id] = now_date
-            else:
-                # 本地数据和最新数据间没有修改
-                latest_ship_count += 1
-                latest_ship_map[ship_id] = local_dict[ship_id][1]
-    
-        if changed_list != {}:
-            for ship_id, ship_data in changed_list.items():
-                diff_params = cls._calc_recent_diff(ship_id, ship_data[0], ship_data[1])
-                insert_recent_list = diff_params
-
-        try:
-            cursor.execute("BEGIN IMMEDIATE")
-            cls._update_daily_summary(cursor, now_date, user_latest_stats, now_date, update_timestamp)
-            cls._refresh_snapshot_index(cursor, local_date_summary[3] == str(now_date), now_date, latest_ship_count, cls._ship_map_encode(latest_ship_map))
-            cls._refresh_latest_cache(cursor, latest_ship_cache)
-            cls._refresh_daily_snapshot(cursor, latest_shapshot)
-            cls._insert_user_recent_stats(cursor, insert_recent_list)
-            cursor.execute("COMMIT")
-        except Exception as e:
-            cursor.execute("ROLLBACK")
-            error_name = type(e).__name__
-            logger.error(f'{account_id} | Database operation error: {error_name}')
-            write_exception(
-                error_type="DatabaseError",
-                error_name=error_name,
-                error_info=traceback.format_exc()
-            )
+                return 'DatabaseError'
+            
+            return 'Success'
