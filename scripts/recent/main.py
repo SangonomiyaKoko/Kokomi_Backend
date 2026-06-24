@@ -73,8 +73,6 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
         with mysql_connection.cursor() as cursor:
             rows = get_recent_users(cursor)
             for row in rows:
-                if row[0] != 2023619512:
-                    continue
                 # 不可用用户直接退出
                 if row[3] == 0:
                     disable_list.append(row[0])
@@ -131,9 +129,9 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 user_update_time=update_time
             )
 
-            # # 对于没有变动的用户不需要更新
-            # if not result:
-            #     continue
+            # 对于没有变动的用户不需要更新
+            if not result:
+                continue
             
             # 读取用户的最新数据
             responses = await fetch_user_recent_data(async_client, redis_client, account_id)

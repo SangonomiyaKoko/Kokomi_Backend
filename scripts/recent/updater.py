@@ -223,10 +223,12 @@ class UserUpdater:
         
         # 用户数据库文件不存在，执行初始化数据库文件
         if not db_path.exists():
-            return cls._init_new_database(account_id, db_path)
-        
-        # 获取当日日期
-        now_date = get_reset_date(current_timestamp)
+            if not cls._init_new_database(account_id, db_path):
+                return False
+                
+        # 主数据库中不存在该用户的数据
+        if user_latest_stats is None:
+            return True
         
         try:
             with sqlite3.connect(db_path) as conn:
@@ -235,10 +237,10 @@ class UserUpdater:
 
                 # 新数据库文件（无任何 daily_summary 记录）
                 if daily_summary == {}:
-                    return True
-
-                # 获取连续的时间列表
-                summary_date_list = get_reset_date_list(current_timestamp, min(daily_summary.keys()))
+                    summary_date_list = []
+                else:
+                    # 获取连续的时间列表
+                    summary_date_list = get_reset_date_list(current_timestamp, min(daily_summary.keys()))
 
                 # 删除超出储存限制的记录(每10天删除一次)
                 if len(summary_date_list) >= user_limit + 10:
@@ -266,12 +268,33 @@ class UserUpdater:
                     # 缺失某个日期的数据
                     cls._insert_daily_summary(cursor, summary_date, list(daily_summary[last_summary_date]))
                     conn.commit()
-                
+
+                # 用户没有 daily_summary 数据
+                if last_summary_date is None:
+                    if not user_latest_stats['is_public']:
+                        cls._insert_daily_summary(cursor, get_reset_date(current_timestamp - 86400), [0]*6 + [None, user_update_time])
+                        cls._insert_daily_summary(cursor, get_reset_date(current_timestamp), [0]*6 + [None, user_update_time])
+                        conn.commit()
+                        return False
+                    elif user_latest_stats['pvp_battles'] + user_latest_stats['ranked_battles'] == 0:
+                        cls._insert_daily_summary(
+                            cursor, 
+                            get_reset_date(current_timestamp - 86400), 
+                            [1, user_latest_stats['total_battles'], user_latest_stats['pve_battles'], 0, 0, user_latest_stats['karma'], None, user_update_time]
+                        )
+                        cls._insert_daily_summary(
+                            cursor, 
+                            get_reset_date(current_timestamp), 
+                            [1, user_latest_stats['total_battles'], user_latest_stats['pve_battles'], 0, 0, user_latest_stats['karma'], None, user_update_time]
+                        )
+                        conn.commit()
+                        return False
+                    else:
+                        return True
+        
+                # 获取当日日期
+                now_date = get_reset_date(current_timestamp)
                 last_daily_summary = daily_summary[last_summary_date]
-                
-                # 主数据库中不存在该用户的数据
-                if user_latest_stats is None:
-                    return True
                 
                 # 用户当前隐藏战绩，不需要更新
                 if not user_latest_stats['is_public']:
