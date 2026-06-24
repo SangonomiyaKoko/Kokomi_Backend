@@ -174,8 +174,9 @@ class UserRecentUpdater:
         result = []
         for f in fields:
             if f == '':
-                continue
-            result.append(eval(f))
+                result.append(None)
+            else:
+                result.append(eval(f))
         return result
 
     @staticmethod
@@ -599,7 +600,7 @@ class UserRecentUpdater:
                     ])
                     if now_ship_cache[ship_id][1] == reset_date[0]:
                         latest_shapshot['update'].append([
-                            reset_date[0], cls._ship_snapshot_encode(ship_data['values']), ship_id
+                            cls._ship_snapshot_encode(ship_data['values']), ship_id, reset_date[0]
                         ])
                     else:
                         latest_shapshot['insert'].append([
@@ -631,10 +632,9 @@ class UserRecentUpdater:
             if changed_list != {}:
                 for ship_id, ship_data in changed_list.items():
                     diff_params = cls._calc_recent_diff(ship_id, ship_data[0], ship_data[1])
-                    insert_recent_list = diff_params
+                    insert_recent_list.extend(diff_params)
 
             logger.info(f'{account_id} | {changed_count} {insert_recent_list}')
-
             try:
                 cursor.execute("BEGIN IMMEDIATE")
                 if changed_count == 0:
