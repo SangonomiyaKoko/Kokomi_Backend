@@ -6,6 +6,7 @@ from pymysql.cursors import Cursor
 from logger import logger
 from settings import (
     USER_INIT_TABLE_LIST,
+    CLAN_ACTIVITY_STRATEGY,
     CLAN_ACTIVITY_THRESHOLDS
 )
 
@@ -246,11 +247,12 @@ class ClanUsersSyncer:
                 activity_level = %s,
                 member_count = %s, 
                 member_ids = %s, 
-                next_refresh_at = F_clan_next_refresh_at(%s), 
+                next_refresh_at = DATE_ADD(NOW(), INTERVAL %s SECOND), 
                 updated_at = NOW()
             WHERE clan_id = %s;
         """
-        cursor.execute(sql, [activity_level, len(user_ids), json.dumps(user_ids), activity_level, clan_id])
+        interval_seconds = CLAN_ACTIVITY_STRATEGY.get(f"0-{activity_level}", 30*86400)
+        cursor.execute(sql, [activity_level, len(user_ids), json.dumps(user_ids), interval_seconds, clan_id])
 
     @staticmethod
     def _record_member_changes(cursor: Cursor, clan_id: int, old_data: dict, user_ids: list) -> None:

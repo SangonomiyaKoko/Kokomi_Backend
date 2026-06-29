@@ -65,4 +65,5 @@ with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
     CLAN_ACTIVITY_THRESHOLDS: list = data['CLAN_ACTIVITY_THRESHOLDS']
+    CLAN_ACTIVITY_STRATEGY: dict = data['CLAN_ACTIVITY_STRATEGY']
 print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

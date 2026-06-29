@@ -57,6 +57,8 @@ class ConstantsConfig:
     CLAN_INIT_TABLE_LIST: list[str]
     SHIP_INIT_TABLE_LIST: list[str]
     USER_ACTIVITY_THRESHOLDS: list[list]
+    USER_ACTIVITY_STRATEGY: dict[str, int]
+    SPECIAL_ACTIVITY_STRATEGY: list[list]
 
 class EnvConfig:
     PLATFORM: Optional[str] = None
@@ -205,7 +207,9 @@ class EnvConfig:
             USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
             CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
             SHIP_INIT_TABLE_LIST=data['SHIP_INIT_TABLE_LIST'],
-            USER_ACTIVITY_THRESHOLDS=data['USER_ACTIVITY_THRESHOLDS']
+            USER_ACTIVITY_THRESHOLDS=data['USER_ACTIVITY_THRESHOLDS'],
+            USER_ACTIVITY_STRATEGY=data['USER_ACTIVITY_STRATEGY'],
+            SPECIAL_ACTIVITY_STRATEGY=data['SPECIAL_ACTIVITY_STRATEGY']
         )
 
     @classmethod

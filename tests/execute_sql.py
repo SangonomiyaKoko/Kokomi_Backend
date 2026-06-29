@@ -33,7 +33,10 @@ DB_CONFIG = {
 }
 
 sql = """
-DROP TABLE T_ship_name;
+DROP TABLE D_clan_activity_strategy;
+DROP TABLE D_user_activity_strategy;
+DROP FUNCTION F_user_next_refresh_at;
+DROP FUNCTION F_clan_next_refresh_at;
 """
 
 def main():

@@ -4,7 +4,9 @@ from pymysql.cursors import Cursor
 from utils import get_current_timestamp
 from settings import (
     REGION, 
-    USER_ACTIVITY_THRESHOLDS
+    USER_ACTIVITY_THRESHOLDS,
+    SPECIAL_ACTIVITY_STRATEGY,
+    USER_ACTIVITY_STRATEGY
 )
 
 class UserStatsSyncer:
@@ -33,12 +35,12 @@ class UserStatsSyncer:
         return "-".join(str(data[k]) for k in keys)
     
     @staticmethod
-    def _get_activity_level(last_battle_time: int | None) -> int:
+    def _get_activity_level(current_timestamp: int, last_battle_time: int | None) -> int:
         """根据最后战斗时间戳返回活跃等级（0-9）"""
         if not last_battle_time or last_battle_time <= 0:
             return 0
 
-        diff = get_current_timestamp() - last_battle_time
+        diff = current_timestamp - last_battle_time
 
         for threshold, level in USER_ACTIVITY_THRESHOLDS:
             if diff <= threshold:
@@ -47,7 +49,7 @@ class UserStatsSyncer:
         return 9
 
     @classmethod
-    def _extract_user_data(cls, account_id: int, response: dict) -> dict:
+    def _extract_user_data(cls, account_id: int, current_timestamp: int, response: dict) -> dict:
         """从 API 响应中提取用户基础数据"""
         user_data = {
             'username': None,
@@ -66,7 +68,7 @@ class UserStatsSyncer:
             'random_stats': {},
             'ranked_stats': {}
         }
-
+        
         user_info = response.get(str(account_id))
         
         # 无有效数据
@@ -116,7 +118,7 @@ class UserStatsSyncer:
             'username': user_info['name'],
             'register_time': register_time if register_time not in (0, None) else None,
             'insignias': cls._get_insignias(user_info.get('dog_tag')),
-            'activity_level': cls._get_activity_level(last_battle_time),
+            'activity_level': cls._get_activity_level(current_timestamp, last_battle_time),
             'total_battles': leveling_points,
             'karma': basic_data.get('karma', 0),
             'last_battle_at': last_battle_time,
@@ -235,7 +237,7 @@ class UserStatsSyncer:
             cursor.execute(sql, [account_id, old_username])
 
     @staticmethod
-    def _update_user_stats(cursor: Cursor, account_id: int, user_level: int, user_data: dict) -> int:
+    def _update_user_stats(cursor: Cursor, account_id: int, user_level: int, user_data: dict, current_timestamp: int, return_refresh_time: bool) -> int | None:
         """更新 T_user_stats 表"""
         if user_data['is_enabled'] == 0:
             # 账号不存在
@@ -257,12 +259,22 @@ class UserStatsSyncer:
                     is_enabled = 1, 
                     is_public = 0, 
                     activity_level = 0, 
-                    next_refresh_at = F_user_next_refresh_at(%s, 0), 
+                    next_refresh_at = DATE_ADD(NOW(), INTERVAL %s SECOND), 
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            cursor.execute(sql, [user_level, account_id])
+            cursor.execute(sql, [30*86400, account_id])
         else:
+            if user_level == 2 and user_data['activity_level'] == 1:
+                diff_timestamp = current_timestamp - user_data['last_battle_at']
+                interval_seconds = 600  # 默认 10min
+                for item in SPECIAL_ACTIVITY_STRATEGY:
+                    if diff_timestamp < item[0]:
+                        interval_seconds = item[1]
+                        break
+            else:
+                interval_seconds = USER_ACTIVITY_STRATEGY.get(f"{user_level}-{user_data['activity_level']}", 30*86400)
+
             sql = """
                 UPDATE T_user_stats 
                 SET 
@@ -276,26 +288,27 @@ class UserStatsSyncer:
                     rating_battles = %s, 
                     karma = %s, 
                     last_battle_at = FROM_UNIXTIME(%s), 
-                    next_refresh_at = F_user_next_refresh_at(%s, %s), 
+                    next_refresh_at = DATE_ADD(NOW(), INTERVAL %s SECOND), 
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
+
             cursor.execute(
                 sql,
                 [user_data['activity_level'], user_data['total_battles'], user_data['pve_battles'], 
                 user_data['pvp_battles'], user_data['ranked_battles'], user_data['rating_battles'], 
-                user_data['karma'], user_data['last_battle_at'], user_level, user_data['activity_level'], 
-                account_id]
+                user_data['karma'], user_data['last_battle_at'], interval_seconds, account_id]
             )
 
-        sql = """
-            SELECT 
-                UNIX_TIMESTAMP(updated_at) 
-            FROM T_user_stats
-            WHERE account_id = %s;
-        """
-        cursor.execute(sql, [account_id])
-        return cursor.fetchone()[0]
+        if return_refresh_time:
+            sql = """
+                SELECT 
+                    UNIX_TIMESTAMP(updated_at) 
+                FROM T_user_stats
+                WHERE account_id = %s;
+            """
+            cursor.execute(sql, [account_id])
+            return cursor.fetchone()[0]
 
     @staticmethod
     def _update_user_battles(cursor: Cursor, account_id: int, table_name: str, user_data: dict) -> None:
@@ -359,7 +372,7 @@ class UserStatsSyncer:
             cursor.execute(sql, [account_id])
 
     @classmethod
-    def refresh(cls, conn: Connection, account_id: int, api_result: dict) -> str | None:
+    def refresh(cls, conn: Connection, account_id: int, api_result: dict, return_refresh_time: bool = False) -> int | None:
         """基于用户基本信息接口的数据，刷新数据库的 user_stats 表
         
         eg. https://vortex.worldofwarships.asia/api/accounts/2023619512/
@@ -368,7 +381,8 @@ class UserStatsSyncer:
             None: 成功
             str: 错误类型名称
         """
-        user_data = cls._extract_user_data(account_id, api_result)
+        current_timestamp = get_current_timestamp()
+        user_data = cls._extract_user_data(account_id, current_timestamp, api_result)
         
         try:
             with conn.cursor() as cursor:
@@ -387,7 +401,7 @@ class UserStatsSyncer:
                 cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
                 
                 # 更新 T_user_stats
-                update_timestamp = cls._update_user_stats(cursor, account_id, user_level, user_data)
+                update_timestamp = cls._update_user_stats(cursor, account_id, user_level, user_data, current_timestamp, return_refresh_time)
 
                 # 更新 T_user_random / T_user_ranked
                 cls._update_user_battles(cursor, account_id, 'T_user_random', user_data['random_stats'])
@@ -397,7 +411,9 @@ class UserStatsSyncer:
                 cls._update_user_cache(cursor, account_id, user_data, random)
             
             conn.commit()
-            return update_timestamp
+
+            if return_refresh_time:
+                return update_timestamp
         except Exception:
             conn.rollback()
             raise

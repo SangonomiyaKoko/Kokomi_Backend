@@ -29,13 +29,10 @@ if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'
 else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
-SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
 LOG_LEVEL = os.getenv("LOG_LEVEL")
-SQLITE_DIR = os.getenv("SQLITE_DIR")
-if not SQLITE_DIR:
-    SQLITE_DIR = ROOT_DIR / 'data/db'
-else:
-    SQLITE_DIR = Path(os.getenv("SQLITE_DIR"))
+SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
+SQLITE_DIR = Path(os.getenv("SQLITE_DIR")) if os.getenv("SQLITE_DIR") else  ROOT_DIR / 'data/db'
+
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),
@@ -67,6 +64,8 @@ file_path = DATA_DIR / 'const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     USER_ACTIVITY_THRESHOLDS: list = data['USER_ACTIVITY_THRESHOLDS']
+    USER_ACTIVITY_STRATEGY: dict = data['USER_ACTIVITY_STRATEGY']
+    SPECIAL_ACTIVITY_STRATEGY: list = data['SPECIAL_ACTIVITY_STRATEGY']
 file_path = DATA_DIR / 'const/recent.sql'
 with open(file_path, "r", encoding="utf-8") as f:
     CREATE_SQL = f.read()

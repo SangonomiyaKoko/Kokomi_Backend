@@ -143,7 +143,7 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
             
             # 先刷新 MySQL 的用户基础信息
             try:
-                update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data)
+                update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data, True)
             except Exception as e:
                 error_name = type(e).__name__
                 logger.error(f'{account_id} | Database operation error: {error_name}')

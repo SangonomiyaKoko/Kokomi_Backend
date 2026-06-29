@@ -60,4 +60,6 @@ with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
     USER_ACTIVITY_THRESHOLDS: list = data['USER_ACTIVITY_THRESHOLDS']
+    USER_ACTIVITY_STRATEGY: dict = data['USER_ACTIVITY_STRATEGY']
+    SPECIAL_ACTIVITY_STRATEGY: list = data['SPECIAL_ACTIVITY_STRATEGY']
 print("[INIT] Configuration data loading complete")
