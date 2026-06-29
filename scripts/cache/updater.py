@@ -26,6 +26,7 @@ class UserCacheUpdater:
     """
     def __init__(
         self, 
+        disabled_ship_ids: list,
         ship_record: dict, 
         ship_info: dict, 
         game_version: Optional[str], 
@@ -37,6 +38,7 @@ class UserCacheUpdater:
             ship_record: 船只极值记录数据
             ship_info: 船只排行榜基准数据
         """
+        self.disabled_ship_ids = disabled_ship_ids
         self.ship_record = ship_record
         self.ship_info = ship_info
         self.game_version = game_version
@@ -104,7 +106,7 @@ class UserCacheUpdater:
         return ship_pvp_record
 
     @staticmethod
-    def _calc_recent_diff(old_cache: dict, latest_data: dict):
+    def _calc_recent_diff(disabled_ship_ids: list, old_cache: dict, latest_data: dict):
         """计算每艘船的近期数据增量
 
         将最新数据与本地缓存对比，差值经过精度修正后返回，
@@ -119,6 +121,8 @@ class UserCacheUpdater:
         """
         diff_data = {}
         for ship_id, new_values in latest_data.items():
+            if ship_id in disabled_ship_ids:
+                continue
             old_values = old_cache.get(ship_id, [0]*len(new_values))
             ship_diff = [new_val - old_val for new_val, old_val in zip(new_values, old_values)]
             ship_diff[-2] = ship_diff[-2] * 100
@@ -463,7 +467,7 @@ class UserCacheUpdater:
                     
                     # 处理近期数据变化
                     if local_cache:
-                        diff_data = self._calc_recent_diff(local_cache, ship_pvp_cache)
+                        diff_data = self._calc_recent_diff(self.disabled_ship_ids, local_cache, ship_pvp_cache)
                         self._insert_recent_diff_data(cursor, account_id, diff_data)
             
             mysql_connection.commit()

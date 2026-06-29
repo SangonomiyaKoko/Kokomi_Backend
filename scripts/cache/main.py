@@ -25,7 +25,8 @@ from db_ops import (
     read_ship_record,
     read_game_version,
     update_ship_record,
-    get_ship_leaderboard
+    get_ship_leaderboard,
+    read_disabled_ship_ids
 )
 from settings import (
     REGION, 
@@ -83,6 +84,9 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             len_update_ids = len(update_ids)
             logger.info(f'Current loop plan update count: {len_update_ids}')
 
+            # 不可用船只id列表
+            disabled_ship_ids = read_disabled_ship_ids(cursor)
+
             # 加载符合排行榜统计船只的数据
             ship_data = read_ship_data(cursor)
 
@@ -104,7 +108,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     
     if len_update_ids > 0:
         # 主更新循环
-        updater = UserCacheUpdater(ship_record, ship_data, game_version, version_start)
+        updater = UserCacheUpdater(disabled_ship_ids, ship_record, ship_data, game_version, version_start)
         logger.enable_tqdm()
         for update_data in progress_iterable(
             items=update_ids, 

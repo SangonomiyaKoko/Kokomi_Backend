@@ -25,6 +25,16 @@ def read_game_version(cursor: Cursor) -> tuple:
     else:
         return version[0], version[1]
 
+def read_disabled_ship_ids(cursor: Cursor) -> list:
+    sql = f"""
+        SELECT 
+            ship_id 
+        FROM T_ship_base
+        WHERE is_enabled = 0 OR is_old = 1;
+    """
+    cursor.execute(sql)
+    return [str(row[0]) for row in cursor.fetchall()]
+
 def read_ship_record(cursor: Cursor) -> dict:
     """读取船只 PvP 极值记录数据（返回用户ID集合）
 
