@@ -157,7 +157,9 @@ class UserCacheUpdater:
         data = cursor.fetchone()
 
         if data and data[1] and self.version_start < data[1]:
-            return json.loads(data[0])
+            if data[0]:
+                return json.loads(data[0])
+            
         return None
 
     def _update_ship_records(self, ship_pvp_record: dict, account_id: int) -> None:
