@@ -1,16 +1,26 @@
 class GameData:
-    SHIP_TYPES = {
-        'AirCarrier','Battleship','Cruiser','Destroyer','Submarine'
+    SHIP_TYPE_MAP = {
+        1: 'AirCarrier',
+        2: 'Battleship',
+        3: 'Cruiser',
+        4: 'Destroyer',
+        5: 'Submarine'
     }
-
-    SHIP_TIERS = set(range(1, 12))
-
-    SHIP_NATIONS = {
-        'commonwealth','europe','france','germany','italy',
-        'japna','netherlands','pan_america','pan_asia',
-        'spain','uk','usa','ussr'
+    SHIP_NATION_MAP = {
+        1: 'usa',
+        2: 'japan',
+        3: 'germany',
+        4: 'uk',
+        5: 'ussr',
+        6: 'france',
+        7: 'italy',
+        8: 'pan_asia',
+        9: 'europe',
+        10: 'netherlands',
+        11: 'commonwealth',
+        12: 'pan_america',
+        13: 'spain'
     }
-
     WG_CLAN_SEAESON_LIST = {
         'PCH161_CLAN_LEAGUE_4': 4,
         'PCH160_CLAN_LEAGUE_3': 3,

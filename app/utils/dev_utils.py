@@ -1,29 +1,8 @@
 import csv
 
 from app.core import EnvConfig
+from app.constants import GameData
 
-SHIP_TYPE_MAP = {
-    1: 'AirCarrier',
-    2: 'Battleship',
-    3: 'Cruiser',
-    4: 'Destroyer',
-    5: 'Submarine'
-}
-SHIP_NATION_MAP = {
-    1: 'usa',
-    2: 'japan',
-    3: 'germany',
-    4: 'uk',
-    5: 'ussr',
-    6: 'france',
-    7: 'italy',
-    8: 'pan_asia',
-    9: 'europe',
-    10: 'netherlands',
-    11: 'commonwealth',
-    12: 'pan_america',
-    13: 'spain'
-}
 
 class DevUtils:
     def read_ship_stats() -> dict:
@@ -62,5 +41,10 @@ class DevUtils:
                 tier = int(row['tier'])
                 type_id = row['type_id']
                 nation_id = row['nation_id']
-                result[ship_id] = [is_old, tier, SHIP_TYPE_MAP.get(type_id), SHIP_NATION_MAP.get(nation_id)]
+                result[ship_id] = [
+                    is_old, 
+                    tier, 
+                    GameData.SHIP_TYPE_MAP.get(type_id, 'Destroyer'), 
+                    GameData.SHIP_NATION_MAP.get(nation_id, 'usa')
+                    ]
         return result

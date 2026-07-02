@@ -1,4 +1,5 @@
 from app.core import EnvConfig
+from app.constants import GameData
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
@@ -62,18 +63,14 @@ class ShipModel:
         async with MySQLManager.read_only_cursor() as cur:
             sql = """
                 SELECT
-                    b.ship_id, 
-                    b.is_old,
-                    b.tier,
-                    t.name,
-                    n.name
+                    ship_id, 
+                    is_old,
+                    tier,
+                    type_id,
+                    nation_id
                 FROM
-                    T_ship_base b
-                INNER JOIN D_ship_type t
-                    ON b.type_id = t.id
-                INNER JOIN D_ship_nation n
-                    ON b.nation_id = n.id
-                WHERE b.is_enabled = 1;
+                    T_ship_base 
+                WHERE is_enabled = 1;
             """
             await cur.execute(sql)
             rows = await cur.fetchall()
@@ -83,8 +80,8 @@ class ShipModel:
                 result[str(row[0])] = [
                     row[1],
                     row[2],
-                    row[3],
-                    row[4]
+                    GameData.SHIP_TYPE_MAP.get(row[3], 'Destroyer'), 
+                    GameData.SHIP_NATION_MAP.get(row[4], 'usa')
                 ]
             return JSONResponse.success(result)
 
