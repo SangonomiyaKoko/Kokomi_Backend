@@ -20,6 +20,29 @@ class ShipModel:
                 result[row[0]] = row[1]
             return JSONResponse.success(result)
 
+    @ExceptionLogger.handle_program_exception_async
+    async def get_ship_staging_overview():
+        async with MySQLManager.read_only_cursor() as cur:
+            result = {
+                'pending': 0,
+                'done': 0,
+                'error': 0
+            }
+            sql = """
+                SELECT 
+                    status,
+                    COUNT(*) as count
+                FROM STAGING_ship_recent_data
+                GROUP BY status;
+            """
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            for row in rows:
+                if row[0] in result:
+                    result[row[0]] = row[1]
+
+            return JSONResponse.success(result)
+
     @ExceptionLogger.handle_database_exception_async
     async def get_ranking_ship_ids():
         async with MySQLManager.read_only_cursor() as cur:

@@ -32,6 +32,11 @@ class MySQLAPI:
         return result
     
     @ExceptionLogger.handle_program_exception_async
+    async def get_staging_overview() -> ResponseDict:
+        result = await ShipModel.get_ship_staging_overview()
+        return result
+    
+    @ExceptionLogger.handle_program_exception_async
     async def reset_tracking_time(tracking_key: str) -> ResponseDict:
         tracking_type = TRACKING_KEY_TYPE_MAP.get(tracking_key)
         if not tracking_type:
