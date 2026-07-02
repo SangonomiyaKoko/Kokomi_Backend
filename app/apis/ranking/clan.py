@@ -58,8 +58,8 @@ class ClanRankingAPI:
 
         return leaderboard
 
-    @classmethod
-    async def _get_season(cls) -> tuple[Optional[Any], Optional[int]]:
+    @staticmethod
+    async def _get_season() -> tuple[Optional[Any], Optional[int]]:
         """获取当前赛季编号
 
         Returns:
