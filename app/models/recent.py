@@ -14,19 +14,18 @@ class DemoRecentModel:
         async with MySQLManager.auto_transaction_cursor() as cur:
             sql = """
                 SELECT 
-                    user_level, 
-                    storage_limit 
+                    user_level 
                 FROM T_user_config 
                 WHERE account_id = %s;
             """
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if data is None:
-                return JSONResponse.API_1000_Success
+                return JSONResponse.API_RecentNotEnable
             
-            current_level = data[0]
+            result = False
             # 只允许向上升级
-            if current_level < target_level:
+            if data[0] < target_level:
                 storage_level = Limits.DefaultRecentLimit if target_level == 1 else Limits.DefaultRecentProLimit
                 sql = """
                     UPDATE T_user_config 
@@ -36,34 +35,25 @@ class DemoRecentModel:
                     WHERE account_id = %s;
                 """
                 await cur.execute(sql, [target_level, storage_level, account_id])
-            
-            return JSONResponse.API_1000_Success
+                result = True
+             
+            return JSONResponse.success(result)
 
     @ExceptionLogger.handle_database_exception_async
-    async def reduce_recent_level(account_id: int, target_level: int):
-        '''[DEMO] 降低用户recent功能级别
-        
-        只允许向下降级，高级可降到标准或无，标准可降到无
-        '''
+    async def reduce_recent_level(account_id: int):
+        '''[DEMO] 降低用户recent功能级别'''
         async with MySQLManager.auto_transaction_cursor() as cur:
             sql = """
                 SELECT 
-                    user_level, 
-                    storage_limit 
+                    user_level 
                 FROM T_user_config 
                 WHERE account_id = %s;
             """
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
-            if data is None:
-                return JSONResponse.API_1000_Success
-            
-            current_level = data[0]
-            # 只允许向下降级：2→1/0, 1→0
-            if current_level > target_level and not (current_level == 1 and target_level != 0):
-                # 处理降级的storage_limit
-                new_limit = Limits.DefaultRecentLimit if target_level == 1 else 0
-                
+
+            result = False
+            if data and data[0] == 2:
                 sql = """
                     UPDATE T_user_config 
                     SET 
@@ -71,10 +61,50 @@ class DemoRecentModel:
                         storage_limit = %s
                     WHERE account_id = %s;
                 """
-                await cur.execute(sql, [target_level, new_limit, account_id])
+                await cur.execute(sql, [1, Limits.DefaultRecentLimit, account_id])
+                result = True
             
-            return JSONResponse.API_1000_Success
+            return JSONResponse.success(result)
 
+    @ExceptionLogger.handle_database_exception_async
+    async def disable_recent(account_id: int):
+        '''[DEMO] 关闭指定用户的记录Recent数据功能'''
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = """
+                SELECT 
+                    user_level 
+                FROM T_user_config 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            data = await cur.fetchone()
+            if data is None:
+                return JSONResponse.API_RecentNotEnable
+            elif data[0] == 0:
+                return JSONResponse.API_RecentNotEnable
+            else:
+                sql = """
+                    UPDATE T_user_config 
+                    SET 
+                        user_level = %s, 
+                        storage_limit = %s
+                    WHERE account_id = %s;
+                """
+                await cur.execute(sql, [0, 0, account_id])
+                return JSONResponse.API_1000_Success
 
 class RecentModel:
-    ...
+    @ExceptionLogger.handle_database_exception_async
+    async def set_bot_recent_level(account_id: int):
+        '''设置用户recent启用'''
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = """
+                UPDATE T_user_config 
+                SET 
+                    user_level = %s, 
+                    storage_limit = %s
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [2, Limits.DefaultRecentProLimit, account_id])
+        
+            return JSONResponse.API_1000_Success

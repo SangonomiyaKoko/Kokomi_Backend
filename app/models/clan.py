@@ -44,9 +44,19 @@ class DemoClanModel:
             data['is_enabled'] = row[0]
             data['member_count'] = row[1]
             data['next_refresh_at'] = TimeUtils.fromtimestamp(row[2])
-
+            data['now_iso_time'] = TimeUtils.now_iso()[:19].replace('T', ' ')
             return JSONResponse.success(data)
-        
+    
+    @ExceptionLogger.handle_program_exception_async
+    async def get_season_rows(season_id: int):
+        async with MySQLManager.read_only_cursor() as cur:
+            sql = f"""
+                SELECT COUNT(*) FROM S_clan_battle_{season_id};
+            """
+            await cur.execute(sql)
+            data = await cur.fetchone()
+            return JSONResponse.success(data[0])
+
     @ExceptionLogger.handle_database_exception_async
     async def set_clan_status(clan_id: int, status: int):
         async with MySQLManager.auto_transaction_cursor() as cur:

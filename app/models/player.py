@@ -83,6 +83,7 @@ class DemoPlayerModel:
             row = await cur.fetchone()
             if row:
                 data['clan_id'] = row[0]
+            data['now_iso_time'] = TimeUtils.now_iso()[:19].replace('T', ' ')
             return JSONResponse.success(data)
         
     @ExceptionLogger.handle_database_exception_async
@@ -101,8 +102,7 @@ class DemoPlayerModel:
                     WHERE account_id = %s;
                 """
                 await cur.execute(sql, [account_id])
-            data = cur.rowcount
-            return JSONResponse.success(data)
+            return JSONResponse.API_1000_Success
 
     @ExceptionLogger.handle_database_exception_async
     async def remove_user_ranking(account_id: int, ship_ids: list[int]):
@@ -216,7 +216,7 @@ class PlayerModel:
             """
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
-            if data:
+            if data and data[0]:
                 result = json.loads(data[0])
             return JSONResponse.success(result)
         
@@ -236,3 +236,86 @@ class PlayerModel:
                 raise DataIntegrityError(account_id)
             else:
                 return JSONResponse.success(data)
+            
+    @ExceptionLogger.handle_database_exception_async
+    async def del_user_data(account_id: int):
+        """清除用户数据"""
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = """
+                UPDATE T_user_stats 
+                SET 
+                    is_enabled = 0, 
+                    is_public = 0, 
+                    activity_level = 0, 
+                    total_battles = 0, 
+                    pve_battles = 0, 
+                    pvp_battles = 0, 
+                    ranked_battles = 0,
+                    rating_battles = 0,
+                    karma = 0,
+                    last_battle_at = NULL, 
+                    next_refresh_at = NULL, 
+                    updated_at = NOW() 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            sql = """
+                UPDATE T_user_config 
+                SET 
+                    user_level = 0, 
+                    storage_limit = 0, 
+                    query_count = 0, 
+                    last_query_at = NULL, 
+                    updated_at = NOW() 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            sql = """
+                UPDATE T_user_cache 
+                SET 
+                    is_due = 0, 
+                    ships = 0, 
+                    cache = NULL, 
+                    updated_at = NOW() 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            sql = """
+                UPDATE T_user_random 
+                SET 
+                    battles = 0, 
+                    total_exp = 0, 
+                    win_rate = 0, 
+                    avg_damage = 0, 
+                    avg_frags = 0, 
+                    avg_exp = 0, 
+                    max_exp = 0, 
+                    max_frags = 0, 
+                    max_planes = 0, 
+                    max_damage = 0, 
+                    max_scouting = 0, 
+                    max_potential = 0, 
+                    updated_at = NOW() 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            sql = """
+                UPDATE T_user_ranked 
+                SET 
+                    battles = 0, 
+                    total_exp = 0, 
+                    win_rate = 0, 
+                    avg_damage = 0, 
+                    avg_frags = 0, 
+                    avg_exp = 0, 
+                    max_exp = 0, 
+                    max_frags = 0, 
+                    max_planes = 0, 
+                    max_damage = 0, 
+                    max_scouting = 0, 
+                    max_potential = 0, 
+                    updated_at = NOW() 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            return JSONResponse.API_1000_Success

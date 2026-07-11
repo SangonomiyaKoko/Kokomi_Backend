@@ -1,5 +1,6 @@
 import uuid
-from typing import Optional, Any
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Any
 
 from app.core import EnvConfig
 
@@ -11,6 +12,21 @@ from .typed_dict import (
     ResponseDict
 )
 
+@dataclass
+class BasicResponse:
+    """数据接口的基本响应数据结构"""
+    mode: str = ''     # 数据模式（pve/pvp/rank/...）
+    type: str = ''     # 数据类型（solo/div2/div3/...）
+    basic: Dict[str, Any] = field(default_factory=dict)    # 用户或工会的基本信息
+    statistics: Dict[str, Any] = field(default_factory=dict)    # 实际统计数据
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'mode': self.mode,
+            'type': self.type,
+            'basic': self.basic,
+            'statistics': self.statistics
+        }
 
 class JSONResponse:
     """标准化 JSON 响应工具类
@@ -22,6 +38,7 @@ class JSONResponse:
     # 部分接口只执行操作而不返回数据，此时返回 API_1000_Success 结果
     API_1000_Success = {'status': 'ok', 'code': 1000, 'message': 'Success', 'data': None}
     
+    # 其他返回值
     API_NodeNotAvailable = {'status': 'ok', 'code': 1001, 'message': 'NodeNotAvailable'}
     API_RegionNotSupported = {'status': 'ok', 'code': 1002, 'message': 'RegionNotSupported'}
     API_UserNotExist = {'status': 'ok', 'code': 1003, 'message': 'UserNotExist'}
@@ -33,6 +50,10 @@ class JSONResponse:
     API_UserHiddenProfile = {'status': 'ok', 'code': 1009, 'message': 'UserHiddenProfile'}
     API_AcqurieLockFailed = {'status': 'ok', 'code': 1010, 'message': 'AcqurieLockFailed'}
     API_NoStatisticsData = {'status': 'ok', 'code': 1011, 'message': 'NoStatisticsData'}
+    API_RecentNotEnable = {'status': 'ok', 'code': 1012, 'message': 'RecentNotEnable'}
+    API_UserNotActive = {'status': 'ok', 'code': 1013, 'message': 'UserNotActive'}
+    API_InvalidAccessToken = {'status': 'ok', 'code': 1014, 'message': 'InvalidAccessToken'}
+    API_InvalidAuthToken = {'status': 'ok', 'code': 1015, 'message': 'InvalidAuthToken'}
 
     @staticmethod
     def success(

@@ -1,7 +1,7 @@
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
-from app.utils import RatingUtils, GameUtils
+from app.utils import RatingUtils, GameUtils, StringUtils
 
 class RankingModel:
     @ExceptionLogger.handle_database_exception_async
@@ -59,7 +59,7 @@ class RankingModel:
                     'max_damage': row[16]
                 }
                 if dogtag:
-                    result[account_id]['dogtag'] = GameUtils.get_dog_tag(row[5])
+                    result[account_id]['dogtag'] = StringUtils.parse_insignias(row[5])
             
             return JSONResponse.success(result)
 

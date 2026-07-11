@@ -1,11 +1,30 @@
-import secrets
-import string
-import re
-
+from typing import Optional, Dict
 
 class StringUtils:
-    def parse_insignias(insignia_str: str | None) -> dict:
-        """从标识字符串解析回 DogTag 数据"""
+    """字符串解析相关工具函数集合"""
+    
+    @staticmethod
+    def serialize_insignias(data: Dict[str, int]) -> Optional[str]:
+        """将 DogTag 数据字典序列化为标识字符串"""
+        if not data:
+            return None
+        
+        keys = [
+            "texture_id",
+            "symbol_id",
+            "border_color_id",
+            "background_color_id",
+            "background_id"
+        ]
+        
+        if any(k not in data for k in keys):
+            return None
+        
+        return "-".join(str(data[k]) for k in keys)
+    
+    @staticmethod
+    def parse_insignias(insignia_str: str | None) -> Optional[Dict[str, int]]:
+        """将标识字符串解析为 DogTag 数据字典"""
         if insignia_str is None:
             return None
         
@@ -23,14 +42,3 @@ class StringUtils:
             return None
         
         return {key: int(part) for key, part in zip(keys, parts)}
-
-    def generate_activation_code(length=12):
-        # 生成激活码(不效验)
-        chars = string.ascii_uppercase + string.digits  # 大写字母 + 数字
-        return ''.join(secrets.choice(chars) for _ in range(length))
-
-    def is_valid_activation_code(code: str) -> bool:
-        # 效验激活码格式
-        if not code:
-            return False
-        return bool(re.compile(r'^[A-Z0-9]{12}$').fullmatch(code))

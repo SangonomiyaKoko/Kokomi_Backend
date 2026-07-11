@@ -16,11 +16,11 @@ from app.apis.external import (
 router = APIRouter(prefix="/external")
 
 @router.get("/ship/ranking/{ship_id}/", summary="获取指定页的船只排行榜数据")
-async def getShipRanking(
-    ship_id: int = Path(..., description="船只 ID"),
+async def get_ship_ranking(
+    ship_id: int = Path(..., examples=4276041424, description="船只 ID"),
     page: int = Query(1, ge=1, description="页码，从 1 开始"),
     size: int = Query(50, ge=50, le=100, description="每页条数，只能选 50 或 100"),
-    dogtag: int = Query(1, ge=0, le=1, description="是否在返回数据中展示用户的dogtag数据")
+    dogtag: int = Query(0, ge=0, le=1, description="是否在返回数据中展示用户的dogtag数据")
 ):
     """船只排行榜上榜条件：
     1. 船只等级大于5级
@@ -40,11 +40,14 @@ async def getShipRanking(
     该接口返回值 Code 含义说明（HTTP 200）:
     - 1000: 正常获取数据
     - 1001: 当前节点服务器处于维护状态
+
+    --- 
+
+    **权限要求**: `Root` / `Visitor` **开发模式**: ❌ **维护模式**: ❌
     """
+    # 检查应用状态
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
-    
-    # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
     
@@ -54,8 +57,8 @@ async def getShipRanking(
     return await ShipRankingExternalAPI.get_ship_ranking(ship_id, page, size, dogtag)
 
 
-@router.get("/clan/ranking/", summary="获取指定页的船只排行榜数据")
-async def getClanRanking(
+@router.get("/clan/ranking/", summary="获取指定页的工会排行榜数据")
+async def get_clan_ranking(
     page: int = Query(1, ge=1, description="页码，从 1 开始"),
     size: int = Query(50, ge=50, le=100, description="每页条数，只能选 50 或 100")
 ):
@@ -66,11 +69,14 @@ async def getClanRanking(
     该接口返回值 Code 含义说明（HTTP 200）:
     - 1000: 正常获取数据
     - 1001: 当前节点服务器处于维护状态
+    
+    --- 
+
+    **权限要求**: `Root` / `Visitor` **开发模式**: ❌ **维护模式**: ❌
     """
+    # 检查应用状态
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
-    
-    # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
     
@@ -80,7 +86,7 @@ async def getClanRanking(
     return await ClanRankingExternalAPI.get_clan_ranking(page, size)
 
 @router.patch("/user/refresh/{user_id}/", summary="手动触发刷新用户的缓存数据")
-async def refreshUserBasic(user_id: int = Path(...)):
+async def refresh_user_basic(user_id: int = Path(...)):
     """排行榜系统基于用户在本地的缓存数据进行计算，因此和最新数据存在不同步情况，如需立即更新可以通过此接口手动触发
     
     该指令会调用接口更新用户的基本信息（名称，工会，徽章等），同时将该用户标记为缓存待刷新状态，每隔 10 分钟刷新一次，并同步更新排行榜数据
@@ -95,11 +101,14 @@ async def refreshUserBasic(user_id: int = Path(...)):
     - 1007: 用户在平台黑名单列表中（极低概率触发）
     - 1009: 用户隐藏战绩，无法刷新
     - 1010: 写入用户数据时获取分布式锁失败（极低概率触发）
+    
+    --- 
+
+    **权限要求**: `Root` / `Visitor` **开发模式**: ❌ **维护模式**: ❌
     """
+    # 检查应用状态
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
-    
-    # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
     
@@ -112,7 +121,7 @@ async def refreshUserBasic(user_id: int = Path(...)):
     return await ShipRankingExternalAPI.refresh_user(user_id)
 
 @router.get("/ship/stats/", summary="获取当前服务器下船只的数据")
-async def getShipStats():
+async def get_ship_stats():
     """该数据为船只的场次平均数据（非用户平均数据），仅返回有数据的船只
 
     ---
@@ -120,19 +129,57 @@ async def getShipStats():
     该接口返回值 Code 含义说明（HTTP 200）:
     - 1000: 正常获取数据
     - 1001: 当前节点服务器处于维护状态
+    
+    --- 
+
+    **权限要求**: `Root` / `Visitor` **开发模式**: ❌ **维护模式**: ❌
     """
+    # 检查应用状态
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
-    
-    # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
     
     return await ShipStatsExternalAPI.get_ship_stats()
 
-@router.get("/ship/download/top50-cache/", summary="下载排行榜数据文件")
+@router.get("/ship/download/top50-cache/", summary="下载用户排行榜数据文件")
 async def download_ship_ranking_msgpack():
-    """获取船只排行榜中所有船只的 TOP50 缓存数据文件"""
+    """获取船只排行榜中所有船只的 TOP50 缓存数据文件
+
+    文件格式为经过 MessagePack 序列化的JSON文件，直接反序列化即可提取数据。
+
+    反序列化的 JSON 文件格式：
+    ```
+    {
+        'time': refresh_timestamp,    # 文件更新的时间戳
+        'data': {
+            'ship_id': payload(Dict)  # 负载数据（Dict）
+        }
+    }
+    ```
+
+    Payload 数据格式
+    ```
+    {
+        'limit': 0,    # 该船只的最低战斗场次要求
+        'users': 0,    # 该船只上榜用户总数
+        'rows': rows(List)   # 该船只的 TOP50 缓存数据（List）
+    }
+    ```
+
+    Rows 数据格式
+    ```
+    [
+        rank, user_id, clan_tag, league, username, battles, rating, 
+        win_rate, win_rate_level, avg_damage, avg_damage_level, avg_frags, 
+        avg_frags_level, avg_exp, hit_ratio, max_exp, max_damage
+    ]
+    ```
+    
+    --- 
+
+    **权限要求**: `Root` / `Visitor` **开发模式**: ✅ **维护模式**: ✅
+    """
     file_path = EnvConfig.DATA_DIR / f'trash/ship_ranking.msgpack'
     
     # 检查文件是否存在
@@ -152,9 +199,35 @@ async def download_ship_ranking_msgpack():
         }
     )
 
-@router.get("/clan/download/top50-cache/", summary="下载排行榜数据文件")
+@router.get("/clan/download/top50-cache/", summary="下载工会排行榜数据文件")
 async def download_clan_ranking_msgpack():
-    """获取船只排行榜中所有船只的 TOP50 缓存数据文件"""
+    """获取船只排行榜中所有船只的 TOP50 缓存数据文件
+    
+    文件格式为经过 MessagePack 序列化的JSON文件，直接反序列化即可提取数据
+
+    反序列化的 JSON 文件格式：
+    ```
+    {
+        'time': refresh_timestamp,    # 文件更新的时间戳
+        'season': season_id,          # 当前赛季 ID
+        'clans': 0,                   # 该赛季上榜工会总数
+        'data': data(List)            # 
+    }
+    ```
+
+    Data 数据格式
+    ```
+    [
+        rank, clan_id, tag, leading_team, battles, win_rate, league,
+        division, public_rating, max_streak, stage_type, stage_battles,
+        stage_victories, stage_progress, last_battle_at
+    ]
+    ```
+    
+    --- 
+
+    **权限要求**: `Root` / `Visitor` **开发模式**: ✅ **维护模式**: ✅
+    """
     file_path = EnvConfig.DATA_DIR / f'trash/clan_ranking.msgpack'
     
     # 检查文件是否存在

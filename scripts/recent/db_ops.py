@@ -3,9 +3,19 @@ from pymysql.cursors import Cursor
 def get_recent_users(cursor: Cursor):
     sql = """
         SELECT 
-            c.account_id, 
+            account_id 
+        FROM T_user_config
+        WHERE user_level > 0;
+    """
+    cursor.execute(sql)
+    return cursor.fetchall()
+
+def get_user_recent(cursor: Cursor, account_id: int):
+    sql = """
+        SELECT 
             c.user_level, 
             c.storage_limit, 
+            UNIX_TIMESTAMP(c.last_query_at), 
             s.is_enabled, 
             s.is_public, 
             s.total_battles, 
@@ -17,10 +27,10 @@ def get_recent_users(cursor: Cursor):
         FROM T_user_config c
         LEFT JOIN T_user_stats s
           ON c.account_id = s.account_id
-        WHERE c.user_level > 0;
+        WHERE c.account_id = %s;
     """
-    cursor.execute(sql)
-    return cursor.fetchall()
+    cursor.execute(sql, [account_id])
+    return cursor.fetchone()
 
 def disable_user(cursor: Cursor, account_id: int):
     sql = """

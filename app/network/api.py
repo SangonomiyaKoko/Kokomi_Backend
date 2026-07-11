@@ -1,6 +1,6 @@
 import random
 import asyncio
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, List
 
 from app.loggers import ExceptionLogger
 from app.utils import TimeUtils
@@ -15,16 +15,17 @@ from .client import HttpClient
 async def record_http_metrics(
     responses: list[ResponseDict],
     urls: list[str]
-) -> Union[tuple[True, ResponseDict], tuple[False, list[Any]]]:
+) -> Union[tuple[bool, ResponseDict], tuple[bool, list[Any]]]:
     """记录 HTTP 请求指标到 Redis
     
-    如果有多个Error则返回最后一个Error的信息
+    如果有多个 Error 则返回最后一个 Error 的信息
 
     Args:
         responses: fetch_data 返回结果列表
+        urls: 请求的 URL 列表
 
     Returns:
-        错误字符串，全部成功则返回 None
+        tuple: (是否有错误, 错误信息或成功结果列表)
     """
     results = []
     error_count = 0
@@ -48,25 +49,15 @@ async def record_http_metrics(
         return False, results
 
 class DemoExternalAPI:
+    """测试用API"""
+
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_basic(account_id: int, user_token: Optional[str]) -> ResponseDict:
-        """请求获取用户的基本数据
-
-        通过 Vortex API 获取指定账户的基本信息，包括用户名、统计数据、注册时间等
-
-        Args:
-            account_id: 用户 ID
-            user_token: 用户的访问令牌
-
-        Returns:
-            ResponseDict: 统一格式的响应对象
-        """
-        # 获取配置的端点列表
+        """请求获取用户的基本数据"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
 
-        # 调用 HTTP 客户端获取用户数据
         url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
         response = await HttpClient.get_user_data(url)
 
@@ -79,11 +70,10 @@ class DemoExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_clan(account_id: int) -> ResponseDict:
-        # 获取配置的端点列表
+        """获取用户所在公会信息"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         
-        # 调用 HTTP 客户端获取用户所在工会数据
         url = f'{base_url}/api/accounts/{account_id}/clans/'
         response = await HttpClient.get_user_data(url)
 
@@ -96,11 +86,10 @@ class DemoExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_clan_basic(clan_id: int) -> ResponseDict:
-        # 获取配置的端点列表
+        """获取公会基本信息"""
         endpoints = EnvConfig.get_endpoints()
         base_url = endpoints.CLAN_API
 
-        # 调用 HTTP 客户端获取用户数据
         url = f'{base_url}/api/clanbase/{clan_id}/claninfo/'
         response = await HttpClient.get_clan_data(url)
 
@@ -113,11 +102,10 @@ class DemoExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_clan_users(clan_id: int) -> ResponseDict:
-        # 获取配置的端点列表
+        """获取公会成员列表"""
         endpoints = EnvConfig.get_endpoints()
         base_url = endpoints.CLAN_API
 
-        # 调用 HTTP 客户端获取用户数据
         url = f'{base_url}/api/members/{clan_id}/'
         response = await HttpClient.get_clan_data(url)
 
@@ -128,19 +116,12 @@ class DemoExternalAPI:
         return JSONResponse.success(results[0])
        
 class ExternalAPI:
+    """外部 API 客户端"""
+
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_search(nickname: str):
-        '''获取用户名称搜索结构
-
-        通过输入的用户名称搜索用户账号
-
-        参数：
-            nickname: 用户名称
-        
-        返回：
-            结果列表
-        '''
+        """通过用户昵称搜索用户账号"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         
@@ -156,15 +137,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_clan_search(tag: str):
-        '''
-        通过输入的工会名称搜索工会账号
-
-        参数：
-            tga: 工会名称
-        
-        返回：
-            结果列表
-        '''
+        """通过公会标签搜索公会"""
         endpoints = EnvConfig.get_endpoints()
         base_url = endpoints.CLAN_API
 
@@ -180,6 +153,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_refresh(account_id: int, user_token: Optional[str]):
+        """读取用户基本信息和所在公会信息"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         urls = [
@@ -202,6 +176,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_basic(account_id: int, user_token: Optional[str]):
+        """读取用户基本信息"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
@@ -216,6 +191,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_pve(account_id: int, user_token: Optional[str]):
+        """获取用户 PvE 模式的船只数据"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/ships/pve/' + (f'?ac={user_token}' if user_token else '')
@@ -230,6 +206,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_pvp_overall(account_id: int, user_token: Optional[str]):
+        """获取用户所有 PvP 模式的船只数据（包含单排、双排、三排）"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         urls = [
@@ -253,6 +230,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_pvp_field(account_id: int, field: str, user_token: Optional[str]):
+        """获取用户指定 PvP 模式的船只数据"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/ships/pvp_{field}/' + (f'?ac={user_token}' if user_token else '')
@@ -267,6 +245,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_ranked(account_id: int, user_token: Optional[str]):
+        """获取用户排位赛模式的船只数据"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={user_token}' if user_token else '')
@@ -281,9 +260,11 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_recent(account_id: int, user_token: Optional[str]):
+        """获取用于用户 Recent 服务更新所需的数据"""
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         urls = [
+            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else ''),
             f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={user_token}' if user_token else ''),
             f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={user_token}' if user_token else ''),
             f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={user_token}' if user_token else ''),

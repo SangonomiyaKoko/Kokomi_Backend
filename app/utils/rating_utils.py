@@ -1,9 +1,20 @@
 class RatingUtils:
-    def calculate_rating(
-        game_type: str,
-        ship_data: dict,
-        server_data: list
-    ):
+    _RATING_THRESHOLDS = None
+    _DAMAGE_THRESHOLDS = None
+    _FRAGS_THRESHOLDS = None
+    _WIN_RATE_THRESHOLDS = None
+
+    @classmethod
+    def init(cls, data: dict):
+        """应用启动时加载配置数据"""
+        cls._RATING_THRESHOLDS = data['rating']
+        cls._DAMAGE_THRESHOLDS = data['damage']
+        cls._FRAGS_THRESHOLDS = data['frags']
+        cls._WIN_RATE_THRESHOLDS = data['win_rate']
+
+    @staticmethod
+    def calculate_rating(game_type: str, ship_data: dict, server_data: list):
+        """根据用户数据和服务器数据计算个人评分及各项子评分"""
         if server_data is None or server_data == []:
             return
         
@@ -49,41 +60,49 @@ class RatingUtils:
         ship_data['frags_rating'] = round(actual_frags / expected_frags, 2)
         return
     
-    def get_rating_level(
-        rating: int | float, 
-        show_eggshell: bool = False
-    ):
-        if rating == -1:
+    @classmethod
+    def get_rating_level(cls, rating: int | float, show_eggshell: bool = False) -> int:
+        """根据评分值获取对应的等级"""
+        if rating is None or rating == -1:
             return 0
         
-        if show_eggshell:
-            data = [750, 1100, 1350, 1550, 1750, 2100, 2450, 3250]
-            for i in range(len(data)):
-                if rating < data[i]:
-                    return i + 1, int(data[i]-rating)
-            return 9
-        else:
-            data = [750, 1100, 1350, 1550, 1750, 2100, 2450]
-            for i in range(len(data)):
-                if rating < data[i]:
-                    return i + 1, int(data[i]-rating)
-            return 8
-    
-    def get_wr_rating_class(rating: int | float):
-        if rating == -1:
-            return 0
-        data = [40, 45, 50, 52.5, 55, 60, 67]
-        for i in range(len(data)):
-            if rating < data[i]:
+        for i in range(len(cls._RATING_THRESHOLDS)):
+            if rating < cls._RATING_THRESHOLDS[i]:
                 return i + 1
+        
+        # 特殊彩蛋功能
+        if show_eggshell and rating >= 3250:
+            return 9
+        
         return 8
     
-    def get_metric_level(metric_id: int, value: float) -> int:
+    @classmethod
+    def get_win_rate_level(cls, win_rate: int | float, show_eggshell: bool = False) -> int:
+        """根据胜率值获取对应的等级"""
+        if win_rate is None or win_rate == -1:
+            return 0
+        
+        for i in range(len(cls._WIN_RATE_THRESHOLDS)):
+            if win_rate < cls._WIN_RATE_THRESHOLDS[i]:
+                return i + 1
+        
+        # 特殊彩蛋功能
+        if show_eggshell and win_rate >= 75:
+            return 9
+        
+        return 8
+    
+    @classmethod
+    def get_metric_level(cls, metric_id: int, value: float) -> int:
+        """根据指标ID和数值获取对应的等级
+        
+        metric_id: 0-win_rate, 1-avg_damage, 2-avg_frags, 3-rating
+        """
         thresholds_map = {
-            0: [40, 45, 50, 52.5, 55, 60, 67],           # win_rate 等级阈值
-            1: [0.8, 0.95, 1.0, 1.1, 1.2, 1.4, 1.7],     # avg_damage 等级阈值
-            2: [0.2, 0.3, 0.6, 1.0, 1.3, 1.5, 2.0],      # avg_frags 等级阈值
-            3: [750, 1100, 1350, 1550, 1750, 2100, 2450] # rating 等级阈值
+            0: cls._WIN_RATE_THRESHOLDS,      # win_rate 等级阈值
+            1: cls._DAMAGE_THRESHOLDS,        # avg_damage 等级阈值
+            2: cls._FRAGS_THRESHOLDS,         # avg_frags 等级阈值
+            3: cls._RATING_THRESHOLDS         # rating 等级阈值
         }
 
         thresholds = thresholds_map.get(metric_id)

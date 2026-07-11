@@ -3,7 +3,7 @@ from .req_params import (
     Language, RecentLevel, ShipTier, ShipType, ShipNation, PVPField, RankingFileType
 )
 from .req_body import (
-    ShipFilter, AuthResponse, ACResponse
+    AuthToken, AccessToken, VisitorToken
 )
 from .typed_dict import (
     ShipOriginalData,
@@ -12,16 +12,17 @@ from .typed_dict import (
 
 __all__ = [
     'GameAPIException',
+    'DataIntegrityError',
     'Language',
-    'ShipFilter',
     'ShipTier', 
     'ShipType', 
     'ShipNation',
     'PVPField',
     'RankingFileType',
     'RecentLevel',
-    'AuthResponse',
-    'ACResponse',
+    'AuthToken', 
+    'AccessToken', 
+    'VisitorToken',
     'ShipOriginalData',
     'ShipProcessedData'
 ]

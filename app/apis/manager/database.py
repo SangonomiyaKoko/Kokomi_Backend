@@ -1,4 +1,6 @@
+from app.core import EnvConfig
 from app.loggers import ExceptionLogger
+from app.utils import TimeUtils
 from app.models import PlatformModel, ShipModel
 from app.response import JSONResponse
 
@@ -42,9 +44,18 @@ class MaintenanceAPI:
         clan_activity_distribution = {}
         for clan in clan_activity:
             clan_activity_distribution[str(clan[0])] = clan[1]
-        
+
+        error_count = 0
+        file = EnvConfig.LOG_DIR / f"error/{TimeUtils.now_iso()[:10]}.log"
+
+        if file.exists():
+            with open(file, "r", encoding="utf-8") as f:
+                for _ in f:
+                    error_count += 1
+
         result = {
             'version': game_version,
+            'error': error_count,
             'user': {
                 'total': table_meta.get('base_users', 0),
                 'recent_lv1': table_meta.get('recent_lv1', 0),

@@ -3,13 +3,13 @@ from dataclasses import dataclass, field
 
 from app.core import EnvConfig
 from app.utils import DevUtils, RatingUtils
-from app.response import JSONResponse
+from app.response import JSONResponse, BasicResponse
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
 from app.middlewares import RedisClient, BlacklistManager
 from app.models import PlayerModel, ShipModel, UserStatsSyncer
 
-from .basic import BasicAPI, BasicResponse
+from .basic import BasicAPI
 from .process import format_overall, accumulate_overall
 from .schema import OriginalData, ProcessedData
 
@@ -42,9 +42,6 @@ class RandomAPI:
         specified_nation: str = None, 
         include_old: bool = False
     ):
-        # Credits 消耗
-        credits_spent = 1
-
         if EnvConfig.DEV_MODE:
             # 跳过读取数据库步骤，后续直接请求 API 获取数据
             access_token = None
@@ -98,8 +95,6 @@ class RandomAPI:
         )
         if error:
             return responses
-        
-        credits_spent += 1
         
         for response in responses:
             if 'hidden_profile' in response.get(str(account_id)):
@@ -260,8 +255,7 @@ class RandomAPI:
             mode='Random',
             type=filter_type,
             basic=user_basic,
-            statistics=statistics.to_dict(),
-            credits=credits_spent
+            statistics=statistics.to_dict()
         )
 
         return JSONResponse.success(data.to_dict())

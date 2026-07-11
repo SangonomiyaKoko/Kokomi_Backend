@@ -5,7 +5,8 @@ from settings import (
     REGION,
     DATA_DIR,
     DATE_FMT,
-    CLAN_BATTLE_WINDOWS
+    CLAN_BATTLE_WINDOWS,
+    METRIC_RATING_THRESHOLDS
 )
 
 
@@ -76,3 +77,31 @@ def is_cb_active(season_start: int, season_finish: int) -> bool:
                 return True
             
     return False
+
+def get_rating_level(
+    value: float,
+    metric_name: str
+) -> int:
+    """根据指标值计算对应的 Rating 等级
+
+    将指标值与预设阈值列表对比，返回 1-8 的等级
+
+    Args:
+        value: 指标比值
+        metric_name: 指标名称
+
+    Returns:
+        等级 1-8
+    """
+    # 获取对应指标的阈值列表
+    thresholds = METRIC_RATING_THRESHOLDS.get(metric_name)
+    if not thresholds:
+        return 1
+
+    # 遍历阈值，找到第一个大于 value 的阈值位置
+    for i, threshold in enumerate(thresholds):
+        if value < threshold:
+            return i + 1  # 返回等级 (1-7)
+    
+    # 如果 value 大于等于所有阈值，返回最高等级 8
+    return 8

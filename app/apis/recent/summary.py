@@ -20,42 +20,25 @@ class RecentSummary:
     def read_total_rows(cursor: Cursor):
         total = 0
         for table in TABLE_NAME_LIST:
-            cursor.execute(f"SELECT COUNT(*) FROM {table}")
+            cursor.execute(f"SELECT COUNT(*) FROM {table};")
             row_count = cursor.fetchone()[0]
             total += row_count
         return total
     
     def read_daily_summary(cursor: Cursor, current_timestamp: int, start_date: int):
-        date_list = [TimeUtils.get_recent_date(current_timestamp)]
-
-        i = 1
-        current_date = TimeUtils.get_recent_date(current_timestamp - i * 68400)
-        while current_date != start_date:
-            i += 1
-            date_list.append(current_date)
-            current_date = TimeUtils.get_recent_date(current_timestamp - i * 68400)
-            if i > 3000:
-                # 防止死循环
-                return {}
-            
-        date_list.append(start_date)
-
-        summary = {}
-        for r_date in date_list:
-            summary[r_date] = None
+        """"""
+        date_list = TimeUtils.get_reset_date_list(current_timestamp, start_date)
+        summary = {r_date: None for r_date in date_list}
 
         sql = """
             SELECT 
                 snapshot_date, 
                 is_public, 
-                total_battles,
-                updated_at 
+                total_battles
             FROM user_daily_summary;
         """
         cursor.execute(sql)
         for row in cursor.fetchall():
-            if row[3] is None:
-                continue
             if not row[1]:
                 summary[row[0]] = -1
             else:

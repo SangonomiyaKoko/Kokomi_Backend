@@ -1,7 +1,7 @@
 import json
 from pymysql.cursors import Cursor
 
-from utils import get_wr_level
+from utils import get_rating_level
 from settings import (
     MAX_REFRESH_BATCH,
     METRIC_ID_TO_INDEX, 
@@ -215,7 +215,7 @@ def get_ship_leaderboard(cursor: Cursor, ship_id: int, account_ids: list[str]):
         account_id = str(row[0])
         result[account_id] = [
             row[1], row[2], row[3], row[4], row[5], 
-            round(row[6], 2), get_wr_level(row[6]),
+            round(row[6], 2), get_rating_level(row[6], 'win_rate'),
             row[7], row[8], row[9], row[10],
             row[11], row[12], row[13], row[14]
         ]

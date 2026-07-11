@@ -1,32 +1,42 @@
+from app.core import EnvConfig
 from app.loggers import ExceptionLogger
 from app.middlewares import RedisClient, BlacklistManager
 from app.response import JSONResponse, ResponseDict
 from app.models import DemoPlayerModel, PlayerModel, ShipModel
 
-class UserManagerAPI:
+class BlacklistManagerAPI:
     @ExceptionLogger.handle_program_exception_async
     async def block_user(account_id: int) -> ResponseDict:
         BlacklistManager.add_user(account_id)
+
+        return JSONResponse.API_1000_Success
+            
+    @ExceptionLogger.handle_program_exception_async
+    async def block_clan(clan_id: int) -> ResponseDict:
+        BlacklistManager.add_clan(clan_id)
+            
+        return JSONResponse.API_1000_Success
+
+    @ExceptionLogger.handle_program_exception_async
+    async def clear_user(account_id: int) -> ResponseDict:
+        """完全清理用户数据
         
+        1. 清理用户可能存在的排行榜 redis key
+        2. 清理用户在数据库中的排行榜缓存
+        3. 清理用户在数据库所有表中的数据
+        """
         error, ship_ids = JSONResponse.extract_data(
             response=await ShipModel.get_ranking_ship_ids()
         )
         if error:
             return ship_ids
         
-        # 将该 ID 直接设为不可用
-        error, status = JSONResponse.extract_data(
-            response=await DemoPlayerModel.set_user_status(account_id, 0)
-        )
-        if error:
-            return status
-        
         # 读取用户已缓存的数据
         error, user_cache = JSONResponse.extract_data(
             response=await PlayerModel.get_user_cache(account_id)
         )
         if error:
-            return status
+            return user_cache
         
         delete_ids = []
         for ship_id, ship_data in user_cache.items():
@@ -54,10 +64,15 @@ class UserManagerAPI:
             if error:
                 return deleted
             
-        return JSONResponse.API_1000_Success
-            
-    @ExceptionLogger.handle_program_exception_async
-    async def block_clan(clan_id: int) -> ResponseDict:
-        BlacklistManager.add_clan(clan_id)
-            
+        # 清除用户在数据库中的数据
+        error, clear = JSONResponse.extract_data(
+            response=await PlayerModel.del_user_data(account_id)
+        )
+        if error:
+            return clear
+        
+        # 清除可能存在的用户Recent数据库文件
+        db_path = EnvConfig.SQLITE_DIR / f'{account_id}.db'
+        db_path.unlink(True)
+
         return JSONResponse.API_1000_Success

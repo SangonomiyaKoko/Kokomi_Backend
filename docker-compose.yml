@@ -53,11 +53,6 @@ services:
     ports:
       - "0.0.0.0:80:80"
     restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
   celery:
     image: myapp:latest
@@ -68,11 +63,6 @@ services:
     env_file:
       - env.prod
     restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
   account:
     image: myapp:latest
@@ -84,11 +74,6 @@ services:
     env_file:
       - env.prod
     restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
   cache:
     image: myapp:latest
@@ -100,11 +85,6 @@ services:
     env_file:
       - env.prod
     restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
   season:
     image: myapp:latest
@@ -116,11 +96,6 @@ services:
     env_file:
       - env.prod
     restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
   member:
     image: myapp:latest
@@ -132,11 +107,6 @@ services:
     env_file:
       - env.prod
     restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
   stats:
     image: myapp:latest
@@ -148,27 +118,17 @@ services:
     env_file:
       - env.prod
     restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
-  # recent:
-  #   image: myapp:latest
-  #   volumes:
-  #     - ./data:/app/data
-  #     - ./logs:/app/logs
-  #   container_name: backend-recent
-  #   command: python scripts/recent/main.py
-  #   env_file:
-  #     - .env.prod
-  #   restart: on-failure:1
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "5"
+  recent:
+    image: myapp:latest
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    container_name: backend-recent
+    command: python scripts/recent/main.py
+    env_file:
+      - env.prod
+    restart: on-failure:1
 
 # 命名卷
 volumes:

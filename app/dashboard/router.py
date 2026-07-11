@@ -25,7 +25,7 @@ templates = Jinja2Templates(directory=str(templates_dir))
 def _node_info():
     return {
         "Region": EnvConfig.REGION.upper(),
-        "Timezone": EnvConfig.REGION_TIMEZONE,
+        "Timezone": f'UTC{EnvConfig.TIMEZONE:+d}',
         "Location": EnvConfig.LOCATION,
         "Init Time": EnvConfig.INIT_TIME,
     }

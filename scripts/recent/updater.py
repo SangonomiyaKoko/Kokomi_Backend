@@ -204,6 +204,7 @@ class UserUpdater:
                 deleted_snapshot_list.append((ship_id, ship_date))
         
         # 执行数据库操作
+        cursor.execute("DELETE FROM user_recent_stats WHERE strftime('%s', 'now') - strftime('%s', created_at) > ? * 86400", [user_limit])
         cursor.executemany("DELETE FROM user_daily_summary WHERE snapshot_date = ?;", deleted_summary_list)
         cursor.executemany("DELETE FROM daily_snapshot_index WHERE snapshot_date = ?;", deleted_index_list)
         cursor.executemany("DELETE FROM ship_daily_snapshot WHERE ship_id = ? AND snapshot_date = ?;", deleted_snapshot_list)

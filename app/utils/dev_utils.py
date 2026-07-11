@@ -1,13 +1,17 @@
 import csv
+from typing import Dict, List, Union
 
 from app.core import EnvConfig
 from app.constants import GameData
 
 
 class DevUtils:
-    def read_ship_stats() -> dict:
-        """读取本地船只服务数据"""
-        file_path = EnvConfig.INIT_DIR / f"data/ship_stats.csv"
+    """特殊开发模式下，部分数据通过读取本地缓存数据而非加载数据库中的最新数据"""
+    
+    @staticmethod
+    def read_ship_stats() -> Dict[str, List[float]]:
+        """从本地 CSV 文件读取船只统计数据"""
+        file_path = EnvConfig.INIT_DIR / "data/ship_stats.csv"
         if not file_path.exists():
             return {}
         
@@ -22,12 +26,13 @@ class DevUtils:
                 result[ship_id] = [win_rate, avg_damage, avg_frags]
         return result
     
-    def read_ship_info() -> dict:
-        """读取船只信息 CSV 文件"""
+    @staticmethod
+    def read_ship_info() -> Dict[str, List[Union[int, str]]]:
+        """从本地 CSV 文件读取船只基本信息"""
         if EnvConfig.REGION == 'ru':
-            file_path = EnvConfig.INIT_DIR / f"data/ship_name_lesta.csv"
+            file_path = EnvConfig.INIT_DIR / "data/ship_name_lesta.csv"
         else:
-            file_path = EnvConfig.INIT_DIR / f"data/ship_name_wg.csv"
+            file_path = EnvConfig.INIT_DIR / "data/ship_name_wg.csv"
 
         if not file_path.exists():
             return {}
@@ -46,5 +51,5 @@ class DevUtils:
                     tier, 
                     GameData.SHIP_TYPE_MAP.get(type_id, 'Destroyer'), 
                     GameData.SHIP_NATION_MAP.get(nation_id, 'usa')
-                    ]
+                ]
         return result

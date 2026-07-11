@@ -1,6 +1,4 @@
-import json
-
-from app.core import EnvConfig
+from app.utils import JsonUtils
 
 
 class BlacklistManager:
@@ -13,37 +11,23 @@ class BlacklistManager:
     _clans: list[int] = []
     
     @classmethod
-    def _load_json_file(cls) -> dict:
-        """加载 JSON 文件数据"""
-        file_path = EnvConfig.DATA_DIR / 'json/blacklist.json'
-
-        if file_path.exists():
-            with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        else:
-            return {"user": [], "clan": []}
-    
-    @classmethod
     def _save_json_file(cls) -> None:
         """保存数据到 JSON 文件"""
-        file_path = EnvConfig.DATA_DIR / 'json/blacklist.json'
-
         result = {
             "user": cls._users,
             "clan": cls._clans
         }
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
+        JsonUtils.write('blacklist', result)
     
     @classmethod
     def init(cls) -> None:
         """启动时读取本地文件初始化"""
-        data = cls._load_json_file()
+        data = JsonUtils.read('blacklist')
         cls._users = data.get("user", [])
         cls._clans = data.get("clan", [])
     
     @classmethod
-    def add_user(cls, user_id: int) -> bool:
+    def add_user(cls, user_id: int):
         """添加用户黑名单，并保存至本地
         
         Args:
@@ -52,13 +36,23 @@ class BlacklistManager:
         if user_id in cls._users:
             return
         
-        cls._users.append(user_id)
-        cls._save_json_file()
+        if user_id not in cls._users:
+            cls._users.append(user_id)
+            cls._save_json_file()
 
         return
     
     @classmethod
-    def add_clan(cls, clan_id: int) -> bool:
+    def del_user(cls, user_id: int):
+        """将用户从黑名单中移除"""
+        if user_id in cls._users:
+            del cls._users[user_id]
+            cls._save_json_file()
+
+        return
+    
+    @classmethod
+    def add_clan(cls, clan_id: int):
         """添加工会黑名单，并保存至本地
         
         Args:
@@ -67,8 +61,18 @@ class BlacklistManager:
         if clan_id in cls._clans:
             return
         
-        cls._clans.append(clan_id)
-        cls._save_json_file()
+        if clan_id not in cls._clans:
+            cls._clans.append(clan_id)
+            cls._save_json_file()
+
+        return
+    
+    @classmethod
+    def del_clan(cls, clan_id: int):
+        """将用户从黑名单中移除"""
+        if clan_id in cls._clans:
+            del cls._clans[clan_id]
+            cls._save_json_file()
 
         return
     

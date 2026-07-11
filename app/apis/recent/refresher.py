@@ -1,16 +1,14 @@
 import sqlite3
-import traceback
-from redis import Redis
 from pathlib import Path
 from sqlite3 import Cursor
 from typing import Optional
-from contextlib import contextmanager
 from typing_extensions import TypedDict
+from contextlib import asynccontextmanager
 
-from logger import logger
-from exception import write_exception
-from utils import get_reset_date
-from settings import SQLITE_DIR, CREATE_SQL
+from app.core import EnvConfig
+from app.utils import TimeUtils
+from app.response import JSONResponse
+from app.middlewares import RedisClient
 
 class UserStats(TypedDict):
     is_public: bool
@@ -20,26 +18,19 @@ class UserStats(TypedDict):
     ranked_battles: int
     karma: int
 
-HIDDEN_USER_STATS = UserStats(
-    is_public=0,
-    total_battles=0,
-    pve_battles=0,
-    pvp_battles=0,
-    ranked_battles=0,
-    karma=0
-)
-
-@contextmanager
-def recent_refresh_lock(redis_client: Redis, account_id: str):
+@asynccontextmanager
+async def recent_refresh_lock(account_id: str):
     """分布式锁上下文管理器"""
     lock_key = f"refresh_lock:recent:{account_id}"
     
     # 尝试获取锁
-    acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
+    error, acquired = JSONResponse.extract_data(
+        response=await RedisClient.setnx(lock_key, 1, nx=True, ex=60)
+    )
+    if error:
+        acquired = False
     
     if not acquired:
-        # 获取锁失败
-        logger.info(f'{account_id} | Failed to acquire lock')
         yield False
         return
     
@@ -47,36 +38,27 @@ def recent_refresh_lock(redis_client: Redis, account_id: str):
     try:
         yield True
     finally:
-        redis_client.delete(lock_key)
+        await RedisClient.drop(lock_key)
 
-class UserRecentUpdater:
+class UserUpdater:
+    """负责维护用户的近期数据库文件，并检查用户是否需要更新"""
     @staticmethod
-    def _init_new_database(account_id: int, db_path: Path) -> bool:
-        """初始化数据库文件，初始化成功返回是否成功初始化文件"""
+    def _init_new_database(db_path: Path):
+        """初始化数据库文件"""
         try:
             with sqlite3.connect(db_path) as conn:
                 cursor = conn.cursor()
 
                 # 初始化数据库
-                cursor.executescript(CREATE_SQL)
+                cursor.executescript(EnvConfig.SQLITE_SQL)
 
                 conn.commit()
-                return True
-        except Exception as e:
-            error_name = type(e).__name__
-            logger.error(f'{account_id} | SQLite3 initialization error')
-            write_exception(
-                error_type="DatabaseError",
-                error_name=error_name,
-                error_info=traceback.format_exc()
-            )
-            if db_path.exists():
-                db_path.unlink(missing_ok=True)
-                logger.warning(f"Corrupted database file deleted: {db_path}")
-            return False
-    
+        except:
+            db_path.unlink(missing_ok=True)
+            raise
+
     @staticmethod
-    def _read_daily_summary(cursor: Cursor, reset_date: tuple) -> tuple:
+    def _read_daily_summary(cursor: Cursor, reset_date: tuple[int, int]) -> tuple:
         """读取今日和昨日的数据"""
         sql = """
             SELECT 
@@ -89,13 +71,10 @@ class UserRecentUpdater:
                 index_table, 
                 updated_at
             FROM user_daily_summary 
-            WHERE snapshot_date = ?;
+            WHERE snapshot_date in (?, ?);
         """
-        cursor.execute(sql, [reset_date[0]])
-        data1 = cursor.fetchone()
-        cursor.execute(sql, [reset_date[1]])
-        data2 = cursor.fetchone()
-        return (data1, data2)
+        cursor.execute(sql, reset_date)
+        return cursor.fetchall()
 
     @staticmethod
     def _read_ship_cache(cursor: Cursor):
@@ -406,49 +385,22 @@ class UserRecentUpdater:
         update_timestamp: int
     ) -> str:
         # 数据库文件地址
-        db_path = SQLITE_DIR / f'{account_id}.db'
+        db_path = EnvConfig.SQLITE_DIR / f'{account_id}.db'
 
         # 如果文件不存在则初始化文件
         if not db_path.exists():
             cls._init_new_database(account_id, db_path)
 
+        # 格式化今日和昨日日期
         reset_date = (
-            get_reset_date(current_timestamp), 
-            get_reset_date(current_timestamp - 86400)
+            TimeUtils.get_reset_date(current_timestamp), 
+            TimeUtils.get_reset_date(current_timestamp - 86400)
         )
 
         basic_data = responses[0].get(str(account_id))
+        # 用户隐藏战绩情况，但是这里不存在
         if 'hidden_profile' in basic_data:
-            # 用户隐藏战绩情况
-            with sqlite3.connect(db_path) as conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute("BEGIN IMMEDIATE")
-
-                    now_daily_summary = cls._read_daily_summary(cursor, reset_date)
-                    if now_daily_summary[0] is None and now_daily_summary[1] is None:
-                        cls._insert_daily_summary(cursor, reset_date[1], HIDDEN_USER_STATS, None, update_timestamp)
-                        cls._insert_daily_summary(cursor, reset_date[0], HIDDEN_USER_STATS, None, update_timestamp)
-                    elif now_daily_summary[0] is None:
-                        cls._insert_daily_summary(cursor, reset_date[0], HIDDEN_USER_STATS, None, update_timestamp)
-                    else:
-                        cls._update_daily_summary(cursor, reset_date[0], HIDDEN_USER_STATS, None, update_timestamp)
-
-                    cursor.execute("COMMIT")
-                except Exception as e:
-                    cursor.execute("ROLLBACK")
-                    error_name = type(e).__name__
-                    logger.error(f'{account_id} | Database operation error: {error_name}')
-                    write_exception(
-                        error_type="DatabaseError",
-                        error_name=error_name,
-                        error_info=traceback.format_exc()
-                    )
-                    return 'DatabaseError'
-                finally:
-                    cursor.close()
-
-            return 'Hidden'
+            return
         
         # 读取用户的战绩数据
         statistics = basic_data.get('statistics', {})
@@ -482,20 +434,12 @@ class UserRecentUpdater:
                         cls._update_daily_summary(cursor, reset_date[0], user_latest_stats, None, update_timestamp)
 
                     cursor.execute("COMMIT")
-                except Exception as e:
+                except:
                     cursor.execute("ROLLBACK")
-                    error_name = type(e).__name__
-                    logger.error(f'{account_id} | Database operation error: {error_name}')
-                    write_exception(
-                        error_type="DatabaseError",
-                        error_name=error_name,
-                        error_info=traceback.format_exc()
-                    )
-                    return 'DatabaseError'
+                    raise
                 finally:
                     cursor.close()
-
-            return 'No data'
+                return
 
         latest_ship_count = 0
         latest_ship_map = {}
@@ -557,20 +501,13 @@ class UserRecentUpdater:
                     cls._refresh_daily_snapshot(cursor, latest_shapshot)
 
                     cursor.execute("COMMIT")
-                except Exception as e:
+                except:
                     cursor.execute("ROLLBACK")
-                    error_name = type(e).__name__
-                    logger.error(f'{account_id} | Database operation error: {error_name}')
-                    write_exception(
-                        error_type="DatabaseError",
-                        error_name=error_name,
-                        error_info=traceback.format_exc()
-                    )
-                    return 'DatabaseError'
+                    raise
                 finally:
                     cursor.close()
 
-                return 'New user'
+                return
             
             # 有昨日数据但是没有今日数据，先复制一份昨日数据到今日下
             if now_daily_summary[0] is None and now_daily_summary[1]:
@@ -659,7 +596,6 @@ class UserRecentUpdater:
                     diff_params = cls._calc_recent_diff(ship_id, ship_data[0], ship_data[1])
                     insert_recent_list.extend(diff_params)
 
-            logger.debug(f'{account_id} | {changed_count} {insert_recent_list}')
             try:
                 cursor.execute("BEGIN IMMEDIATE")
                 if changed_count == 0:
@@ -675,15 +611,7 @@ class UserRecentUpdater:
                 cls._insert_user_recent_stats(cursor, insert_recent_list)
 
                 cursor.execute("COMMIT")
-            except Exception as e:
+            except:
                 cursor.execute("ROLLBACK")
-                error_name = type(e).__name__
-                logger.error(f'{account_id} | Database operation error: {error_name}')
-                write_exception(
-                    error_type="DatabaseError",
-                    error_name=error_name,
-                    error_info=traceback.format_exc()
-                )
-                return 'DatabaseError'
-            
-            return 'Success'
+                raise
+            return

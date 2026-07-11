@@ -1,28 +1,9 @@
-from typing import Dict, Any
-from dataclasses import dataclass, field
-
 from app.core import EnvConfig
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 from app.models import UserStatsSyncer
 from app.network import ExternalAPI
 
-
-@dataclass
-class BasicResponse:
-    """PVE响应数据结构"""
-    mode: str = ''
-    type: str = ''
-    basic: Dict[str, Any] = field(default_factory=dict)
-    statistics: Dict[str, Any] = field(default_factory=dict)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            'mode': self.mode,
-            'type': self.type,
-            'basic': self.basic,
-            'statistics': self.statistics
-        }
 
 class BasicAPI:
     @ExceptionLogger.handle_program_exception_async

@@ -3,13 +3,13 @@ from dataclasses import dataclass, field
 
 from app.core import EnvConfig
 from app.utils import DevUtils
-from app.response import JSONResponse
+from app.response import JSONResponse, BasicResponse
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
 from app.middlewares import RedisClient, BlacklistManager
 from app.models import PlayerModel, ShipModel, UserStatsSyncer
 
-from .basic import BasicAPI, BasicResponse
+from .basic import BasicAPI
 from .process import format_overall, accumulate_overall
 from .schema import OriginalData, ProcessedData
 

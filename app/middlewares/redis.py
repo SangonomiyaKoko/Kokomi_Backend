@@ -205,6 +205,18 @@ class RedisClient:
             ex=ex
         )
         return JSONResponse.API_1000_Success
+
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def setnx(key: str, value: dict, nx: bool = False, ex: int = None):
+        conn = RedisConnection.acquire_conn()
+        data = await conn.set(
+            name=key, 
+            value=json.dumps(value, ensure_ascii=False),
+            nx=nx,
+            ex=ex
+        )
+        return JSONResponse.success(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async

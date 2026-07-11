@@ -8,22 +8,28 @@ class StateAPI:
     async def get_node_state():
         result = {
             "region": EnvConfig.REGION,
-            "available": AppState.is_available(),
+            "available": False,
             "services": {}
         }
+            
         constant = EnvConfig.get_constants()
         services = constant.SERVICE_LIST
-        for service in services:
-            key = f'status:{service}'
-            error, data = JSONResponse.extract_data(
-                response=await RedisClient.exists(key)
-            )
-            if error:
+        if EnvConfig.DEV_MODE or not AppState.is_available():
+            for service in services:
                 result['services'][service] = 0
-            elif data:
-                result['services'][service] = 1
-            else:
-                result['services'][service] = 0
+        else:
+            result['available'] = True
+            for service in services:
+                key = f'status:{service}'
+                error, data = JSONResponse.extract_data(
+                    response=await RedisClient.exists(key)
+                )
+                if error:
+                    result['services'][service] = 0
+                elif data:
+                    result['services'][service] = 1
+                else:
+                    result['services'][service] = 0
 
         return JSONResponse.success(result)
     

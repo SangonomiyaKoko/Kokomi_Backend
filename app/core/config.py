@@ -35,7 +35,7 @@ class SecurityConfig:
     """RabbitMQ 配置"""
     root: str
     user: str
-    visitor: list
+    manager: str
 
 @dataclass(frozen=True)
 class RuntimeConfig:
@@ -59,17 +59,16 @@ class ConstantsConfig:
     USER_ACTIVITY_THRESHOLDS: list[list]
     USER_ACTIVITY_STRATEGY: dict[str, int]
     SPECIAL_ACTIVITY_STRATEGY: list[list]
+    METRIC_RATING_THRESHOLDS: dict[list]
 
 class EnvConfig:
     PLATFORM: Optional[str] = None
     DEV_MODE: Optional[bool] = False
     REGION: Optional[str] = None
-    TIMEZORE: Optional[int] = 0
-    REGION_TIMEZONE: Optional[int] = None
+    TIMEZONE: Optional[int] = 0
     LOCALTION: Optional[str] = None
     INIT_TIME : Optional[int] = None
     UID_RULE: Optional[list] = None
-    API_TOKEN: Optional[str] = None
     SSL_CA_BUNDLE: Optional[str] = None
 
     ROOT_DIR: Path = Path('/app')
@@ -77,6 +76,7 @@ class EnvConfig:
     DATA_DIR: Path = Path('/app/data')
     INIT_DIR: Path = Path('/app/init')
     SQLITE_DIR: Path = Path('/app/data/db')
+    SQLITE_SQL: str = None
 
     _config: Optional[RuntimeConfig] = None
     _endpoints: Optional[EndpointsConfig] = None
@@ -84,11 +84,16 @@ class EnvConfig:
 
     @classmethod
     def _require_env(cls, key: str, default: Optional[str] = None) -> str:
-        """获取环境变量"""
+        """获取环境变量（不存在会报错）"""
         value = os.getenv(key, default)
         if value is None:
             raise ValueError(f"Missing required environment variable: {key}")
         return value
+
+    @classmethod
+    def _require_env_optional(cls, key: str, default: Optional[str] = None) -> str:
+        """获取环境变量（可选）"""
+        return os.getenv(key, default)
 
     @classmethod
     def _load_json_file(cls, file_path: Path) -> dict:
@@ -120,19 +125,19 @@ class EnvConfig:
         """初始化运行时配置"""
         cls.PLATFORM=cls._require_env('PLATFORM')
         cls.DEV_MODE=True if cls._require_env('DEV_MODE') == '1' else False
-        cls.SSL_CA_BUNDLE=cls._require_env('SSL_CA_BUNDLE')
+        cls.SSL_CA_BUNDLE=cls._require_env_optional('SSL_CA_BUNDLE')
 
         cls._config = RuntimeConfig(
             SECURITY=SecurityConfig(
                 root=cls._require_env("API_ROOT_TOKEN"),
                 user=cls._require_env("API_USER_TOKEN"),
-                visitor=cls._require_env("API_VISITOR_TOKENS").split(';')
+                manager=cls._require_env("API_MANAGER_TOKEN")
             ),
             MYSQL=MySQLConfig(
                 host=cls._require_env("MYSQL_HOST"),
                 port=int(cls._require_env("MYSQL_PORT", "3306")),
-                user='root',  # 默认使用 root 用户
-                password=cls._require_env("MYSQL_ROOT_PASSWORD"),  # 加载 root 用户密码
+                user=cls._require_env("MYSQL_USER"),
+                password=cls._require_env("MYSQL_PASSWORD"),
                 db=cls._require_env("MYSQL_DATABASE")
             ),
             REDIS=RedisConfig(
@@ -147,13 +152,14 @@ class EnvConfig:
                 password=cls._require_env("RABBITMQ_DEFAULT_PASS")
             )
         )
-        
-        custom_sqlite_dir = cls._require_env("SQLITE_DIR")
-        if custom_sqlite_dir == '':
-            cls.SQLITE_DIR = cls.DATA_DIR / 'db'
-        else:
-            cls.SQLITE_DIR = Path(custom_sqlite_dir)
 
+        custom_sqlite_dir = cls._require_env_optional("SQLITE_DIR")
+        cls.SQLITE_DIR = Path(custom_sqlite_dir) if custom_sqlite_dir else cls.DATA_DIR / 'db'
+
+        sql_file_path = cls.DATA_DIR / 'const/recent.sql'
+        with open(sql_file_path, "r", encoding="utf-8") as f:
+            cls.SQLITE_SQL = f.read()
+        
     @classmethod
     def _init_region(cls):
         file_path = cls.DATA_DIR / 'json/init_marker.json'
@@ -163,8 +169,7 @@ class EnvConfig:
             raise ValueError(f"Missing 'region' key in {file_path}")
         
         cls.REGION = data.get('region')
-        cls.TIMEZORE = data.get("timezone", 0)
-        cls.REGION_TIMEZONE = f'UTC{data.get("timezone", 0):+d}'
+        cls.TIMEZONE = data.get("timezone", 0)
         cls.LOCATION = data.get('location', 'N/A')
         init_timestamp = data.get('init_time')
         cls.INIT_TIME = datetime.fromtimestamp(init_timestamp, tz=timezone.utc).strftime("%Y-%m-%d") if init_timestamp else "N/A"
@@ -209,7 +214,8 @@ class EnvConfig:
             SHIP_INIT_TABLE_LIST=data['SHIP_INIT_TABLE_LIST'],
             USER_ACTIVITY_THRESHOLDS=data['USER_ACTIVITY_THRESHOLDS'],
             USER_ACTIVITY_STRATEGY=data['USER_ACTIVITY_STRATEGY'],
-            SPECIAL_ACTIVITY_STRATEGY=data['SPECIAL_ACTIVITY_STRATEGY']
+            SPECIAL_ACTIVITY_STRATEGY=data['SPECIAL_ACTIVITY_STRATEGY'],
+            METRIC_RATING_THRESHOLDS=data['METRIC_RATING_THRESHOLDS']
         )
 
     @classmethod

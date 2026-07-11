@@ -16,7 +16,12 @@ async def getPvEOverall(
     user_id: int = Path(..., description="用户ID"),
     include_old: Optional[bool] = Query(None, description="是否包含旧船数据")
 ):
-    # 检查应用状态
+    """获取用户人机战斗总体数据
+    
+    --- 
+
+    **权限要求**: `Root` / `User` **开发模式**: ✅ **维护模式**: ❌
+    """
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
     
@@ -40,7 +45,14 @@ async def getPvPOverall(
     ship_nation: Optional[ShipNation] = Query(None, description="船只国籍"),
     include_old: Optional[bool] = Query(None, description="是否包含旧船数据")
 ):
-    # 检查应用状态
+    """获取用户随机战斗总体数据
+
+    返回指定筛选条件下的用户随机战斗总体数据，仅允许0-1个筛选条件，不支持多个参数。
+    
+    --- 
+
+    **权限要求**: `Root` / `User` **开发模式**: ✅ **维护模式**: ❌
+    """
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
     
@@ -100,7 +112,12 @@ async def getRankedOverall(
     user_id: int = Path(..., description="用户ID"),
     include_old: Optional[bool] = Query(None, description="是否包含旧船数据")
 ):
-    # 检查应用状态
+    """获取用户排位战斗总体数据
+    
+    --- 
+
+    **权限要求**: `Root` / `User` **开发模式**: ✅ **维护模式**: ❌
+    """
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
     

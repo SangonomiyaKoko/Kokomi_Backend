@@ -18,7 +18,7 @@ def get_current_iso_time() -> str:
     """获取当前 UTC 时间的 ISO 格式字符串"""
     return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
-def _get_rating_level(
+def get_rating_level(
     value: float,
     metric_name: str
 ) -> int:
@@ -31,7 +31,7 @@ def _get_rating_level(
         metric_name: 指标名称
 
     Returns:
-        等级 1-8，数值越大表示表现越好
+        等级 1-8
     """
     # 获取对应指标的阈值列表
     thresholds = METRIC_RATING_THRESHOLDS.get(metric_name)
@@ -71,16 +71,7 @@ def calc_ship_rating(ship_data: list, server_data: list | None):
 
     # Step 3 - PR value:
     personal_rating = round(700 * n_dmg + 300 * n_frags + 150 * n_wins, 2)
-    damage_rating = _get_rating_level(r_dmg, 'damage')
-    frags_rating = _get_rating_level(r_frags, 'frags')
+    damage_rating = get_rating_level(r_dmg, 'damage')
+    frags_rating = get_rating_level(r_frags, 'frags')
     
     return personal_rating, damage_rating, frags_rating
-    
-def get_wr_level(value: float) -> int:
-    thresholds = [40, 45, 50, 52.5, 55, 60, 67]
-    if thresholds is None:
-        return 0
-
-    # 计算满足 value >= threshold 的数量
-    count = sum(1 for th in thresholds if value >= th)
-    return 1 + count

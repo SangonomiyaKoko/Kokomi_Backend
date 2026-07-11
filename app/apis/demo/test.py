@@ -1,26 +1,22 @@
-import shutil
-
 from app.core import EnvConfig
 from app.constants import ClanColor
 from app.loggers import ExceptionLogger
 from app.network import DemoExternalAPI
 from app.response import JSONResponse, ResponseDict
+from app.middlewares import BlacklistManager
 from app.models import DemoRecentModel
+from app.database import SQLiteConnection
 from app.middlewares import RedisClient
 
-
-RECENT_LEVEL_OFF = 0
-RECENT_LEVEL_STANDARD = 1
-RECENT_LEVEL_PLUS = 2
 
 class TestAPI:
     @ExceptionLogger.handle_program_exception_async
     async def test_error_log():
-        """测试错误日志记录功能"""
+        """测试错误日志记录功能，直接抛出NotImplementedError异常"""
         raise NotImplementedError
 
     @ExceptionLogger.handle_program_exception_async
-    async def delete_error_logs():
+    async def delete_error_logs() -> ResponseDict:
         """删除所有错误日志文件"""
         error_dir = EnvConfig.LOG_DIR / 'error'
         exception_dir = EnvConfig.LOG_DIR / 'exception'
@@ -36,7 +32,7 @@ class TestAPI:
         return JSONResponse.success(del_count)
     
     @ExceptionLogger.handle_program_exception_async
-    async def clear_service_logs():
+    async def clear_service_logs() -> ResponseDict:
         """清空所有服务的异常日志文件（仅清空内容，保留文件）"""
         constant = EnvConfig.get_constants()
         services = constant.SERVICE_LIST
@@ -202,11 +198,24 @@ class TestAPI:
         return JSONResponse.success(data)
     
     @ExceptionLogger.handle_program_exception_async
+    async def get_all_blacklist():
+        result = BlacklistManager.get_all()
+        return JSONResponse.success(result)
+
+    @ExceptionLogger.handle_program_exception_async
+    async def remove_user(account_id: int):
+        return BlacklistManager.del_user(account_id)
+    
+    @ExceptionLogger.handle_program_exception_async
+    async def remove_clan(clan_id: int):
+        return BlacklistManager.del_clan(clan_id)
+
+    @ExceptionLogger.handle_program_exception_async
     async def set_recent(account_id: int, level: str):
         '''启用用户recent功能'''
         level_map = {
-            "standard": RECENT_LEVEL_STANDARD,
-            "plus": RECENT_LEVEL_PLUS
+            "standard": 1,
+            "plus": 2
         }
         target_level = level_map.get(level)
         if target_level is None:
@@ -215,24 +224,29 @@ class TestAPI:
         return await DemoRecentModel.set_recent_level(account_id, target_level)
 
     @ExceptionLogger.handle_program_exception_async
-    async def del_recent(account_id: int, level: str):
-        '''降低/关闭用户recent功能'''
-        level_map = {
-            "off": RECENT_LEVEL_OFF,
-            "standard": RECENT_LEVEL_STANDARD
-        }
-        target_level = level_map.get(level)
-        if target_level is None:
-            return JSONResponse.API_1000_Success
-        
-        result = await DemoRecentModel.reduce_recent_level(account_id, target_level)
-        if result['code'] != 1000:
+    async def demotion_recent(account_id: int):
+        """降级用户recent功能并清理数据"""
+        error, result = JSONResponse.extract_data(
+            response=await DemoRecentModel.reduce_recent_level(account_id)
+        )
+        if error:
             return result
         
-        # 关闭recent功能时，删除用户的recent数据库文件
-        if level == "off":
-            user_db_file = EnvConfig.SQLITE_DIR / f'{account_id}.db'
-            if user_db_file.exists():
-                shutil.move(user_db_file, EnvConfig.DATA_DIR / f'trash/recent_{account_id}.db')
+        # 清理数据
+        SQLiteConnection.clear_recent_data(account_id)
+
+        return JSONResponse.success(result)
+    
+    @ExceptionLogger.handle_program_exception_async
+    async def disable_recent(account_id: int):
+        """关闭用户recent功能并清理数据"""
+        error, result = JSONResponse.extract_data(
+            response=await DemoRecentModel.disable_recent(account_id)
+        )
+        if error:
+            return result
+        
+        # 删除数据库文件
+        SQLiteConnection.delete_db(account_id)
         
         return JSONResponse.API_1000_Success

@@ -1,9 +1,11 @@
 from .state import StateAPI
-from .db import MaintenanceAPI
-from .user import UserManagerAPI
+from .database import MaintenanceAPI
+from .access import VisitorManagerAPI
+from .blacklist import BlacklistManagerAPI
 
 __all__ = [
     'StateAPI',
     'MaintenanceAPI',
-    'UserManagerAPI'
+    'VisitorManagerAPI',
+    'BlacklistManagerAPI'
 ]

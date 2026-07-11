@@ -324,8 +324,9 @@ class UserStatsSyncer:
                 FROM T_user_stats
                 WHERE account_id = %s;
             """
-            cursor.execute(sql, [account_id])
-            return cursor.fetchone()[0]
+            await cursor.execute(sql, [account_id])
+            data = await cursor.fetchone()
+            return data[0]
 
     @staticmethod
     async def _update_user_battles(cursor: Cursor, account_id: int, table_name: str, user_data: dict) -> None:
@@ -400,7 +401,7 @@ class UserStatsSyncer:
             str: 错误类型名称
         """
         current_timestamp = TimeUtils.timestamp()
-        user_data = cls._extract_user_data(account_id, api_result)
+        user_data = cls._extract_user_data(account_id, current_timestamp, api_result)
         
         async with MySQLManager.auto_transaction_cursor() as cursor:
             # 从数据库中读取用户的username
@@ -432,7 +433,7 @@ class UserStatsSyncer:
             await cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
             
             # 更新 T_user_stats
-            await cls._update_user_stats(cursor, account_id, user_level, user_data, current_timestamp, return_refresh_time)
+            update_timestamp = await cls._update_user_stats(cursor, account_id, user_level, user_data, current_timestamp, return_refresh_time)
 
             # 更新 T_user_random / T_user_ranked
             await cls._update_user_battles(cursor, account_id, 'T_user_random', user_data['random_stats'])
@@ -441,7 +442,7 @@ class UserStatsSyncer:
             # 更新 T_user_cache
             await cls._update_user_cache(cursor, account_id, user_data, random)
             
-        return JSONResponse.API_1000_Success
+        return JSONResponse.success(update_timestamp)
     
 class UserClanSyncer:
     @staticmethod

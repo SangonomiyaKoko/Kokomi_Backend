@@ -1,50 +1,32 @@
+from typing import Optional
+
 from app.core import EnvConfig
 
 
 class GameUtils:
     """存放和游戏相关的工具函数"""
-    def get_user_default_name(account_id: int):
-        "获取用户的默认名称"
+    
+    @staticmethod
+    def get_user_default_name(account_id: int) -> str:
+        """根据账号 ID 生成用户的默认名称"""
         return f'User_{account_id}'
     
-    def get_clan_default_name():
-        "获取工会的默认名称"
-        return f'N/A'
-    
-    def get_insignias(data: dict):
-        if not data:
-            return None
-        keys = [
-            "texture_id",
-            "symbol_id",
-            "border_color_id",
-            "background_color_id",
-            "background_id"
-        ]
-        if any(k not in data for k in keys):
-            return None
-        return "-".join(str(data[k]) for k in keys)
-    
-    def get_dog_tag(data: str):
-        if data is None or data == "":
-            return {}
-        data = data.split('-')
-        return {
-            "texture_id": int(data[0]),
-            "symbol_id": int(data[1]),
-            "border_color_id": int(data[2]),
-            "background_color_id": int(data[3]),
-            "background_id": int(data[4])
-        }
+    @staticmethod
+    def get_clan_default_name() -> str:
+        """获取公会的默认名称"""
+        return 'N/A'
 
-    def check_uid(account_id: int) -> bool:
-        "检查account_id是否合法"
+    @staticmethod
+    def check_uid(uid: int) -> bool:
+        """检查 UID 是否在合法的 UID 范围内"""
         uid_rule = EnvConfig.UID_RULE
-        if uid_rule[0] <= account_id <= uid_rule[1]:
+        if uid_rule[0] <= uid <= uid_rule[1]:
             return True
         return False
     
+    @staticmethod
     def format_nation(nation: str) -> str:
+        """将国家代码格式化为完整显示名称，未找到时返回首字母大写的原始值"""
         NATION_DISPLAY = {
             "commonwealth": "Commonwealth",
             "europe": "Europe",
@@ -63,7 +45,9 @@ class GameUtils:
 
         return NATION_DISPLAY.get(nation, nation.capitalize())
     
+    @staticmethod
     def format_tier(tier: int) -> str:
+        """将等级数字格式化为罗马数字显示"""
         ROMAN_MAP = {
             1: 'Ⅰ',
             2: 'Ⅱ',

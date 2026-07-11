@@ -15,10 +15,12 @@ from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
 from app.database import MySQLManager
 from app.network import HttpClient
+from app.utils import RatingUtils
 from app.middlewares import (
     RedisConnection,
     SecurityManager, 
     ServiceMetrics,
+    VisitorManager,
     BlacklistManager
 )
 from app.dashboard import dashboard_router
@@ -48,24 +50,7 @@ def csv_writer_thread():
     writer.close()
     api_logger.info('The log writing thread has exited')
 
-# 应用程序的生命周期管理
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # 读取工作路径
-    ROOT_DIR = os.getcwd()
-    api_logger.info(f'Working dir: {ROOT_DIR}')
-    # 从环境中加载配置
-    env_file = EnvConfig.init(ROOT_DIR)
-    if env_file:
-        api_logger.info(f"Env config loaded: {env_file}")
-    else:
-        api_logger.error("Env config load failed")
-    api_logger.info(f"Current region: {EnvConfig.REGION.upper()}")
-    # 启动定时任务
-    # task = asyncio.create_task(schedule())
-    # 启动API日志写入线程
-    writer_thread = threading.Thread(target=csv_writer_thread, daemon=True)
-    writer_thread.start()
+async def app_init():
     # 初始化http客户端
     HttpClient.init_client()
     # 初始化mysql并测试mysql连接
@@ -78,8 +63,34 @@ async def lifespan(app: FastAPI):
     app_state = await RedisConnection.load_state()
     AppState.init(app_state)
     api_logger.info(f'API available: {app_state}')
+    # 加载访客令牌管理器
+    VisitorManager.init()
     # 初始化黑名单管理器
     BlacklistManager.init()
+    # 加载工具函数所需的全局配置数据
+    RatingUtils.init(EnvConfig.get_constants().METRIC_RATING_THRESHOLDS)
+
+# 应用程序的生命周期管理
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 读取工作路径，加载配置文件
+    ROOT_DIR = os.getcwd()
+    api_logger.info(f'Working dir: {ROOT_DIR}')
+    # 从环境中加载配置
+    env_file = EnvConfig.init(ROOT_DIR)
+    if env_file:
+        api_logger.info(f"Env config loaded: {env_file}")
+    else:
+        api_logger.error("Env config load failed")
+    api_logger.info(f"Current region: {EnvConfig.REGION.upper()}")
+
+    # 启动API日志写入线程
+    writer_thread = threading.Thread(target=csv_writer_thread, daemon=True)
+    writer_thread.start()
+    
+    # 应用初始化
+    await app_init()
+
     # 启动 lifespan
     try:
         yield
@@ -94,11 +105,13 @@ async def lifespan(app: FastAPI):
 app_description = """
 接口返回值文档：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/return.md
 """
+
 # 加载APP
 app = FastAPI(
     lifespan=lifespan,
     description=app_description
 )
+
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -106,6 +119,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # 请求中间件
 @app.middleware("http")
 async def request_rate_limiter(request: Request, call_next):
+    # 由于子节点接口仅限授权用户访问，目前不需要考虑IP黑名单问题
     # client_ip = request.client.host if request.client else None
     # if client_ip != '127.0.0.1':
     #     return JSONResponse(
@@ -171,7 +185,7 @@ app.include_router(
     miantenance_router, 
     prefix='/api',
     tags=['Miantenance Interface'],
-    dependencies=[Security(SecurityManager.require_user)]
+    dependencies=[Security(SecurityManager.require_manager)]
 )
 
 app.include_router(

@@ -62,4 +62,5 @@ with open(file_path, "r", encoding="utf-8") as f:
     CLAN_LEAGUE_LIST: list = data['CLAN_LEAGUE_LIST']
     CLAN_BATTLE_WINDOWS: list = data['CLAN_BATTLE_WINDOWS']
     CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
+    METRIC_RATING_THRESHOLDS: list = data['METRIC_RATING_THRESHOLDS']
 print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

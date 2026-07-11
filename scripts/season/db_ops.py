@@ -5,6 +5,7 @@ from typing import Optional
 
 from logger import logger
 from exception import write_exception
+from utils import get_rating_level
 from settings import CLAN_INIT_TABLE_LIST
 
 
@@ -311,17 +312,6 @@ def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
             s.leading_team,
             s.battles,
             s.win_rate,
-            CASE
-                WHEN s.battles = 0 THEN 0
-                WHEN s.win_rate < 40 THEN 1
-                WHEN s.win_rate < 45 THEN 2
-                WHEN s.win_rate < 50 THEN 3
-                WHEN s.win_rate < 52.5 THEN 4
-                WHEN s.win_rate < 55 THEN 5
-                WHEN s.win_rate < 60 THEN 6
-                WHEN s.win_rate < 67 THEN 7
-                ELSE 8
-            END,
             s.league,
             s.division,
             s.public_rating, 
@@ -342,11 +332,11 @@ def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
 
     for row in rows:
         clan_id = str(row[0])
-        rating = row[8] + 0.1 * row[11] + 0.01 * row[12]
+        rating = row[7] + 0.1 * row[10] + 0.01 * row[11]
         result[clan_id] = [
-            row[1], row[2], row[3], row[4], row[5], 
-            row[6], row[7], rating, row[9], row[10], 
-            row[13], row[14]
+            row[1], row[2], row[3], row[4], get_rating_level(row[4], 'win_rate'), 
+            row[5], row[6], rating, row[8], row[9], 
+            row[12], row[13]
         ]
     
     payload = []

@@ -27,6 +27,11 @@ class MySQLAPI:
         return result
     
     @ExceptionLogger.handle_program_exception_async
+    async def get_clan_season_overview(season_id: int) -> ResponseDict:
+        result = await DemoClanModel.get_season_rows(season_id)
+        return result
+    
+    @ExceptionLogger.handle_program_exception_async
     async def get_version_overview() -> ResponseDict:
         result = await ShipModel.get_version_battles()
         return result

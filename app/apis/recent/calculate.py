@@ -1,7 +1,6 @@
 import sqlite3
 from sqlite3 import Cursor
 
-
 from app.core import EnvConfig
 
 
@@ -21,7 +20,7 @@ class CalculateRecent:
             result[row[0]] = [row[1], row[2]]
         return result
     
-    def _read_snapshot_index(cursor: Cursor, snapshot_date: str):
+    def _read_snapshot_index(cursor: Cursor, snapshot_date: int):
         sql = """
             SELECT 
                 ship_map 
@@ -105,15 +104,18 @@ class CalculateRecent:
         return result
 
     @classmethod
-    def calc_ranked_recent(cls, account_id: int, start_date: int, end_date: int):
+    def calc_recent(cls, account_id: int, start_date: int, end_date: int):
         db_path = EnvConfig.SQLITE_DIR / f'{account_id}.db'
 
         with sqlite3.connect(db_path) as conn:
             try:
                 cursor = conn.cursor()
                 recent = {}
-                start_data = cls._read_snapshot_index(cursor, '20260529')
-                end_data = cls._read_snapshot_index(cursor, '20260530')
+                daily_summary = cls._read_daily_summary(cursor)
+                if daily_summary[start_date][0] == daily_summary[end_date][0]:
+                    return recent
+                start_data = cls._read_snapshot_index(cursor, daily_summary[start_date][0])
+                end_data = cls._read_snapshot_index(cursor, daily_summary[end_date][0])
 
                 for ship_id, snapshot_date in end_data.items():
                     if ship_id not in start_data:

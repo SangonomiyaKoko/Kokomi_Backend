@@ -18,10 +18,10 @@ from typing import Any, Iterator
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from exception import write_exception
 from updater import UserStats, UserUpdater
-from refresher import UserRecentUpdater
+from refresher import UserRecentUpdater, recent_refresh_lock
 from syncer import UserStatsSyncer
 from api import fetch_user_recent_data
-from db_ops import get_recent_users, disable_user
+from db_ops import get_recent_users, get_user_recent, disable_user
 from utils import get_current_timestamp
 from settings import (
     REGION, 
@@ -31,6 +31,7 @@ from settings import (
     REFRESH_INTERVAL, 
     MYSQL_CONFIG, 
     REDIS_CONFIG,
+    SQLITE_DIR
 )
 
 
@@ -63,40 +64,113 @@ def progress_iterable(
             yield item
 
 async def worker(mysql_connection: Connection, redis_client: Redis, async_client: AsyncClient):
-    # 待更新用户列表
-    # [user_id, level, limit, user_stats, stats_time], ...
-    update_list = []
     # 待删除用户列表
     disable_list = []
 
     try:
         with mysql_connection.cursor() as cursor:
-            rows = get_recent_users(cursor)
-            for row in rows:
-                # 不可用用户直接退出
-                if row[3] == 0:
-                    disable_list.append(row[0])
-                    continue
-
-                # 用户level信息
-                user_level=row[1]
-                user_limit=row[2]
-
-                # updated_at 为 NULL 说明该用户是新添加
-                if row[10] is None:
-                    update_list.append([row[0],user_level,user_limit,None,None])
-                    continue
+            # 读取所有启用的用户ID列表
+            update_list = get_recent_users(cursor)
+            for update_id in update_list:
+                account_id = update_id[0]
+                user_latest_stats = None
+                user_update_time = None
                 
-                # 读取用户在数据库中的最新stats数据
-                user_stats = UserStats(
-                    is_public=row[4],
-                    total_battles=row[5],
-                    pve_battles=row[6],
-                    pvp_battles=row[7],
-                    ranked_battles=row[8],
-                    karma=row[9]
-                )
-                update_list.append([row[0],user_level,user_limit,user_stats,row[10]])
+                # 只读取一次时间戳避免计算日期时出现不一致问题
+                current_timestamp = get_current_timestamp()
+
+                user = get_user_recent(cursor, account_id)
+                
+                # 不可用用户直接退出
+                if user[3] == 0:
+                    disable_list.append(account_id)
+                    continue
+                if user[0] is None or user[0] == 0:
+                    continue
+                if user[1] is None or user[1] == 0:
+                    continue
+                if user[10]:
+                    user_latest_stats = UserStats(
+                        is_public=user[4], total_battles=user[5], pve_battles=user[6],
+                        pvp_battles=user[7], ranked_battles=user[8], karma=user[9]
+                    )
+                    user_update_time = user[10]
+
+                # 如果当前账号超过90天没有调用记录则关闭记录 Recent 数据功能
+                if user[2] and current_timestamp - user[2] >= 30*68400:
+                    disable_list.append(account_id)
+                    continue
+
+                # 设置分布式锁防止出现并发写问题
+                with recent_refresh_lock(redis_client, account_id) as locked:
+                    if not locked:
+                        continue
+
+                    # 检查用户数据是否需要更新
+                    # 对比mysql和sqlite数据库中用户的基本数据
+                    result = UserUpdater.main(
+                        account_id=account_id,
+                        user_limit=user[1],
+                        current_timestamp=current_timestamp,
+                        user_latest_stats=user_latest_stats,
+                        user_update_time=user_update_time
+                    )
+
+                    # 对于没有变动的用户不需要更新
+                    if not result:
+                        continue
+                    
+                    # 读取用户的最新数据
+                    responses = await fetch_user_recent_data(async_client, redis_client, account_id)
+                    if not responses:
+                        logger.info(f'{account_id} | Failed to obtain data')
+                        continue
+
+                    # 先刷新 MySQL 的用户基础信息
+                    try:
+                        update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, responses[0], True)
+                    except Exception as e:
+                        error_name = type(e).__name__
+                        logger.error(f'{account_id} | Database operation error: {error_name}')
+                        write_exception(
+                            error_type="DatabaseError", 
+                            error_name=error_name,
+                            error_info=traceback.format_exc()
+                        )
+                        continue
+                    
+                    # 没有刷新时间说明刷新失败
+                    if update_timestamp is None:
+                        logger.error(f'{account_id} | Refresh failed')
+                        continue
+                        
+                    # 用户数据不存在
+                    basic_data = responses[0].get(str(account_id))
+                    if 'hidden_profile' not in basic_data and (
+                        basic_data is None or 
+                        'statistics' not in basic_data
+                    ):
+                        if account_id not in disable_list:
+                            disable_list.append(account_id)
+                        logger.info(f'{account_id} | User not found')
+                        continue
+
+                    result = await UserRecentUpdater.main(
+                        account_id=account_id,
+                        user_level=user[0],
+                        responses=responses,
+                        current_timestamp=current_timestamp,
+                        update_timestamp=update_timestamp
+                    )
+                    logger.info(f'{account_id} | {result}')
+            
+            if len(disable_list) > 0:
+                for account_id in disable_list:
+                    disable_user(cursor, account_id)
+                    mysql_connection.commit()
+                    db_path = SQLITE_DIR / f'{account_id}.db'
+                    db_path.unlink(True)
+                    logger.info(f'{account_id} | Removed')
     except Exception as e:
         error_name = type(e).__name__
         logger.error(f"Database operation exception: {error_name}")
@@ -105,90 +179,6 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
             error_name=error_name,
             error_info=traceback.format_exc()
         )
-    
-    for account_id, user_level, user_limit, user_stats, update_time in update_list:
-        try:
-            # 只读取一次时间戳避免计算日期时出现不一致问题
-            current_timestamp = get_current_timestamp()
-
-            # 设置分布式锁防止出现并发写问题
-            lock_key = f"refresh_lock:recent:{account_id}"
-            lock_acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
-            if not lock_acquired:
-                # 获取锁失败则直接跳过
-                logger.info(f'{account_id} | Failed to acquire lock')
-                continue
-
-            # 检查用户数据是否需要更新
-            # 对比mysql和sqlite数据库中用户的基本数据
-            result = UserUpdater.main(
-                account_id=account_id,
-                user_limit=user_limit,
-                current_timestamp=current_timestamp,
-                user_latest_stats=user_stats,
-                user_update_time=update_time
-            )
-
-            # 对于没有变动的用户不需要更新
-            if not result:
-                continue
-            
-            # 读取用户的最新数据
-            responses = await fetch_user_recent_data(async_client, redis_client, account_id)
-            if not responses:
-                logger.info(f'{account_id} | Failed to obtain data')
-                continue
-                
-            basic_data = responses[0]
-            
-            # 先刷新 MySQL 的用户基础信息
-            try:
-                update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data, True)
-            except Exception as e:
-                error_name = type(e).__name__
-                logger.error(f'{account_id} | Database operation error: {error_name}')
-                write_exception(
-                    error_type="DatabaseError",
-                    error_name=error_name,
-                    error_info=traceback.format_exc()
-                )
-                continue
-            
-            # 没有刷新时间说明刷新失败
-            if update_timestamp is None:
-                logger.error(f'{account_id} | Refresh failed')
-                continue
-                
-            # 用户数据不存在
-            basic_data = basic_data.get(str(account_id))
-            if 'hidden_profile' not in basic_data and (
-                basic_data is None or 
-                'statistics' not in basic_data
-            ):
-                if account_id not in disable_list:
-                    disable_list.append(account_id)
-                logger.info(f'{account_id} | User not found')
-                continue
-
-            result = await UserRecentUpdater.main(
-                account_id=account_id,
-                user_level=user_level,
-                responses=responses,
-                current_timestamp=current_timestamp,
-                update_timestamp=update_timestamp
-            )
-            logger.info(f'{account_id} | {result}')
-        except Exception as e:
-            error_name = type(e).__name__
-            logger.error(f'{account_id} | Refresh failed: {error_name}')
-            write_exception(
-                error_type="DatabaseError",
-                error_name=error_name,
-                error_info=traceback.format_exc()
-            )
-        finally:
-            # 删除分布式锁
-            redis_client.delete(lock_key)
 
 async def main():
     redis_client = None
