@@ -36,7 +36,7 @@ class TimeUtils:
     @staticmethod
     def get_reset_date(current_timestamp: int, days: int = 0) -> int:
         """获取 Recent 服务重置日期（返回 YYYYMMDD 格式的整数）"""
-        reset_timestamp = current_timestamp + EnvConfig.TIMEZONE * 3600 - SERVER_RESET_OFFSET * 3600 - days * 68400
+        reset_timestamp = current_timestamp + EnvConfig.TIMEZONE * 3600 - SERVER_RESET_OFFSET * 3600 - days * 86400
         return int(datetime.fromtimestamp(reset_timestamp, timezone.utc).strftime("%Y%m%d"))
 
     @staticmethod

@@ -60,7 +60,31 @@ class CalculateRecent:
             return result
         else:
             return None
-        
+
+    def _read_recent_stats(cursor):
+        sql = """
+            SELECT 
+                ship_id,
+                mode,
+                battles,
+                wins,
+                losses,
+                damage,
+                frags,
+                original_exp,
+                scouting_damage,
+                art_agro,
+                planes_killed,
+                survived,
+                hit_rate,
+                created_at
+            FROM user_recent_stats 
+            WHERE created_at >= datetime('now', '-12 hours')
+            ORDER BY created_at DESC;
+        """
+        cursor.execute(sql)
+        return cursor.fetchall()
+
     def _calc_recent(new_snapshot: list, old_snapshot: list):
         result = []
         for idx in range(4):
@@ -102,6 +126,23 @@ class CalculateRecent:
             ])
 
         return result
+
+    @classmethod
+    def get_recents(cls, account_id: int):
+        db_path = EnvConfig.SQLITE_DIR / f'{account_id}.db'
+
+        with sqlite3.connect(db_path) as conn:
+            try:
+                cursor = conn.cursor()
+                # 读取数据
+                recents = cls._read_recent_stats(cursor)
+                result = []
+                for record in recents:
+                    result.append(list(record))
+                
+                return result
+            finally:
+                cursor.close()
 
     @classmethod
     def calc_recent(cls, account_id: int, start_date: int, end_date: int):

@@ -70,6 +70,15 @@ class MySQLManager:
                 await cur.execute("SELECT @@GLOBAL.transaction_isolation;")
                 iso = await cur.fetchone()
                 api_logger.info(f"Transaction isolation: {iso[0]}")
+                await cur.execute("SELECT @@GLOBAL.time_zone;")
+                global_tz = await cur.fetchone()
+                api_logger.info(f"Global timezone: {global_tz[0]}")
+                await cur.execute("SELECT @@GLOBAL.system_time_zone;")
+                system_tz = await cur.fetchone()
+                api_logger.info(f"System timezone: {system_tz[0]}")
+                await cur.execute("SELECT NOW();")
+                current_time = await cur.fetchone()
+                api_logger.info(f"Now ISO time: {current_time[0]}")
             return True
         except Exception as e:
             api_logger.error(f"Connection test failed: {e}")

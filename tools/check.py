@@ -27,8 +27,8 @@ else:
 DB_CONFIG = {
     "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "user": 'root',
-    "password": os.getenv("MYSQL_ROOT_PASSWORD"),
+    "user": os.getenv("MYSQL_USER"),
+    "password": os.getenv("MYSQL_PASSWORD"),
     "database": os.getenv("MYSQL_DATABASE"),
     "autocommit": False
 }

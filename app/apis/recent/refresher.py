@@ -71,10 +71,13 @@ class UserUpdater:
                 index_table, 
                 updated_at
             FROM user_daily_summary 
-            WHERE snapshot_date in (?, ?);
+            WHERE snapshot_date = ?;
         """
-        cursor.execute(sql, reset_date)
-        return cursor.fetchall()
+        cursor.execute(sql, [reset_date[0]])
+        data1 = cursor.fetchone()
+        cursor.execute(sql, [reset_date[1]])
+        data2 = cursor.fetchone()
+        return (data1, data2)
 
     @staticmethod
     def _read_ship_cache(cursor: Cursor):
@@ -130,34 +133,58 @@ class UserUpdater:
     def _update_daily_summary(
         cursor: Cursor, 
         snapshot_date: int, 
-        summary_data: Optional[UserStats], 
+        summary_data: UserStats, 
         index_table: Optional[str], 
         update_time: int
     ):
-        sql = """
-            UPDATE user_daily_summary 
-            SET
-                is_public = ?,
-                total_battles = ?,
-                pve_battles = ?, 
-                pvp_battles = ?, 
-                ranked_battles = ?, 
-                karma = ?, 
-                index_table = ?,
-                updated_at = ?
-            WHERE snapshot_date = ?;
-        """
-        cursor.execute(sql, [
-            summary_data['is_public'],
-            summary_data['total_battles'],
-            summary_data['pve_battles'],
-            summary_data['pvp_battles'],
-            summary_data['ranked_battles'],
-            summary_data['karma'],
-            index_table,
-            update_time,
-            snapshot_date
-        ])
+        if index_table:
+            sql = """
+                UPDATE user_daily_summary 
+                SET
+                    is_public = ?,
+                    total_battles = ?,
+                    pve_battles = ?, 
+                    pvp_battles = ?, 
+                    ranked_battles = ?, 
+                    karma = ?, 
+                    index_table = ?,
+                    updated_at = ?
+                WHERE snapshot_date = ?;
+            """
+            cursor.execute(sql, [
+                summary_data['is_public'],
+                summary_data['total_battles'],
+                summary_data['pve_battles'],
+                summary_data['pvp_battles'],
+                summary_data['ranked_battles'],
+                summary_data['karma'],
+                index_table,
+                update_time,
+                snapshot_date
+            ])
+        else:
+            sql = """
+                UPDATE user_daily_summary 
+                SET
+                    is_public = ?,
+                    total_battles = ?,
+                    pve_battles = ?, 
+                    pvp_battles = ?, 
+                    ranked_battles = ?, 
+                    karma = ?, 
+                    updated_at = ?
+                WHERE snapshot_date = ?;
+            """
+            cursor.execute(sql, [
+                summary_data['is_public'],
+                summary_data['total_battles'],
+                summary_data['pve_battles'],
+                summary_data['pvp_battles'],
+                summary_data['ranked_battles'],
+                summary_data['karma'],
+                update_time,
+                snapshot_date
+            ])
 
     @staticmethod
     def _ship_snapshot_encode(data: list):
@@ -599,7 +626,7 @@ class UserUpdater:
             try:
                 cursor.execute("BEGIN IMMEDIATE")
                 if changed_count == 0:
-                    cls._update_daily_summary(cursor, reset_date[0], user_latest_stats, now_daily_summary[0][6], update_timestamp)
+                    cls._update_daily_summary(cursor, reset_date[0], user_latest_stats, None, update_timestamp)
                 else:
                     cls._update_daily_summary(cursor, reset_date[0], user_latest_stats, reset_date[0], update_timestamp)
                     if now_daily_summary[0][6] == str(reset_date[0]):

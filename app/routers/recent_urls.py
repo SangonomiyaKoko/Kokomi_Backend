@@ -90,6 +90,33 @@ async def getRecentSummary(
 
     return result
 
+@router.get("/users/{user_id}/recent/plus/", summary="获取用户近期数据(Plus)")
+async def getRecentSummary(
+    user_id: int = Path(..., description="用户ID")
+):
+    """获取用户近期数据
+
+    先效验用户是否符合条件，再启用用户记录近期数据功能。
+    
+    --- 
+
+    **权限要求**: `Root` / `User` **开发模式**: ❌ **维护模式**: ❌
+    """
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_NodeNotAvailable
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
+    
+    if GameUtils.check_uid(user_id) == False:
+        raise HTTPException(status_code=422, detail="Invalid UID")
+    
+    result = await RecentAPI.recents(user_id)
+
+    return result
+
 # @router.get("/users/{user_id}/random/", summary="获取用户近期随机数据")
 # async def getRandomRecent(
 #     user_id: int = Path(..., description="用户ID"),

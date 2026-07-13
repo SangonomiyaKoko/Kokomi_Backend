@@ -333,3 +333,129 @@ class RecentAPI:
         )
 
         return JSONResponse.success(data.to_dict())
+    
+
+    @ExceptionLogger.handle_program_exception_async
+    async def recents(account_id: int):
+        # 先读数据库，读不到数据再请求
+        error, user = JSONResponse.extract_data(
+            response=await PlayerModel.get_user_name_and_clan(account_id)
+        )
+        if error:
+            return user
+        
+        if user:
+            # 记录用户的调用信息
+            error, record = JSONResponse.extract_data(
+                response=await PlayerModel.record_query(account_id)
+            )
+            if error:
+                return record
+        else:
+            return JSONResponse.API_RecentNotEnable
+        
+        user_basic = user['basic']
+
+        # 效验用户所在工会是否被拉黑
+        if user_basic['clan'] and BlacklistManager.is_clan_blocked(user_basic['clan']['clan_id']):
+            return JSONResponse.API_ClanInBlacklist
+
+        error, user_config = JSONResponse.extract_data(
+            response=await PlayerModel.get_user_config(account_id)
+        ) 
+        if error:
+            return user_config
+        
+        # 未启用记录 Recent 数据功能
+        if not (user_config and user_config[0] == 2):
+            return JSONResponse.API_RecentNotEnable
+
+        # 从 Redis 中获取用户的 access_token
+        redis_key = f"token:ac:{account_id}"
+        response = await RedisClient.get_token(redis_key)
+        error, access_token = JSONResponse.extract_data(response)
+        if error:
+            return access_token
+        
+        current_timestamp = TimeUtils.timestamp()
+
+        async with recent_refresh_lock(account_id) as locked:
+            if not locked:
+                return JSONResponse.API_AcqurieLockFailed
+            
+            error, responses = JSONResponse.extract_data(
+                response=await ExternalAPI.get_user_recent(account_id, access_token)
+            )
+            if error:
+                return responses
+
+            # 效验用户当前数据是否有效
+            user_info = responses[0].get(str(account_id))
+            # 用户不存在(404 not found)
+            if user_info is None:
+                return JSONResponse.API_UserNotExist
+            # 用户隐藏战绩
+            if 'hidden_profile' in user_info:
+                error, refresh = JSONResponse.extract_data(
+                    response=await UserStatsSyncer.refresh(account_id, {str(account_id): {'hidden_profile': True}})
+                )
+                if error:
+                    return refresh
+                return JSONResponse.API_UserHiddenProfile
+            # 用户没有战绩
+            if (
+                user_info is None or 
+                'statistics' not in user_info or 
+                'basic' not in user_info['statistics']
+            ):
+                return JSONResponse.API_UserDataIsNone
+            for response in responses[1:]:
+                user_info = response.get(str(account_id))
+                # 用户不存在(404 not found)
+                if user_info is None:
+                    return JSONResponse.API_UserNotExist
+                
+                # 用户隐藏战绩
+                if 'hidden_profile' in user_info:
+                    error, refresh = JSONResponse.extract_data(
+                        response=await UserStatsSyncer.refresh(account_id, {str(account_id): {'hidden_profile': True}})
+                    )
+                    if error:
+                        return refresh
+                    return JSONResponse.API_UserHiddenProfile
+                
+            # 刷新用户的数据库缓存数据
+            error, refresh = JSONResponse.extract_data(
+                response=await UserStatsSyncer.refresh(account_id, responses[0], True)
+            )
+            if error:
+                return refresh
+        
+            user_info = responses[0].get(str(account_id))
+            statistics = user_info['statistics']
+            basic_data = statistics.get('basic', {})
+            
+            user_basic.update({
+                'username': user_info['name'],
+                'karma': basic_data.get('karma', 0),
+                'insignias': user_info.get('dog_tag')
+            })
+
+            await UserUpdater.main(
+                account_id=account_id,
+                user_level=user_config[0],
+                responses=responses,
+                current_timestamp=current_timestamp,
+                update_timestamp=refresh
+            )
+        
+        result = CalculateRecent.get_recents(account_id)
+
+        data = BasicResponse(
+            mode='Recent',
+            type='Plus',
+            basic=user_basic,
+            statistics=result
+        )
+
+        return JSONResponse.success(data.to_dict())
