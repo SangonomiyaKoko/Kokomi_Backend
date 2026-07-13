@@ -60,7 +60,7 @@ def record_http_metrics(
     # 检查所有的返回数据
     for i, response in enumerate(responses):
         if isinstance(response, str):
-            logger.warning(f'{response} {urls[i]}')
+            logger.info(f'{response} {urls[i]}')
             error_count += 1
             error = response
     
