@@ -867,7 +867,7 @@
 3760108848,0,10,3,9,,0,1,PWSC510,Tordenskjold,,托登斯基尔德,,Tordenskjold,Tordenskjold,Tordenskjold,Tordenskjold
 3750639056,0,9,4,5,,1,0,PRSD519,Pr_31_Ognenny,,火红,,Ognenny,Ognenny,Ognenny,Огненный
 3655218384,0,10,4,8,,0,1,PZSD610,Huang_Long_Chuan,,黄龙船,,Tuntou,Tuntou,Tuntou,Tuntou
-4073633520,0,11,3,7,,0,1,PISC211,Liguria,,利古里亚,,Liguria,Liguria,Liguria,Liguria
+4073633520,0,11,3,7,,0,0,PISC211,Liguria,,利古里亚,,Liguria,Liguria,Liguria,Liguria
 3760076624,0,10,4,6,,0,1,PFSD510,Voltigeur,,腾跃兵,,Voltigeur,Voltigeur,Voltigeur,Voltigeur
 4074747888,0,10,1,1,,0,0,PASA210,Essex,,埃塞克斯,,Essex,Essex,Essex,Essex
 4076845040,0,8,1,1,,0,0,PASA208,Yorktown,,约克城,,Yorktown,Yorktown,Yorktown,Yorktown
@@ -891,7 +891,7 @@
 4179506512,0,10,4,12,,0,1,PVSD110,Nueva_Esparta,,新埃斯帕塔,,Nueva Esparta,Nueva Esparta,Nueva Esparta,Nueva Esparta
 3729733072,0,9,2,5,,1,0,PRSB539,Ural,,乌拉尔,,Ural,Ural,Ural,Урал
 3750704976,0,9,2,6,,1,0,PFSB519,Jean_Bart_1943,,让·巴尔43,,Jean Bart '43,Jean Bart '43,Jean Bart '43,Jean Bart '43
-4073666352,0,11,2,3,,0,1,PGSB211,Ludendorff,,鲁登道夫,,Ludendorff,Ludendorff,Ludendorff,Ludendorff
+4073666352,0,11,2,3,,0,1,PGSB211,Seydlitz,,鲁登道夫,,Ludendorff,Ludendorff,Ludendorff,Ludendorff
 4183700816,0,6,4,12,,0,1,PVSD106,Buenos_Aires,,布宜诺斯艾利斯,,Buenos Aires,Buenos Aires,Buenos Aires,Buenos Aires
 4180555088,0,9,4,12,,0,1,PVSD109,Para,,帕拉,,Pará,Pará,Pará,Pará
 4182652240,0,7,4,12,,0,1,PVSD107,Acre,,阿克里,,Acre,Acre,Acre,Acre
@@ -905,6 +905,13 @@
 3656299984,0,9,3,5,,1,0,PRSC609,Kometa,,彗星,,Kometa,Kometa,Kometa,Комета
 3657348304,0,8,3,8,,1,0,PZSC608,Tanifa,,塔尼瓦,,Tanifa,Tanifa,Tanifa,Tanifa
 3759028208,0,11,4,1,,0,1,PASD511,Stonewall,,石墙,,Stonewall,Stonewall,Stonewall,Stonewall
+3970906096,0,9,2,1,,0,1,PASB309,Indiana,,印第安纳,,Indiana,Indiana,Indiana,Indiana
+3739137840,0,10,3,3,,0,1,PGSC530,Wotan,,沃坦,,Wotan,Wotan,Wotan,Wotan
+3728652272,0,10,3,1,,0,1,PASC540,Shenandoah,,谢南多厄,,Shenandoah,Shenandoah,Shenandoah,Shenandoah
+3969857520,0,10,2,1,,0,1,PASB310,New_Jersey,,新泽西,,New Jersey,New Jersey,New Jersey,New Jersey
+3971954672,0,8,2,1,,0,1,PASB308,Washington,,华盛顿,,Washington,Washington,Washington,Washington
+4073666544,0,11,2,1,,0,1,PASB211,Virginia,,弗吉尼亚,,Virginia,Virginia,Virginia,Virginia
+3973003248,0,7,2,1,,0,1,PASB307,Connecticut,,康涅狄格,,Connecticut,Connecticut,Connecticut,Connecticut
 3446584784,0,9,3,5,,1,0,PRSC809,Colorful_Riga,,里加 CLR,,Riga CLR,Riga CLR,Riga CLR,Riga CLR
 3435018224,0,10,4,1,,0,1,PASD820,Colorful_Lynch,,林奇 CLR,,Lynch CLR,Lynch CLR,Lynch CLR,Lynch CLR
 3444520912,0,11,2,4,,0,1,PBSB811,Colorful_Devastation,,毁灭 CLR,,Devastation CLR,Devastation CLR,Devastation CLR,Devastation CLR
