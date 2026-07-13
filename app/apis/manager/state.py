@@ -1,6 +1,8 @@
 from app.core import EnvConfig, AppState
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
+from app.models import ShipModel
+from app.utils import StringUtils
 from app.middlewares import RedisClient
 
 class StateAPI:
@@ -9,9 +11,17 @@ class StateAPI:
         result = {
             "region": EnvConfig.REGION,
             "available": False,
+            'name_hash': None,
             "services": {}
         }
-            
+        error, hash_data = JSONResponse.extract_data(
+            response=await ShipModel.get_ship_data_for_hash()
+        )
+        if error:
+            return hash_data
+        
+        result['name_hash'] = StringUtils.generate_ship_hash(hash_data)
+        
         constant = EnvConfig.get_constants()
         services = constant.SERVICE_LIST
         if EnvConfig.DEV_MODE or not AppState.is_available():

@@ -107,6 +107,45 @@ class ShipModel:
                     GameData.SHIP_NATION_MAP.get(row[4], 'usa')
                 ]
             return JSONResponse.success(result)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def get_ship_data_for_hash():
+        """从数据库读取船只信息，返回待处理的dict数据"""
+        async with MySQLManager.read_only_cursor() as cur:
+            sql = """
+                SELECT
+                    ship_id,
+                    tier,
+                    type_id,
+                    nation_id,
+                    premium,
+                    special,
+                    index_code,
+                    ship_name
+                FROM T_ship_base 
+                WHERE is_enabled = 1
+                ORDER BY ship_id ASC;
+            """
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            
+            result = {}
+            for row in rows:
+                ship_id = int(row[0])
+                tier = row[1]
+                type_id = row[2]
+                nation_id = row[3]
+                premium = 1 if row[4] else 0
+                special = 1 if row[5] else 0
+                prefix = row[6]  # index_code
+                name = row[7]
+                
+                result[ship_id] = [
+                    tier, type_id, nation_id,
+                    premium, special, prefix, name
+                ]
+            
+            return JSONResponse.success(result)
 
     @ExceptionLogger.handle_database_exception_async
     async def get_ship_stats():

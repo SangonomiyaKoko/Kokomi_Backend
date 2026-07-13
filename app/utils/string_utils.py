@@ -1,3 +1,6 @@
+
+import json
+import hashlib
 from typing import Optional, Dict
 
 class StringUtils:
@@ -42,3 +45,23 @@ class StringUtils:
             return None
         
         return {key: int(part) for key, part in zip(keys, parts)}
+    
+    @staticmethod
+    def generate_ship_hash(data_dict: dict) -> str:
+        sorted_items = sorted(data_dict.items())  # [(ship_id, [data...]), ...]
+        
+        serializable_data = []
+        for ship_id, ship_data in sorted_items:
+            serializable_data.append({
+                "id": ship_id,
+                "data": ship_data
+            })
+        json_str = json.dumps(
+            serializable_data,
+            sort_keys=True,
+            ensure_ascii=True,
+            separators=(',', ':')
+        )
+        
+        hash_obj = hashlib.sha256(json_str.encode('utf-8'))
+        return hash_obj.hexdigest()
