@@ -38,7 +38,7 @@ def main():
         if log_file.exists():
             log_file.write_text('')
             clear_count += 1
-    logger.info(f'Clear files: {del_count}')
+    logger.info(f'Clear files: {clear_count}')
 
 if __name__ == '__main__':
     """清理错误日志

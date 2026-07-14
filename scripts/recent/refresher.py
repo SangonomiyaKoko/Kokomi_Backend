@@ -1,10 +1,8 @@
 import sqlite3
 import traceback
-from redis import Redis
 from pathlib import Path
 from sqlite3 import Cursor
 from typing import Optional
-from contextlib import contextmanager
 from typing_extensions import TypedDict
 
 from logger import logger
@@ -28,26 +26,6 @@ HIDDEN_USER_STATS = UserStats(
     ranked_battles=0,
     karma=0
 )
-
-@contextmanager
-def recent_refresh_lock(redis_client: Redis, account_id: str):
-    """分布式锁上下文管理器"""
-    lock_key = f"refresh_lock:recent:{account_id}"
-    
-    # 尝试获取锁
-    acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
-    
-    if not acquired:
-        # 获取锁失败
-        logger.info(f'{account_id} | Failed to acquire lock')
-        yield False
-        return
-    
-    # 获取锁成功
-    try:
-        yield True
-    finally:
-        redis_client.delete(lock_key)
 
 class UserRecentUpdater:
     @staticmethod

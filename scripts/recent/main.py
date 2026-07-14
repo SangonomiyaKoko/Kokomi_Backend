@@ -14,11 +14,12 @@ from redis import Redis
 from httpx import AsyncClient
 from pymysql import Connection
 from typing import Any, Iterator
+from contextlib import contextmanager
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from exception import write_exception
 from updater import UserStats, UserUpdater
-from refresher import UserRecentUpdater, recent_refresh_lock
+from refresher import UserRecentUpdater
 from syncer import UserStatsSyncer
 from api import fetch_user_recent_data
 from db_ops import get_recent_users, get_user_recent, disable_user
@@ -33,7 +34,6 @@ from settings import (
     REDIS_CONFIG,
     SQLITE_DIR
 )
-
 
 
 TIMEOUT = httpx.Timeout(connect=2.0, read=10.0, write=3.0, pool=2.0)
@@ -63,6 +63,26 @@ def progress_iterable(
             logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
+@contextmanager
+def recent_refresh_lock(redis_client: Redis, account_id: str):
+    """分布式锁上下文管理器"""
+    lock_key = f"refresh_lock:recent:{account_id}"
+    
+    # 尝试获取锁
+    acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
+    
+    if not acquired:
+        # 获取锁失败
+        logger.info(f'{account_id} | Failed to acquire lock')
+        yield False
+        return
+    
+    # 获取锁成功
+    try:
+        yield True
+    finally:
+        redis_client.delete(lock_key)
+
 async def worker(mysql_connection: Connection, redis_client: Redis, async_client: AsyncClient):
     # 待删除用户列表
     disable_list = []
@@ -71,8 +91,12 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
         with mysql_connection.cursor() as cursor:
             # 读取所有启用的用户ID列表
             update_list = get_recent_users(cursor)
-            for update_id in update_list:
-                account_id = update_id[0]
+            logger.enable_tqdm()
+            for account_id in progress_iterable(
+                items=update_list, 
+                desc="Processing user",
+                logger_obj=logger
+            ):
                 user_latest_stats = None
                 user_update_time = None
                 
@@ -97,7 +121,7 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                     user_update_time = user[10]
 
                 # 如果当前账号超过90天没有调用记录则关闭记录 Recent 数据功能
-                if user[2] and current_timestamp - user[2] >= 30*68400:
+                if user[2] and current_timestamp - user[2] >= 30*86400:
                     disable_list.append(account_id)
                     continue
 
@@ -163,7 +187,8 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                         update_timestamp=update_timestamp
                     )
                     logger.info(f'{account_id} | {result}')
-            
+            logger.disable_tqdm()
+
             if len(disable_list) > 0:
                 for account_id in disable_list:
                     disable_user(cursor, account_id)

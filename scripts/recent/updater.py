@@ -28,16 +28,7 @@ HIDDEN_USER_STATS = UserStats(
 )
 
 class UserUpdater:
-    """负责维护用户的近期数据库文件，并检查用户是否需要更新"""
-    @staticmethod
-    def _ship_map_decode(data: str):
-        fields = data.split('1')
-        result = {}
-        for f in fields:
-            k, v = f.split(':', 1)
-            result[int(k)] = int(v)
-        return result
-    
+    """负责维护用户的近期数据库文件，并检查用户是否需要更新，该类仅负责数据库文件的维护工作，而不是负责更新用户数据。"""
     @staticmethod
     def _init_new_database(account_id: int, db_path: Path) -> bool:
         """初始化数据库文件，初始化成功返回是否成功初始化文件"""
@@ -162,7 +153,7 @@ class UserUpdater:
             if not row[1]:
                 snapshot_index[row[0]] = {}
 
-            fields = row[0].split(',')
+            fields = row[1].split(',')
             ship_map = {}
             for f in fields:
                 k, v = f.split(':', 1)
@@ -220,6 +211,14 @@ class UserUpdater:
         user_latest_stats: Optional[UserStats],
         user_update_time: Optional[int]
     ) -> bool:
+        """检测用户是否需要更新并维护数据库文件
+        
+        account_id: 用户ID
+        user_limit: 用户允许的最大储存数据上限
+        current_timestamp: 当前时间戳，避免生成的日期一致
+        user_latest_stats: 用户在数据库中的最新战绩数据
+        user_update_time: 用户在数据库中的最新战绩数据的更新时间
+        """
         db_path = SQLITE_DIR / f'{account_id}.db'
         
         # 用户数据库文件不存在，执行初始化数据库文件

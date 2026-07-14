@@ -25,6 +25,17 @@ def read_game_version(cursor: Cursor) -> tuple:
     else:
         return version[0], version[1]
 
+def read_enabled_ship_ids(cursor: Cursor) -> list:
+    sql = f"""
+        SELECT 
+            ship_id 
+        FROM T_ship_base
+        WHERE is_enabled = 1 
+          AND is_old = 1;
+    """
+    cursor.execute(sql)
+    return [str(row[0]) for row in cursor.fetchall()]
+
 def read_disabled_ship_ids(cursor: Cursor) -> list:
     sql = f"""
         SELECT 

@@ -8,7 +8,7 @@ def get_recent_users(cursor: Cursor):
         WHERE user_level > 0;
     """
     cursor.execute(sql)
-    return cursor.fetchall()
+    return [row[0] for row in cursor.fetchall()]
 
 def get_user_recent(cursor: Cursor, account_id: int):
     sql = """
