@@ -115,6 +115,7 @@ class ShipModel:
             sql = """
                 SELECT
                     ship_id,
+                    is_old, 
                     tier,
                     type_id,
                     nation_id,
