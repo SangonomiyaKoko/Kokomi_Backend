@@ -26,8 +26,7 @@ from db_ops import (
     read_game_version,
     update_ship_record,
     get_ship_leaderboard,
-    read_enabled_ship_ids,
-    read_disabled_ship_ids
+    read_enabled_ship_ids
 )
 from settings import (
     REGION, 
@@ -87,7 +86,6 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
 
             # 不可用船只id列表
             enabled_ship_ids = read_enabled_ship_ids(cursor)
-            disabled_ship_ids = read_disabled_ship_ids(cursor)
 
             # 加载符合排行榜统计船只的数据
             ship_data = read_ship_data(cursor)
