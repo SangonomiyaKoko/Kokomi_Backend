@@ -257,7 +257,7 @@ class ShipModel:
                             rarity_id = %s, 
                             premium = %s, 
                             special = %s, 
-                            ndex_code = %s, 
+                            index_code = %s, 
                             ship_name = %s 
                         WHERE ship_id = %s;
                     """
