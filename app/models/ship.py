@@ -261,7 +261,7 @@ class ShipModel:
                             ship_name = %s 
                         WHERE ship_id = %s;
                     """
-                    await cur.execute(sql, [ship_id, ship_row[0], ship_row[4], ship_row[5], ship_row[6], ship_row[7], ship_row[8]])
+                    await cur.execute(sql, [ship_row[0], ship_row[4], ship_row[5], ship_row[6], ship_row[7], ship_row[8], ship_id])
                     result['update'] += 1
 
             for ship_id in enabled_ship_ids:
