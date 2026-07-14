@@ -133,16 +133,17 @@ class ShipModel:
             result = {}
             for row in rows:
                 ship_id = int(row[0])
-                tier = row[1]
-                type_id = row[2]
-                nation_id = row[3]
-                premium = 1 if row[4] else 0
-                special = 1 if row[5] else 0
-                prefix = row[6]  # index_code
-                name = row[7]
+                is_old = 1 if row[1] else 0
+                tier = row[2]
+                type_id = row[3]
+                nation_id = row[4]
+                premium = 1 if row[5] else 0
+                special = 1 if row[6] else 0
+                prefix = row[7]  # index_code
+                name = row[8]
                 
                 result[ship_id] = [
-                    tier, type_id, nation_id,
+                    is_old, tier, type_id, nation_id,
                     premium, special, prefix, name
                 ]
             
