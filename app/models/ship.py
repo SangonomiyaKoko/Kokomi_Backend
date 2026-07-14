@@ -119,6 +119,7 @@ class ShipModel:
                     tier,
                     type_id,
                     nation_id,
+                    rarity_id, 
                     premium,
                     special,
                     index_code,
@@ -137,13 +138,14 @@ class ShipModel:
                 tier = row[2]
                 type_id = row[3]
                 nation_id = row[4]
-                premium = 1 if row[5] else 0
-                special = 1 if row[6] else 0
-                prefix = row[7]  # index_code
-                name = row[8]
+                rarity_id = row[5]
+                premium = 1 if row[6] else 0
+                special = 1 if row[7] else 0
+                prefix = row[8]  # index_code
+                name = row[9]
                 
                 result[ship_id] = [
-                    is_old, tier, type_id, nation_id,
+                    is_old, tier, type_id, nation_id, rarity_id, 
                     premium, special, prefix, name
                 ]
             
