@@ -31,7 +31,7 @@ def read_enabled_ship_ids(cursor: Cursor) -> list:
             ship_id 
         FROM T_ship_base
         WHERE is_enabled = 1 
-          AND is_old = 1;
+          AND is_old = 0;
     """
     cursor.execute(sql)
     return [str(row[0]) for row in cursor.fetchall()]
