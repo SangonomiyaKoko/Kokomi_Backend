@@ -46,11 +46,11 @@ def parse_ship_row(row: dict) -> list:
         int(row['tier']),
         int(row['type_id']),
         int(row['nation_id']),
-        int(row['rarity_id']) if row.get('rarity_id') else 0,
+        int(row['rarity_id']) if row.get('rarity_id') else None,
         int(row.get('premium', 0)),
         int(row.get('special', 0)),
-        row.get('index', ''),
-        row.get('default', '')
+        row.get('index'),
+        row.get('default')
     ]
 
 

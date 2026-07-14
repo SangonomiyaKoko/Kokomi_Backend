@@ -256,10 +256,12 @@ class ShipModel:
                             is_old = %s, 
                             rarity_id = %s, 
                             premium = %s, 
-                            special = %s 
+                            special = %s, 
+                            ndex_code = %s, 
+                            ship_name = %s 
                         WHERE ship_id = %s;
                     """
-                    await cur.execute(sql, [ship_id, ship_row[0], ship_row[4], ship_row[5], ship_row[6]])
+                    await cur.execute(sql, [ship_id, ship_row[0], ship_row[4], ship_row[5], ship_row[6], ship_row[7], ship_row[8]])
                     result['update'] += 1
 
             for ship_id in enabled_ship_ids:
