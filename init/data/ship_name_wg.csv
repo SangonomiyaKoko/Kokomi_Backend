@@ -4,23 +4,23 @@
 3553572848,0,7,2,1,2,1,0,PASB707,California,加利福尼亚,加利福尼亚,California,California,California,California,California
 3354310384,0,7,3,7,3,1,0,PISC897,Azur_Gorizia,AL 戈里齐亚,AL 戈里齐亚,AL Gorizia,AL Gorizia,AL Gorizia,AL Gorizia,AL Gorizia
 3756963280,0,3,3,5,2,1,0,PRSC513,Varyag,瓦良格,瓦良格,Varyag,Varyag,Varyag,Varyag,Варяг
-3341694416,0,9,4,5,,1,0,PRSD909,Black_Neustrashimy,不惧 (黑),不惧 B,Neustrashimy B,Neustrashimy B,Neustrashimy B,Neustrashimy B,Неустрашимый B
+3341694416,0,9,4,5,4,1,0,PRSD909,Black_Neustrashimy,不惧 (黑),不惧 B,Neustrashimy B,Neustrashimy B,Neustrashimy B,Neustrashimy B,Неустрашимый B
 3655251408,0,10,3,5,3,0,1,PRSC610,Smolensk,斯摩棱斯克,斯摩棱斯克,Smolensk,Smolensk,Smolensk,Smolensk,Смоленск
 4186912208,0,3,2,5,1,0,0,PRSB103,Knyaz_Suvorov,苏沃洛夫公爵,苏沃洛夫公爵,Knyaz Suvorov,Knyaz Suvorov,Knyaz Suvorov,Knyaz Suvorov,Князь Суворов
 4181669616,0,8,2,7,1,0,0,PISB108,Vittorio_Veneto,维托里奥·维内托,维托里奥·维内托,V. Veneto,V. Veneto,Vittorio Veneto,V. Veneto,V. Veneto
 3550394096,0,10,3,7,1,0,0,PISC710,Varese,瓦雷泽,瓦雷泽,Varese,Varese,Varese,Varese,Varese
 4259264496,0,6,2,1,1,0,0,PASB034,New_Mexico_1941,新墨西哥,新墨西哥,New Mexico,New Mexico,New Mexico,New Mexico,New Mexico
-3542005712,0,8,3,4,,1,0,PBSC718,STPatric_Tiger_1959,厄恩,厄恩,Érne,Érne,Érne,Érne,Érne
+3542005712,0,8,3,4,3,1,0,PBSC718,STPatric_Tiger_1959,厄恩,厄恩,Érne,Érne,Érne,Érne,Érne
 4078876624,0,6,3,4,1,0,0,PBSC206,Devonshire,德文郡,德文郡,Devonshire,Devonshire,Devonshire,Devonshire,Devonshire
 4184815408,0,5,2,3,1,0,0,PGSB105,Koenig,国王,国王,König,König,König,König,König
 4179605296,0,10,1,3,1,0,0,PGSA110,Manfred_Richthofen,M·里希特霍芬,M.里希特霍芬,M. Richthofen,M. Richthofen,Manfred von Richthofen,M. Richthofen,M. Richthofen
 3753850320,0,6,2,5,2,1,0,PRSB516,Novorossiysk,新罗西斯克,新罗西斯克,Novorossiysk,Novorossiysk,Novorossiysk,Novorossiysk,Новороссийск
 3550426576,0,10,2,5,2,0,1,PRSB710,Sibir,西伯利亚,西伯利亚,Sibir,Sibir,Sibir,Sibir,Сибирь
 4074648880,0,10,4,9,1,0,0,PWSD210,Gdansk,格但斯克,格但斯克,Gdańsk,Gdańsk,Gdańsk,Gdańsk,Gdańsk
-3550426832,0,10,2,2,,0,1,PJSB710,FBO_Yamato,鲸落,大和·魁,Yamato Kai,Yamato Kai,Yamato Kai,大和・魁,Yamato Kai
+3550426832,0,10,2,2,4,0,1,PJSB710,FBO_Yamato,鲸落,大和·魁,Yamato Kai,Yamato Kai,Yamato Kai,大和・魁,Yamato Kai
 4180588304,0,9,3,10,1,0,0,PHSC109,Johan_de_Witt,约翰·德·威特,约翰·德·维特,Johan de Witt,Johan de Witt,Johan de Witt,Johan de Witt,Johan de Witt
 3550394352,0,10,3,1,2,0,1,PASC710,Salem,塞勒姆,塞勒姆,Salem,Salem,Salem,Salem,Salem
-3499013840,0,9,3,2,,1,0,PJSC759,VL_Suzuya,猿 VL,铃谷 VL,Suzuya VL,Suzuya VL,Suzuya VL,鈴谷 VL,Suzuya VL
+3499013840,0,9,3,2,5,1,0,PJSC759,VL_Suzuya,猿 VL,铃谷 VL,Suzuya VL,Suzuya VL,Suzuya VL,鈴谷 VL,Suzuya VL
 3560912592,0,10,2,2,3,0,1,PJSB700,ARP_Yamato,ARP 鲸,ARP 大和,ARP Yamato,ARP Yamato,ARP Yamato,ARP 大和,ARP Yamato
 3750639568,0,9,4,4,3,1,0,PBSD519,Somme,索姆河,索姆河,Somme,Somme,Somme,Somme,Somme
 4288657392,1,6,1,1,1,0,1,PASA006,Independence_1945,独立,独立（旧）,Independence (old),Independence (old),Independence (< 23.01.2019),Independence (old),Independence (old)
@@ -94,7 +94,7 @@
 4074747856,0,10,1,4,1,0,0,PBSA210,Audacious,大胆,大胆,Audacious,Audacious,Audacious,Audacious,Audacious
 4185896752,0,4,1,3,1,0,0,PGSA104,Rhein,莱茵河,莱茵河,Rhein,Rhein,Rhein,Rhein,Rhein
 4186846960,0,3,4,7,1,0,0,PISD103,Sauro,纳萨里奥·萨乌罗,纳扎里奥·萨乌罗,N. Sauro,N. Sauro,Nazario Sauro,N. Sauro,N. Sauro
-3551475440,0,9,2,7,,1,0,PISB709,Olympian_Marco_Polo,前百夫长,百夫长,Pilus Prior,Pilus Prior,Pilus Prior,Pilus Prior,Pilus Prior
+3551475440,0,9,2,7,3,1,0,PISB709,Olympian_Marco_Polo,前百夫长,百夫长,Pilus Prior,Pilus Prior,Pilus Prior,Pilus Prior,Pilus Prior
 4187927888,0,2,3,12,1,0,0,PVSC102,Almirante_Barroso,巴罗索海军上将,巴罗索海军上将,Alm. Barroso,Alm. Barroso,Almirante Barroso,Alm. Barroso,Alm. Barroso
 4186879728,0,3,3,7,1,0,0,PISC103,Taranto,塔兰托,塔兰托,Taranto,Taranto,Taranto,Taranto,Taranto
 3763288048,0,6,2,1,2,1,0,PASB507,West_Virginia,西弗吉尼亚 '41,西弗吉尼亚 41,W. Virginia '41,W. Virginia '41,W. Virginia '41,W. Virginia '41,W. Virginia '41
@@ -125,7 +125,7 @@
 3971888592,0,8,4,5,1,0,0,PRSD308,Pr_48,基辅,基辅,Kiev,Kiev,Kiev,Kiev,Киев
 3765351888,0,5,3,5,2,1,0,PRSC505,KrasniKrym,红色克里米亚,红色克里米亚,Krasny Krym,Krasny Krym,Krasny Krym,Krasny Krym,Красный Крым
 3760141776,0,10,2,5,3,0,1,PRSB510,Slava,光荣,光荣,Slava,Slava,Slava,Slava,Слава
-3550459216,0,10,1,12,,0,1,PVSA710,Independencia,独立,自主,Independencia,Independencia,Independencia,Independencia,Independencia
+3550459216,0,10,1,12,3,0,1,PVSA710,Independencia,独立,自主,Independencia,Independencia,Independencia,Independencia,Independencia
 4183701200,0,6,4,2,1,0,0,PJSD106,Fubuki,桐,吹雪,Fubuki,Fubuki,Fubuki,吹雪,Fubuki
 4178458608,0,11,4,1,2,0,0,PASD111,Joshua_Humphreys,约书亚·汉弗莱斯,约书亚·汉弗莱斯,J. Humphreys,J. Humphreys,Joshua Humphreys,J. Humphreys,J. Humphreys
 3362732016,0,9,2,1,3,1,0,PASB889,Azur_Kearsarge,AL 基尔萨奇,AL 奇尔沙治,AL Kearsarge,AL Kearsarge,AL Kearsarge,AL Kearsarge,AL Kearsarge
@@ -137,22 +137,22 @@
 3550393648,0,10,3,9,3,0,1,PWSC710,Svea,斯维亚,斯维亚,Svea,Svea,Svea,Svea,Svea
 4181636880,0,8,3,10,1,0,0,PHSC108,Haarlem,哈勒姆,哈勒姆,Haarlem,Haarlem,Haarlem,Haarlem,Haarlem
 3539875632,0,10,4,3,4,0,1,PGSD720,Gold_Georg_Hoffmann,格奥尔格·霍夫曼 (金),金色格奥尔格·霍夫曼,G. Hoffmann G,G. Hoffmann G,Georg Hoffmann Golden,G. Hoffmann G,G. Hoffmann G
-3330192848,0,10,3,5,,0,1,PRSC920,PostApoc_Petropavlovsk,歪比巴卜,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK
-3540989936,0,9,2,1,,1,0,PASB719,Indiana,印第安纳,印第安纳,Indiana,Indiana,Indiana,Indiana,Indiana
+3330192848,0,10,3,5,2,0,1,PRSC920,PostApoc_Petropavlovsk,歪比巴卜,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK
+3540989936,0,9,2,1,4,1,0,PASB719,Indiana,印第安纳,印第安纳,Indiana,Indiana,Indiana,Indiana,Indiana
 4184749360,0,5,4,9,1,0,0,PWSD105,Visby,维斯比,维斯比,Visby,Visby,Visby,Visby,Visby
 3969857328,0,10,2,3,1,0,0,PGSB310,Preussen,普鲁士,普鲁士,Preussen,Preussen,Preussen,Preussen,Preussen
 3676223184,0,10,3,2,2,0,1,PJSC590,Black_Yoshino,狤 (黑),吉野 B,Yoshino B,Yoshino B,Yoshino B,吉野 B,Yoshino B
 4184782672,0,5,3,6,1,0,0,PFSC105,Emile_Bertin,白劳易,白劳易,Émile Bertin,Émile Bertin,Émile Bertin,Émile Bertin,Émile Bertin
 4179572560,0,10,2,6,1,0,0,PFSB110,France,共和,共和国,République,République,République,République,République
-3552491472,0,8,3,4,,1,0,PBSC708,STPatric_Belfast_1943,思南,辛安,Sinann,Sinann,Sinann,Sinann,Sinann
+3552491472,0,8,3,4,3,1,0,PBSC708,STPatric_Belfast_1943,思南,辛安,Sinann,Sinann,Sinann,Sinann,Sinann
 4185864016,0,4,2,6,1,0,0,PFSB104,Courbet,孤拔,孤拔,Courbet,Courbet,Courbet,Courbet,Courbet
 3762173136,0,8,4,8,2,1,0,PZSD508,LoYang,雒安,洛阳,洛陽,Loyang,Loyang,Loyang,Loyang
 4077827792,0,7,3,2,1,0,0,PJSC207,Omono,獭,雄物,Omono,Omono,Omono,雄物,Omono
 3767449040,0,3,3,5,2,1,0,PRSC503,Oleg,奥列格,奥列格,Oleg,Oleg,Oleg,Oleg,Олег
 3762238928,0,7,2,5,3,1,0,PRSB508,Poltava,波尔塔瓦,波尔塔瓦,Poltava,Poltava,Poltava,Poltava,Полтава
-4276041008,0,8,2,9,,0,0,PWSB018,Enigheten,众志,众志,Enigheten,Enigheten,Enigheten,Enigheten,Enigheten
+4276041008,0,8,2,9,1,0,0,PWSB018,Enigheten,众志,众志,Enigheten,Enigheten,Enigheten,Enigheten,Enigheten
 3509499600,0,9,3,2,4,1,0,PJSC749,GM_Suzuya,猿 (金),金色铃谷,Suzuya G,Suzuya G,Suzuya Golden,鈴谷 G,Suzuya G
-3552491504,0,8,3,1,,1,0,PASC708,Bridgeport,布里奇波特,布里奇波特,Bridgeport,Bridgeport,Bridgeport,Bridgeport,Bridgeport
+3552491504,0,8,3,1,4,1,0,PASC708,Bridgeport,布里奇波特,布里奇波特,Bridgeport,Bridgeport,Bridgeport,Bridgeport,Bridgeport
 3762272240,1,8,1,1,1,0,1,PASA508,Enterprise,企业,企业（旧）,Enterprise (old),Enterprise (old),Enterprise (< 23.01.2019),Enterprise (old),Enterprise (old)
 3753818064,0,6,3,4,2,1,0,PBSC516,London,伦敦,伦敦,London,London,London,London,London
 3761190704,0,9,2,3,2,1,0,PGSB509,Pommern,波美拉尼亚,波美拉尼亚,Pommern,Pommern,Pommern,Pommern,Pommern
@@ -171,7 +171,7 @@
 4181669712,0,8,2,6,1,0,0,PFSB108,Richelieu,黎塞留,黎塞留,Richelieu,Richelieu,Richelieu,Richelieu,Richelieu
 3741234640,0,8,3,5,2,1,0,PRSC528,Ochakov,奥恰科夫,奥恰科夫,Ochakov,Ochakov,Ochakov,Ochakov,Очаков
 4081039312,0,4,1,4,1,0,0,PBSA204,Hermes,竞技神,竞技神,Hermes,Hermes,Hermes,Hermes,Hermes
-3330193200,0,10,3,3,,0,1,PGSC920,Gold_Bremen,不来梅 (金),金色不来梅,Bremen G,Bremen G,Bremen Golden,Bremen G,Bremen G
+3330193200,0,10,3,3,4,0,1,PGSC920,Gold_Bremen,不来梅 (金),金色不来梅,Bremen G,Bremen G,Bremen Golden,Bremen G,Bremen G
 3655317296,0,10,1,3,2,0,1,PGSA610,Max_Immelmann,马克斯·殷麦曼,马克斯·殷麦曼,M. Immelmann,M. Immelmann,Max Immelmann,M. Immelmann,M. Immelmann
 3764270288,0,6,4,8,2,1,0,PZSD506,Anshan,襄安,鞍山,Anshan,Anshan,Anshan,Anshan,Anshan
 3741267952,0,8,2,1,5,1,0,PASB528,Alabama_VL,阿拉巴马 VL,阿拉巴马 VL,Alabama VL,Alabama VL,Alabama VL,Alabama VL,Alabama VL
@@ -179,7 +179,7 @@
 3764303600,0,6,3,7,2,1,0,PISC506,DucadAosta,奥斯塔公爵,奥斯塔公爵,Duca d'Aosta,Duca d'Aosta,Duca d'Aosta,Duca d'Aosta,Duca d'Aosta
 3550360880,0,10,4,9,3,0,1,PWSD710,Ragnar,朗纳尔,朗纳尔,Ragnar,Ragnar,Ragnar,Ragnar,Ragnar
 3764336432,0,6,2,3,2,1,0,PGSB506,Prinz_Eithel_Friedrich,艾特尔·弗里德里希王子,艾特尔·弗里德里希亲王,P. E. Friedrich,P. E. Friedrich,Prinz Eitel Friedrich,P. E. Friedrich,P. E. Friedrich
-4278138160,0,6,2,9,,0,0,PWSB016,Laudon,劳东,劳东,Laudon,Laudon,Laudon,Laudon,Laudon
+4278138160,0,6,2,9,1,0,0,PWSB016,Laudon,劳东,劳东,Laudon,Laudon,Laudon,Laudon,Laudon
 4187927984,0,2,3,13,1,0,0,PSSC102,Mendez_Nunez,门德斯·努涅斯,门德斯·努涅斯,Méndez Núñez,Méndez Núñez,Méndez Núñez,Méndez Núñez,Méndez Núñez
 4076745936,0,8,4,8,2,1,0,PZSD208,Siliwangi_1959,西利旺义,西利旺义,Siliwangi,Siliwangi,Siliwangi,Siliwangi,Siliwangi
 3447666672,0,8,2,1,2,1,0,PASB808,Colorful_North_Carolina,北卡罗来纳 炫彩,北卡罗来纳 CLR,N. Carolina CLR,N. Carolina CLR,North Carolina CLR,N. Carolina CLR,N. Carolina CLR
@@ -187,7 +187,7 @@
 3751687376,0,8,4,8,2,1,0,PZSD518,Fen_Yang,汾安,汾阳,汾陽,Fenyang,Fenyang,Fenyang,Fenyang
 3676223216,0,10,3,7,2,0,1,PISC590,Black_Napoli,那不勒斯 （黑）,那不勒斯 B,Napoli B,Napoli B,Napoli B,Napoli B,Napoli B
 4185831184,0,4,3,10,1,0,0,PHSC104,De_Ruyter,德·鲁伊特,德·鲁伊特,De Ruyter,De Ruyter,De Ruyter,De Ruyter,De Ruyter
-3341727696,0,9,3,4,,1,0,PBSC909,Pirate_Neptune,诅咒之牙,诅咒之牙,Cursed Fang,Cursed Fang,Cursed Fang,Cursed Fang,Cursed Fang
+3341727696,0,9,3,4,3,1,0,PBSC909,Pirate_Neptune,诅咒之牙,诅咒之牙,Cursed Fang,Cursed Fang,Cursed Fang,Cursed Fang,Cursed Fang
 4185863920,0,4,2,7,1,0,0,PISB104,Dante_Alighieri,阿利吉耶里,但丁·阿利格伊切里,D. Alighieri,D. Alighieri,Dante Alighieri,D. Alighieri,D. Alighieri
 4289607376,1,6,4,2,1,0,1,PJSD005,Mutsuki_1926,松(旧),睦月 (旧),Mutsuki (old),Mutsuki (old),Mutsuki (< 01.12.2016),睦月 (old),Mutsuki (old)
 4077828080,0,7,3,1,1,0,0,PASC207,Helena,海伦娜,海伦娜,Helena,Helena,Helena,Helena,Helena
@@ -199,14 +199,14 @@
 3667834672,0,8,3,3,2,1,0,PGSC598,Black_Mainz,美因茨 （黑）,美因茨 B,Mainz B,Mainz B,Mainz B,Mainz B,Mainz B
 3761157328,0,9,3,8,2,1,0,PZSC509,Dalian,连海,大连,Dalian,Dalian,Dalian,Dalian,Dalian
 3655219184,0,10,4,1,2,0,1,PASD610,Forrest_Sherman,福里斯特·舍曼,福雷斯特·谢尔曼,F. Sherman,F. Sherman,Forrest Sherman,F. Sherman,F. Sherman
-3539941072,0,10,2,2,,0,1,PJSB720,Aki,鲼,安艺,Aki,Aki,Aki,安芸,Aki
+3539941072,0,10,2,2,3,0,1,PJSB720,Aki,鲼,安艺,Aki,Aki,Aki,安芸,Aki
 4179506640,0,10,4,5,2,0,1,PRSD110,Pr_24_Khabarovsk,哈巴罗夫斯克,哈巴罗夫斯克,Khabarovsk,Khabarovsk,Khabarovsk,Khabarovsk,Хабаровск
 3552458032,0,8,4,9,3,1,0,PWSD708,Blyskawica_1944,闪电 '44,闪电 44,Blyskawica '44,Błyskawica '44,Błyskawica '44,Blyskawica '44,Błyskawica '44
-4280235312,0,4,2,9,,0,0,PWSB014,Yavuz_Sultan_Selim,严君,亚沃士,Yavuz,Yavuz,Yavuz Sultan Selim,Yavuz,Yavuz
+4280235312,0,4,2,9,1,0,0,PWSB014,Yavuz_Sultan_Selim,严君,亚沃士,Yavuz,Yavuz,Yavuz Sultan Selim,Yavuz,Yavuz
 4181702352,0,8,1,2,1,0,0,PJSA108,Shokaku,鹬,翔鹤,Shōkaku,Shōkaku,Shōkaku,翔鶴,Shōkaku
 3552491344,0,8,3,6,1,0,0,PFSC708,Metz,梅斯,梅茨,Metz,Metz,Metz,Metz,Metz
 4186846416,0,3,4,8,1,0,0,PZSD103,Phra_Ruang,帕襄,帕禳,Phra Ruang,Phra Ruang,Phra Ruang,Phra Ruang,Phra Ruang
-3550393712,0,10,3,11,,0,1,PUSC710,Pioneer,先锋,先驱,Pioneer,Pioneer,Pioneer,Pioneer,Pioneer
+3550393712,0,10,3,11,3,0,1,PUSC710,Pioneer,先锋,先驱,Pioneer,Pioneer,Pioneer,Pioneer,Pioneer
 4187928336,0,2,3,10,1,0,0,PHSC102,Gelderland,海尔德兰,海尔德兰,Gelderland,Gelderland,Gelderland,Gelderland,Gelderland
 3762238800,0,8,2,12,4,1,0,PVSB508,Atlantico,大西洋,大西洋,Atlântico,Atlântico,Atlântico,Atlântico,Atlântico
 4079891920,0,5,4,5,1,0,0,PRSD205,Podvoisky_pr_1929,巴铎夫斯基,巴铎夫斯基,Podvoisky,Podvoisky,Podvoisky,Podvoisky,Подвойский
@@ -220,7 +220,7 @@
 4074715120,0,10,2,1,1,0,0,PASB210,Louisiana,路易斯安那,路易斯安那,Louisiana,Louisiana,Louisiana,Louisiana,Louisiana
 4293867216,0,3,2,2,1,0,0,PJSB001,Kawachi_1912,鲑,河内,Kawachi,Kawachi,Kawachi,河内,Kawachi
 3760109520,0,10,3,4,3,0,1,PBSC510,Plymouth,普利茅斯,普利茅斯,Plymouth,Plymouth,Plymouth,Plymouth,Plymouth
-3540924208,0,9,4,3,,1,0,PGSD719,ZH_1,ZH1,ZH1,ZH1,ZH1,ZH1,ZH1,ZH1
+3540924208,0,9,4,3,4,1,0,PGSD719,ZH_1,ZH1,ZH1,ZH1,ZH1,ZH1,ZH1,ZH1
 4183734000,0,6,3,7,1,0,0,PISC106,Trento,特伦托,特伦托,Trento,Trento,Trento,Trento,Trento
 3749623504,0,10,3,2,2,0,1,PJSC520,Yoshino,狤,吉野,Yoshino,Yoshino,Yoshino,吉野,Yoshino
 4253956080,0,9,4,1,1,0,0,PASD039,Christopher,克里斯托弗,克里斯托弗,Christopher,Christopher,Christopher,Christopher,Christopher
@@ -232,15 +232,15 @@
 4255004656,0,8,4,1,1,0,0,PASD038,Osborne,奥斯本,奥斯本,Osborne,Osborne,Osborne,Osborne,Osborne
 3553572048,0,7,2,8,2,1,0,PZSB707,Teng_She,腾蛇,腾蛇,騰蛇,Teng She,Teng She,Teng She,Teng She
 4181112784,0,8,5,4,1,0,0,PBSS108,Sturdy,坚定,强健,Sturdy,Sturdy,Sturdy,Sturdy,Sturdy
-4284429616,0,10,2,9,,0,0,PWSB010,Thor,托尔,托尔,Thor,Thor,Thor,Thor,Thor
+4284429616,0,10,2,9,1,0,0,PWSB010,Thor,托尔,托尔,Thor,Thor,Thor,Thor,Thor
 4075763408,0,9,2,2,1,0,0,PJSB209,Adatara,鳢,安达太良,Adatara,Adatara,Adatara,安達太良,Adatara
-3330225872,0,10,2,2,,0,1,PJSB920,Gold_Aki,鲼 (金),金色安艺,Aki G,Aki G,Aki Golden,安芸 G,Aki G
+3330225872,0,10,2,2,4,0,1,PJSB920,Gold_Aki,鲼 (金),金色安艺,Aki G,Aki G,Aki Golden,安芸 G,Aki G
 4293801680,0,2,4,2,2,1,0,PJSD001,Tachibana_1912,枳,橘,Tachibana,Tachibana,Tachibana,橘,Tachibana
 3539908368,0,10,3,10,4,0,1,PHSC720,Gold_Prins_Van_Oranje,奥兰治亲王 (金),金色奥兰治亲王,Pr. van Oranje G,Pr. van Oranje G,Prins van Oranje Golden,Pr. van Oranje G,Pr. van Oranje G
 3539941360,0,10,2,1,3,0,1,PASB720,Rhode_Island,罗德岛,罗德岛,Rhode Island,Rhode Island,Rhode Island,Rhode Island,Rhode Island
 3767416784,0,3,4,4,2,1,0,PBSD503,Campbeltown_1941,坎贝尔敦,坎贝尔敦,Campbeltown,Campbeltown,Campbeltown,Campbeltown,Campbeltown
 3762206672,0,8,3,4,3,1,0,PBSC508,Cheshire,柴郡,柴郡,Cheshire,Cheshire,Cheshire,Cheshire,Cheshire
-3550459856,0,10,1,4,,0,1,PBSA710,Ocean,海洋,海洋,Ocean,Ocean,Ocean,Ocean,Ocean
+3550459856,0,10,1,4,3,0,1,PBSA710,Ocean,海洋,海洋,Ocean,Ocean,Ocean,Ocean,Ocean
 3666818864,0,9,2,3,2,1,0,PGSB599,Black_Pommern,波美拉尼亚 (黑),波美拉尼亚 B,Pommern B,Pommern B,Pommern B,Pommern B,Pommern B
 4184749776,0,5,4,2,1,0,0,PJSD105,Mutsuki,松,睦月,Mutsuki,Mutsuki,Mutsuki,睦月,Mutsuki
 4183700944,1,6,4,5,1,0,1,PRSD106,Pr_30_Ognevoy,火力 (OLD),火力 (OLD),Ognevoi (OLD),Ognevoi (OLD),Ognevoi (< 06.03.2017),Ognevoi (OLD),Огневой (OLD)
@@ -266,7 +266,7 @@
 4274927440,0,9,4,6,1,0,0,PFSD019,Orage,暴风雨,暴风雨,Orage,Orage,Orage,Orage,Orage
 3761158128,0,9,3,1,3,1,0,PASC509,Vallejo,瓦列霍,瓦列霍,Vallejo,Vallejo,Vallejo,Vallejo,Vallejo
 4186912560,0,3,2,3,1,0,0,PGSB103,Nassau,拿骚,拿骚,Nassau,Nassau,Nassau,Nassau,Nassau
-3539908400,0,10,3,3,,0,1,PGSC720,Bremen,不来梅,不来梅,Bremen,Bremen,Bremen,Bremen,Bremen
+3539908400,0,10,3,3,3,0,1,PGSC720,Bremen,不来梅,不来梅,Bremen,Bremen,Bremen,Bremen,Bremen
 3668916016,0,7,2,3,2,1,0,PGSB597,Black_Scharnhorst,沙恩霍斯特 (黑),沙恩霍斯特 B,Scharnhorst B,Scharnhorst B,Scharnhorst B,Scharnhorst B,Scharnhorst B
 3437180912,0,8,2,1,2,1,0,PASB818,Black_Alabama,阿拉巴马 (黑),阿拉巴马 B,Alabama B,Alabama B,Alabama B,Alabama B,Alabama B
 4276008304,0,8,3,11,1,0,0,PUSC018,Auckland,奥克兰,奥克兰,Auckland,Auckland,Auckland,Auckland,Auckland
@@ -288,7 +288,7 @@
 4283381456,0,2,2,2,2,1,0,PJSB011,Mikasa_1905,鲐,三笠,Mikasa,Mikasa,Mikasa,三笠,Mikasa
 3539908304,0,10,3,2,4,0,1,PJSC720,Kushiro,貉,钏路,Kushiro,Kushiro,Kushiro,釧路,Kushiro
 3729732816,0,9,2,8,3,1,0,PZSB539,Louchuan,冢虎,楼船,Louchuan,Louchuan,Louchuan,Louchuan,Louchuan
-3511629776,0,7,2,4,,1,0,PBSB747,STPatric_Duke_of_York,达努,达奴,Danu,Danu,Danu,Danu,Danu
+3511629776,0,7,2,4,2,1,0,PBSB747,STPatric_Duke_of_York,达努,达奴,Danu,Danu,Danu,Danu,Danu
 4078843184,0,6,4,9,1,0,0,PWSD206,Stord,斯图尔,斯托德,Stord,Stord,Stord,Stord,Stord
 4076812080,0,8,2,3,1,0,0,PGSB208,Zieten,齐藤,齐滕,Zieten,Zieten,Zieten,Zieten,Zieten
 4288591856,0,7,3,1,2,1,0,PASC006,Atlanta_1942,亚特兰大,亚特兰大,Atlanta,Atlanta,Atlanta,Atlanta,Atlanta
@@ -296,7 +296,7 @@
 3760109264,0,9,3,2,2,1,0,PJSC510,Azumaya,猉,吾妻,Azuma,Azuma,Azuma,吾妻,Azuma
 4292753392,0,2,4,1,1,0,0,PASD002,Sampson_1917,桑普森,桑普森,Sampson,Sampson,Sampson,Sampson,Sampson
 4293834192,0,3,3,5,2,1,0,PRSC001,Avrora_1917,阿芙乐尔,阿芙乐尔,Aurora,Aurora,Aurora,Aurora,Аврора
-3342809072,0,8,2,1,,1,0,PASB908,East_North_Carolina_1945,凯珀,凯珀,Kheper,Kheper,Kheper,Kheper,Kheper
+3342809072,0,8,2,1,3,1,0,PASB908,East_North_Carolina_1945,凯珀,凯珀,Kheper,Kheper,Kheper,Kheper,Kheper
 4284430032,0,7,2,2,1,0,0,PJSB010,Nagato_1944,鲨,长门,Nagato,Nagato,Nagato,長門,Nagato
 3363747792,0,8,3,4,3,1,0,PBSC888,Edinburgh_PR,星际爱丁堡,星之爱丁堡,STAR Edinburgh,STAR Edinburgh,STAR Edinburgh,STAR Edinburgh,STAR Edinburgh
 3761190864,0,9,2,4,4,1,0,PBSB509,Marlborough,马尔博罗,马尔博罗,Marlborough,Marlborough,Marlborough,Marlborough,Marlborough
@@ -305,9 +305,9 @@
 4187895248,0,2,4,5,1,0,0,PRSD102,SM_Storojevoy,守卫,守卫,Storozhevoi,Storozhevoi,Storozhevoi,Storozhevoi,Сторожевой
 4182685136,0,7,3,5,1,0,0,PRSC107,Schors,肖尔斯,肖尔斯,Shchors,Shchors,Shchors,Shchors,Щорс
 3762173232,0,8,4,9,2,1,0,PWSD508,Orkan,风暴,奥坎,Orkan,Orkan,Orkan,Orkan,Orkan
-3341759792,0,9,2,9,,1,0,PWSB909,Black_Karl_XIV_Johan,卡尔十四世·约翰 (黑),卡尔十四世·约翰 B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B
+3341759792,0,9,2,9,2,1,0,PWSB909,Black_Karl_XIV_Johan,卡尔十四世·约翰 (黑),卡尔十四世·约翰 B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B
 3522082512,0,7,3,2,3,1,0,PJSC737,Nachi,ARP狏,ARP 那智,ARP Nachi,ARP Nachi,ARP Nachi,ARP 那智,ARP Nachi
-3539908592,0,10,3,1,,0,1,PASC720,Hawaii,夏威夷,夏威夷,Hawaii,Hawaii,Hawaii,Hawaii,Hawaii
+3539908592,0,10,3,1,3,0,1,PASC720,Hawaii,夏威夷,夏威夷,Hawaii,Hawaii,Hawaii,Hawaii,Hawaii
 3762206544,0,8,3,6,2,1,0,PFSC508,Bayard,贝亚德,贝亚德,Bayard,Bayard,Bayard,Bayard,Bayard
 3541972432,0,8,4,5,2,1,0,PRSD718,Provorny,迅捷,灵巧,Provorny,Provorny,Provorny,Provorny,Проворный
 4256053232,0,7,4,1,1,0,0,PASD037,Hughes,休斯,休斯,Hughes,Hughes,Hughes,Hughes,Hughes
@@ -329,7 +329,7 @@
 3762206704,0,8,3,1,2,1,0,PASC508,Wichita,威奇塔,威奇塔,Wichita,Wichita,Wichita,Wichita,Wichita
 3763288016,0,7,2,4,2,1,0,PBSB507,Hood,胡德,胡德,Hood,Hood,Hood,Hood,Hood
 3750639408,0,9,4,3,2,1,0,PGSD519,Z_44,Z-44,Z-44,Z-44,Z-44,Z-44,Z-44,Z-44
-3342776112,0,8,3,3,,1,0,PGSC908,Black_Schill,席尔 (黑),席尔 B,Schill B,Schill B,Schill B,Schill B,Schill B
+3342776112,0,8,3,3,3,1,0,PGSC908,Black_Schill,席尔 (黑),席尔 B,Schill B,Schill B,Schill B,Schill B,Schill B
 4075763504,0,9,2,3,1,0,0,PGSB209,Prinz_Rupprecht,鲁普雷希特王子,鲁普雷希特亲王,P. Rupprecht,P. Rupprecht,Prinz Rupprecht,P. Rupprecht,P. Rupprecht
 3667900208,0,8,1,3,2,1,0,PGSA598,Black_Graf_Zeppelin,齐柏林伯爵 (黑),齐柏林伯爵 B,Graf Zeppelin B,Graf Zeppelin B,Graf Zeppelin B,Graf Zeppelin B,Graf Zeppelin B
 4179506384,0,10,4,8,1,0,0,PZSD110,Hsiang_Yang,越安,岳阳,岳陽,Yueyang,Yueyang,Yueyang,Yueyang
@@ -346,9 +346,9 @@
 4187895600,0,2,4,3,1,0,0,PGSD102,V_25,V-25,V-25,V-25,V-25,V-25,V-25,V-25
 4182685488,0,7,3,3,1,0,0,PGSC107,Yorck,约克,约克,Yorck,Yorck,Yorck,Yorck,Yorck
 3767416176,0,3,4,11,4,1,0,PUSD503,Vampire,吸血鬼,吸血鬼,Vampire,Vampire,Vampire,Vampire,Vampire
-3549869904,0,10,5,6,,0,1,PFSS710,Surcouf,絮库夫,絮库夫,Surcouf,Surcouf,Surcouf,Surcouf,Surcouf
+3549869904,0,10,5,6,5,0,1,PFSS710,Surcouf,絮库夫,絮库夫,Surcouf,Surcouf,Surcouf,Surcouf,Surcouf
 3668883440,0,7,3,1,2,1,0,PASC597,Nueve_de_Julio_1951,博伊西,博伊西,Boise,Boise,Boise,Boise,Boise
-3341759952,0,9,2,5,,1,0,PRSB909,East_Navarin,玛塔加,玛塔加,Mahtaga,Mahtaga,Mahtaga,Mahtaga,Mahtaga
+3341759952,0,9,2,5,3,1,0,PRSB909,East_Navarin,玛塔加,玛塔加,Mahtaga,Mahtaga,Mahtaga,Mahtaga,Mahtaga
 4281284304,0,8,2,2,1,0,0,PJSB013,Amagi_1942,鳐,天城,Amagi,Amagi,Amagi,天城,Amagi
 4182652112,0,7,4,8,1,0,0,PZSD107,Gadjah_Mada,加札马达,加札马达,Gadjah Mada,Gadjah Mada,Gadjah Mada,Gadjah Mada,Gadjah Mada
 3362666192,0,9,4,2,3,1,0,PJSD889,Kitakaze_PR,星际蕉,星之北风,STAR Kitakaze,STAR Kitakaze,STAR Kitakaze,STAR 北風,STAR Kitakaze
@@ -380,7 +380,7 @@
 4184782640,0,5,3,3,1,0,0,PGSC105,Konigsberg,柯尼斯堡,柯尼斯堡,Königsberg,Königsberg,Königsberg,Königsberg,Königsberg
 4179572528,0,10,2,3,2,0,1,PGSB110,Grossdeutschland,大选帝侯,大选帝侯,G. Kurfürst,G. Kurfürst,Grosser Kurfürst,G. Kurfürst,G. Kurfürst
 3764303216,0,6,3,11,2,1,0,PUSC506,Perth_1942,珀斯,珀斯,Perth,Perth,Perth,Perth,Perth
-3539907792,0,10,3,8,,0,1,PZSC720,Zhuge_Liang,诸葛巧思,诸葛巧思,諸葛巧思,Zhuge Liang,Zhuge Liang,Zhuge Liang,Zhuge Liang
+3539907792,0,10,3,8,3,0,1,PZSC720,Zhuge_Liang,诸葛巧思,诸葛巧思,諸葛巧思,Zhuge Liang,Zhuge Liang,Zhuge Liang,Zhuge Liang
 4182685008,0,7,3,12,1,0,0,PVSC107,Coronel_Bolognesi,博洛涅西上校,博洛涅西上校,Cnel. Bolognesi,Cnel. Bolognesi,Coronel Bolognesi,Cnel. Bolognesi,Cnel. Bolognesi
 4293801424,0,5,4,5,4,1,0,PRSD001,Gremyashchy_1942,轰鸣,轰鸣,Gremyashchy,Gremyashchy,Gremyashchy,Gremyashchy,Гремящий
 3751720400,0,7,3,5,2,1,0,PRSC518,Lazo,拉佐,拉佐,Lazo,Lazo,Lazo,Lazo,Лазо
@@ -405,22 +405,22 @@
 4183799792,0,6,1,1,1,0,0,PASA106,Ranger,突击者,突击者,Ranger,Ranger,Ranger,Ranger,Ranger
 3761157904,0,9,3,10,3,1,0,PHSC509,Van_Speijk,范·斯佩克,范·斯佩克,Van Speijk,Van Speijk,Van Speijk,Van Speijk,Van Speijk
 3763287888,0,7,2,6,2,1,0,PFSB507,Strasbourg,斯特拉斯堡,斯特拉斯堡,Strasbourg,Strasbourg,Strasbourg,Strasbourg,Strasbourg
-3540957136,0,9,3,4,,1,0,PBSC719,Aberdeen,阿伯丁,阿伯丁,Aberdeen,Aberdeen,Aberdeen,Aberdeen,Aberdeen
+3540957136,0,9,3,4,2,1,0,PBSC719,Aberdeen,阿伯丁,阿伯丁,Aberdeen,Aberdeen,Aberdeen,Aberdeen,Aberdeen
 4075730896,0,9,3,4,1,0,0,PBSC209,Drake,德雷克,德雷克,Drake,Drake,Drake,Drake,Drake
 3542005552,0,8,3,3,3,1,0,PGSC718,Warhammer_Blacktemplar,多恩十字,Cross of Dorn,Cross of Dorn,Cross of Dorn,Cross of Dorn,Cross of Dorn,Cross of Dorn
 3655218992,0,10,4,3,3,0,1,PGSD610,Z_42,Z-42,Z-42,Z-42,Z-42,Z-42,Z-42,Z-42
 4186879792,0,3,3,3,1,0,0,PGSC103,Kolberg,科尔贝格,科尔贝格,Kolberg,Kolberg,Kolberg,Kolberg,Kolberg
 4181669680,0,8,2,3,1,0,0,PGSB108,Bismarck,俾斯麦,俾斯麦,Bismarck,Bismarck,Bismarck,Bismarck,Bismarck
 4292851696,1,5,1,1,1,0,1,PASA002,Bogue_1942,博格,博格（旧）,Bogue (old),Bogue (old),Bogue (< 23.01.2019),Bogue (old),Bogue (old)
-3542004944,0,8,3,8,,1,0,PZSC718,Narai,那莱,那莱,Narai,Narai,Narai,Narai,Narai
-3540989680,0,9,2,7,,1,0,PISB719,Olympian_Giuseppe_Verdi,后百夫长,副百夫长,Pilus Posterior,Pilus Posterior,Pilus Posterior,Pilus Posterior,Pilus Posterior
+3542004944,0,8,3,8,3,1,0,PZSC718,Narai,那莱,那莱,Narai,Narai,Narai,Narai,Narai
+3540989680,0,9,2,7,3,1,0,PISB719,Olympian_Giuseppe_Verdi,后百夫长,副百夫长,Pilus Posterior,Pilus Posterior,Pilus Posterior,Pilus Posterior,Pilus Posterior
 4184782160,0,5,3,12,1,0,0,PVSC105,La_Argentina,阿根廷,阿根廷,La Argentina,La Argentina,La Argentina,La Argentina,La Argentina
 4283348976,0,11,3,1,2,0,0,PASC011,Jacksonville,杰克逊维尔,杰克逊维尔,Jacksonville,Jacksonville,Jacksonville,Jacksonville,Jacksonville
 3764271088,0,6,4,1,2,1,0,PASD506,Monaghan,莫纳根,莫纳汉,Monaghan,Monaghan,Monaghan,Monaghan,Monaghan
 3445503824,0,10,4,6,2,0,1,PFSD810,Colorful_Kleber,克莱贝尔 炫彩,克莱贝尔 CLR,Kléber CLR,Kléber CLR,Kléber CLR,Kléber CLR,Kléber CLR
 4290721776,0,4,2,1,1,0,0,PASB004,Arkansas_1912,怀俄明,怀俄明,Wyoming,Wyoming,Wyoming,Wyoming,Wyoming
 4278073168,0,6,4,6,1,0,0,PFSD016,Duchaffault,杜沙福,杜沙福,Duchaffault,Duchaffault,Duchaffault,Duchaffault,Duchaffault
-3340646192,0,10,4,3,,0,1,PGSD910,East_Z_52,东方,沙尔奇,Sharqi,Sharqi,Sharqi,Sharqi,Sharqi
+3340646192,0,10,4,3,3,0,1,PGSD910,East_Z_52,东方,沙尔奇,Sharqi,Sharqi,Sharqi,Sharqi,Sharqi
 4181112816,1,8,5,1,1,0,1,PASS108,Salmon,鲑鱼 (旧),鲑鱼 (old),Salmon (old),Salmon (old),Salmon (< 04.10.2022),Salmon (old),Salmon (old)
 4182652880,0,7,4,4,1,0,0,PBSD107,Jervis,杰维斯,杰维斯,Jervis,Jervis,Jervis,Jervis,Jervis
 3543577808,0,6,5,8,2,1,0,PZSS716,Xing_Zhong_Guo_14,先驱04,新中国14,Xin Zhong Guo 14,Xin Zhong Guo 14,Xin Zhong Guo 14,Xin Zhong Guo 14,Xin Zhong Guo 14
@@ -444,28 +444,28 @@
 4183766832,0,6,2,3,1,0,0,PGSB106,Bayern,巴伐利亚,巴伐利亚,Bayern,Bayern,Bayern,Bayern,Bayern
 4183766768,0,6,2,7,1,0,0,PISB106,Andrea_Doria,安德烈亚·多里亚,安德烈亚·多里亚,Andrea Doria,Andrea Doria,Andrea Doria,Andrea Doria,Andrea Doria
 3763287408,0,7,2,11,2,1,0,PUSB507,Yukon,育空,育空,Yukon,Yukon,Yukon,Yukon,Yukon
-3342775504,0,8,3,8,,1,0,PZSC908,Pinata_Irian,水表船,皮纳塔提安,Piñatian,Piñatian,Piñatian,Piñatian,Piñatian
+3342775504,0,8,3,8,3,1,0,PZSC908,Pinata_Irian,水表船,皮纳塔提安,Piñatian,Piñatian,Piñatian,Piñatian,Piñatian
 3739137488,0,10,3,5,3,0,1,PRSC530,Black_Smolensk,斯摩棱斯克 (黑),斯摩棱斯克 B,Smolensk B,Smolensk B,Smolensk B,Smolensk B,Смоленск B
 4074681808,0,10,3,5,1,0,0,PRSC210,Pr_84_Alexander_Nevsky,亚历山大·涅夫斯基,亚历山大·涅夫斯基,A. Nevsky,A. Nevsky,Alexander Nevsky,A. Nevsky,А. Невский
 4292785616,0,2,3,5,2,1,0,PRSC002,Diana_1905,狄安娜,狄安娜,Diana,Diana,Diana,Diana,Диана
 3750672112,0,9,3,7,4,1,0,PISC519,Michelangelo,米开朗基罗,米开朗基罗,Michelangelo,Michelangelo,Michelangelo,Michelangelo,Michelangelo
-3342808816,0,8,2,7,,1,0,PISB908,FBO_Roma,尼禄,永恒罗马,Roma Aeterna,Roma Aeterna,Roma Aeterna,Roma Aeterna,Roma Aeterna
+3342808816,0,8,2,7,4,1,0,PISB908,FBO_Roma,尼禄,永恒罗马,Roma Aeterna,Roma Aeterna,Roma Aeterna,Roma Aeterna,Roma Aeterna
 4183734256,0,6,3,1,1,0,0,PASC106,Pensacola_1944,彭萨科拉,彭萨科拉,Pensacola,Pensacola,Pensacola,Pensacola,Pensacola
 3540956880,0,9,3,2,3,1,0,PJSC719,Chikuma_2_Hyb,獴,筑摩 II,Chikuma II,Chikuma II,Chikuma II,筑摩 II,Chikuma II
 4074649392,0,10,4,3,1,0,0,PGSD210,Elbing,埃尔宾,埃尔宾,Elbing,Elbing,Elbing,Elbing,Elbing
 3761190608,0,9,2,2,4,1,0,PJSB509,Musashi,鲲,武藏,Musashi,Musashi,Musashi,武蔵,Musashi
 3730782000,0,8,2,3,2,1,0,PGSB538,Black_Brandenburg,勃兰登堡 (黑),勃兰登堡 B,Brandenburg B,Brandenburg B,Brandenburg B,Brandenburg B,Brandenburg B
-3541972816,0,8,4,6,,1,0,PFSD718,Hoche,奥什,奥什,Hoche,Hoche,Hoche,Hoche,Hoche
+3541972816,0,8,4,6,3,1,0,PFSD718,Hoche,奥什,奥什,Hoche,Hoche,Hoche,Hoche,Hoche
 4183701456,0,6,4,4,1,0,0,PBSD106,Icarus,伊卡洛斯,伊卡洛斯,Icarus,Icarus,Icarus,Icarus,Icarus
 4184750032,0,5,4,4,1,0,0,PBSD105,Acasta,阿卡司塔,阿卡斯塔,Acasta,Acasta,Acasta,Acasta,Acasta
 4179539920,0,10,3,4,1,0,0,PBSC110,Minotaur,米诺陶,米诺陶,Minotaur,Minotaur,Minotaur,Minotaur,Minotaur
 3361617616,0,10,4,2,3,0,1,PJSD890,AZUR_Shimakaze,AL 芒,AL 岛风,AL Shimakaze,AL Shimakaze,AL Shimakaze,AL 島風,AL Shimakaze
 3753817904,0,6,3,3,3,1,0,PGSC516,Leipzig,莱比锡,莱比锡,Leipzig,Leipzig,Leipzig,Leipzig,Leipzig
-3340744496,0,10,1,3,,0,1,PGSA910,Pinata_Richthofen,彩男爵,苏斯霍芬,Süsshofen,Süsshofen,Süsshofen,Süsshofen,Süsshofen
+3340744496,0,10,1,3,3,0,1,PGSA910,Pinata_Richthofen,彩男爵,苏斯霍芬,Süsshofen,Süsshofen,Süsshofen,Süsshofen,Süsshofen
 4187894992,0,2,4,8,1,0,0,PZSD102,Long_Jiang,龙江,龙江,龍江,Longjiang,Longjiang,Longjiang,Longjiang
 4182684880,0,7,3,8,1,0,0,PZSC107,Chumphon,春蓬,春蓬,Chumphon,Chumphon,Chumphon,Chumphon,Chumphon
 4184815056,0,5,2,5,1,0,0,PRSB105,Pyotr_Velikiy,彼得大帝,彼得大帝,Pyotr Velikiy,Pyotr Velikiy,Pyotr Velikiy,Pyotr Velikiy,Пётр Великий
-3540923696,0,9,4,9,,1,0,PWSD719,Blyskawica_1952,闪电 '52,闪电 52,Blyskawica '52,Błyskawica '52,Błyskawica '52,Blyskawica '52,Błyskawica '52
+3540923696,0,9,4,9,4,1,0,PWSD719,Blyskawica_1952,闪电 '52,闪电 52,Blyskawica '52,Błyskawica '52,Błyskawica '52,Blyskawica '52,Błyskawica '52
 4187928304,0,2,3,7,1,0,0,PISC102,Nino_Bixio,尼诺·比西奥,尼诺·比西奥,Nino Bixio,Nino Bixio,Nino Bixio,Nino Bixio,Nino Bixio
 4182718192,0,7,2,7,1,0,0,PISB107,Francesco_Caracciolo,弗朗切斯科·卡拉乔洛,弗朗切斯科·卡拉乔洛,F. Caracciolo,F. Caracciolo,Francesco Caracciolo,F. Caracciolo,F. Caracciolo
 4074649296,0,10,4,2,1,0,0,PJSD210,Harugumo,葫,春云,Harugumo,Harugumo,Harugumo,春雲,Harugumo
@@ -478,7 +478,7 @@
 4185863984,0,4,2,3,1,0,0,PGSB104,Kaiser,凯撒,凯撒,Kaiser,Kaiser,Kaiser,Kaiser,Kaiser
 4276008656,0,8,3,2,2,1,0,PJSC018,Tone,貂,利根,Tone,Tone,Tone,利根,Tone
 4185798384,0,4,4,7,1,0,0,PISD104,Turbine,旋风,图尔比内,Turbine,Turbine,Turbine,Turbine,Turbine
-3540989136,0,9,2,8,,1,0,PZSB719,Yimeng,东沂,沂蒙,Yimeng,Yimeng,Yimeng,Yimeng,Yimeng
+3540989136,0,9,2,8,3,1,0,PZSB719,Yimeng,东沂,沂蒙,Yimeng,Yimeng,Yimeng,Yimeng,Yimeng
 4181702096,0,8,1,5,1,0,0,PRSA108,Pobeda,胜利,胜利,Pobeda,Pobeda,Pobeda,Pobeda,Победа
 3540989360,0,9,2,13,3,1,0,PSSB719,Victoria,维多利亚,维多利亚,Victoria,Victoria,Victoria,Victoria,Victoria
 4188976464,0,1,3,12,1,0,0,PVSC101,Hercules,大力神,赫丘利,Hércules,Hércules,Hércules,Hércules,Hércules
@@ -497,7 +497,7 @@
 4274959728,0,9,3,11,1,0,0,PUSC019,Encounter,遭遇,遭遇,Encounter,Encounter,Encounter,Encounter,Encounter
 4187928400,0,2,3,6,1,0,0,PFSC102,Jurien,尤里安,尤里安-格拉维,Jurien,Jurien,Jurien de la Gravière,Jurien,Jurien
 4184782032,0,5,3,8,1,0,0,PZSC105,Chung_King,巴海,重庆,重慶,Chungking,Chungking,Chungking,Chungking
-3552490832,0,8,3,12,,1,0,PVSC708,Comandante_Aguirre,阿吉雷司令,阿吉雷,C. Aguirre,C. Aguirre,Comandante Aguirre,C. Aguirre,C. Aguirre
+3552490832,0,8,3,12,2,1,0,PVSC708,Comandante_Aguirre,阿吉雷司令,阿吉雷,C. Aguirre,C. Aguirre,Comandante Aguirre,C. Aguirre,C. Aguirre
 3532568272,0,7,3,2,3,1,0,PJSC727,Blue_Dragon,昆仑,东方神龙,E. Dragon,E. Dragon,Eastern Dragon,E. Dragon,E. Dragon
 4277057520,1,9,3,1,1,0,1,PASC017,Baltimore_1944,巴尔的摩,巴尔的摩（旧）,Baltimore (old),Baltimore (old),Baltimore (< 31.05.2018),Baltimore (old),Baltimore (old)
 4184815344,0,5,2,7,1,0,0,PISB105,Conte_di_Cavour,加富尔伯爵,加富尔伯爵,Cavour,Cavour,Conte di Cavour,Cavour,Cavour
@@ -513,12 +513,12 @@
 4076812240,0,8,2,4,1,0,0,PBSB208,Hawke,霍克,霍克,Hawke,Hawke,Hawke,Hawke,Hawke
 3741267760,0,8,2,3,2,1,0,PGSB528,Anhalt,安哈尔特,安哈尔特,Anhalt,Anhalt,Anhalt,Anhalt,Anhalt
 4181604048,0,8,4,2,1,0,0,PJSD108,Akizuki,杏,秋月,Akizuki,Akizuki,Akizuki,秋月,Akizuki
-3341759696,0,9,2,8,,1,0,PZSB909,Xuan_Ming,玄冥,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming
+3341759696,0,9,2,8,3,1,0,PZSB909,Xuan_Ming,玄冥,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming
 4276008720,0,8,3,10,1,0,0,PHSC018,Jaarsveld,贾斯维尔德,贾斯维尔德,Jaarsveld,Jaarsveld,Jaarsveld,Jaarsveld,Jaarsveld
 4187895536,0,2,4,7,1,0,0,PISD102,Curtatone,库尔塔托内,库尔塔托内,Curtatone,Curtatone,Curtatone,Curtatone,Curtatone
 3765319120,0,5,4,5,2,1,0,PRSD505,Okhotnik_1917,猎人,猎人,Okhotnik,Okhotnik,Okhotnik,Okhotnik,Охотник
 3760109008,0,10,3,5,3,0,1,PRSC510,Stalingrad,斯大林格勒,斯大林格勒,Stalingrad,Stalingrad,Stalingrad,Stalingrad,Сталинград
-3553539824,0,7,3,7,,1,0,PISC707,Olympian_Francesco_Ferruccio,百夫长副手,副官,Optio,Optio,Optio,Optio,Optio
+3553539824,0,7,3,7,3,1,0,PISC707,Olympian_Francesco_Ferruccio,百夫长副手,副官,Optio,Optio,Optio,Optio,Optio
 4077794608,0,7,4,9,1,0,0,PWSD207,Grom,雷鸣,雷霆,Grom,Grom,Grom,Grom,Grom
 4287542992,0,6,3,2,1,0,0,PJSC007,Aoba_1943,犹,青叶,Aoba,Aoba,Aoba,青葉,Aoba
 4178458320,0,11,4,2,2,0,0,PJSD111,Yamagiri,苽,山雾,Yamagiri,Yamagiri,Yamagiri,山霧,Yamagiri
@@ -533,13 +533,13 @@
 4277056880,0,7,3,11,1,0,0,PUSC017,Uganda,乌干达,乌干达,Uganda,Uganda,Uganda,Uganda,Uganda
 3540989392,0,9,2,5,2,1,0,PRSB719,Zarya_Svobody,自由曙光,自由曙光,Zarya S,Zarya S,Zarya Svobody,Zarya S,Заря С
 4267685872,0,6,1,1,1,0,0,PASA026,Independence,独立,独立,Independence,Independence,Independence,Independence,Independence
-3340679152,0,10,3,1,,0,1,PASC910,Black_Puerto_Rico,波多黎各 (黑),波多黎各 B,Puerto Rico B,Puerto Rico B,Puerto Rico B,Puerto Rico B,Puerto Rico B
+3340679152,0,10,3,1,4,0,1,PASC910,Black_Puerto_Rico,波多黎各 (黑),波多黎各 B,Puerto Rico B,Puerto Rico B,Puerto Rico B,Puerto Rico B,Puerto Rico B
 3864933840,0,10,4,5,1,0,0,PRSD410,Delny,干练,德尔尼,Delny,Delny,Delny,Delny,Дельный
 4179506480,0,10,4,9,1,0,0,PWSD110,Halland,哈兰,哈兰,Halland,Halland,Halland,Halland,Halland
 3766433072,0,5,2,9,2,1,0,PWSB504,Viribus_Unitis,联合力量,联合力量,Viribus Unitis,Viribus Unitis,Viribus Unitis,Viribus Unitis,Viribus Unitis
 4280170192,0,2,4,2,3,1,0,PJSD014,Tachibana_1912_Asus,枳（L）,橘 Lima,Tachibana L,Tachibana L,Tachibana Lima,橘 L,Tachibana L
 4274927600,0,4,4,1,1,0,0,PASD019,Clemson_1920,克莱姆森,克莱姆森,Clemson,Clemson,Clemson,Clemson,Clemson
-3330193392,0,10,3,1,,0,1,PASC920,Gold_Hawaii,夏威夷 (金),金色夏威夷,Hawaii G,Hawaii G,Hawaii Golden,Hawaii G,Hawaii G
+3330193392,0,10,3,1,4,0,1,PASC920,Gold_Hawaii,夏威夷 (金),金色夏威夷,Hawaii G,Hawaii G,Hawaii Golden,Hawaii G,Hawaii G
 4184749904,0,5,4,6,1,0,0,PFSD105,Jaguar,美洲豹,美洲豹,Jaguar,Jaguar,Jaguar,Jaguar,Jaguar
 3542005456,0,8,3,2,3,1,0,PJSC718,ARP_Maya,ARP犮,ARP 摩耶,ARP Maya,ARP Maya,ARP Maya,ARP 摩耶,ARP Maya
 4181112272,0,8,5,5,1,0,0,PRSS108,L20,L-20,L-20,L-20,L-20,L-20,L-20,Л-20
@@ -556,7 +556,7 @@
 3763222256,0,7,4,7,2,1,0,PISD507,FR25,FR25,FR25,FR25,FR25,FR25,FR25,FR25
 4181636304,0,8,3,8,1,0,0,PZSC108,Harbin,会海,哈尔滨,Harbin,Harbin,Harbin,Harbin,Harbin
 3762239472,0,8,2,1,2,1,0,PASB508,Alabama,阿拉巴马,阿拉巴马,Alabama,Alabama,Alabama,Alabama,Alabama
-3543053520,0,7,3,8,,1,0,PZSC717,Lanzhou,皋海,兰州,Lanzhou,Lanzhou,Lanzhou,Lanzhou,Lanzhou
+3543053520,0,7,3,8,2,1,0,PZSC717,Lanzhou,皋海,兰州,Lanzhou,Lanzhou,Lanzhou,Lanzhou,Lanzhou
 4185831376,0,4,3,4,1,0,0,PBSC104,Danae,达娜厄,达娜厄,Danae,Danae,Danae,Danae,Danae
 4180621264,0,9,2,4,1,0,0,PBSB109,Lion,狮级,狮,Lion,Lion,Lion,Lion,Lion
 3541972688,0,8,4,2,3,1,0,PJSD718,AZUR_Yukikaze,AL 莲,AL 雪风,AL Yukikaze,AL Yukikaze,AL Yukikaze,AL 雪風,AL Yukikaze
@@ -575,17 +575,17 @@
 4187928528,0,2,3,4,1,0,0,PBSC102,Weymouth,韦茅斯,韦茅斯,Weymouth,Weymouth,Weymouth,Weymouth,Weymouth
 4183209424,0,6,5,5,1,0,0,PRSS106,S_1,S-1,S-1,S-1,S-1,S-1,S-1,С-1
 4081006544,0,4,2,4,1,0,0,PBSB204,Queen_Mary,玛丽王后,玛丽女王,Queen Mary,Queen Mary,Queen Mary,Queen Mary,Queen Mary
-3319740208,0,10,2,3,,0,1,PGSB930,Pinata_Schliefen,泥头车,冯·祖克霍夫,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff
+3319740208,0,10,2,3,3,0,1,PGSB930,Pinata_Schliefen,泥头车,冯·祖克霍夫,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff
 3762206032,0,8,3,12,3,1,0,PVSC508,Almirante_Grau,格劳海军上将,格劳海军上将,Almte. Grau,Almte. Grau,Almirante Grau,Almte. Grau,Almte. Grau
 3551410160,0,9,4,1,4,1,0,PASD709,Black,布莱克,布莱克,Black,Black,Black,Black,Black
 3764270832,0,6,4,7,3,1,0,PISD506,Leone,狮子,狮子,Leone,Leone,Leone,Leone,Leone
-3343791408,0,7,4,9,,1,0,PWSD907,Pirate_Grom,绯红风暴,猩红风暴,Scarlet Storm,Scarlet Storm,Scarlet Storm,Scarlet Storm,Scarlet Storm
+3343791408,0,7,4,9,3,1,0,PWSD907,Pirate_Grom,绯红风暴,猩红风暴,Scarlet Storm,Scarlet Storm,Scarlet Storm,Scarlet Storm,Scarlet Storm
 4181112624,0,8,5,3,1,0,1,PGSS108,U190,U-190 (旧),U-190 (old),U-190 (old),U-190 (old),U-190 (< 04.10.2022),U-190 (old),U-190 (old)
 4290688720,0,4,3,2,2,1,0,PJSC004,Yubari_1944,狐,夕张,Yūbari,Yūbari,Yūbari,夕張,Yūbari
 4182652624,0,7,4,2,1,0,0,PJSD107,Akatsuki,蕾,晓,Akatsuki,Akatsuki,Akatsuki,暁,Akatsuki
 4275976016,0,8,4,6,1,0,0,PFSD018,L_Aventurier,冒险家,冒险家,L'Aventurier,L'Aventurier,L'Aventurier,L'Aventurier,L'Aventurier
 3764336624,0,6,2,1,2,1,0,PASB506,Arizona_1941,亚利桑那,亚利桑那,Arizona,Arizona,Arizona,Arizona,Arizona
-3550361424,0,10,4,6,,0,1,PFSD710,Chateaurenault,雷诺堡,雷诺堡,Châteaurenault,Châteaurenault,Châteaurenault,Châteaurenault,Châteaurenault
+3550361424,0,10,4,6,3,0,1,PFSD710,Chateaurenault,雷诺堡,雷诺堡,Châteaurenault,Châteaurenault,Châteaurenault,Châteaurenault,Châteaurenault
 3741267792,0,8,2,6,4,1,0,PFSB528,Champagne,香槟,香槟,Champagne,Champagne,Champagne,Champagne,Champagne
 4183799760,0,6,1,4,1,0,0,PBSA106,Furious,暴怒,暴怒,Furious,Furious,Furious,Furious,Furious
 4182718416,0,7,2,4,1,0,0,PBSB107,King_George_V,英王乔治五世,英王乔治五世,King George V,King George V,King George V,King George V,King George V
@@ -593,7 +593,7 @@
 3760142320,0,10,2,1,3,0,1,PASB510,Ohio,俄亥俄,俄亥俄,Ohio,Ohio,Ohio,Ohio,Ohio
 3543053680,0,7,3,11,3,1,0,PUSC717,Gambia,冈比亚,冈比亚,Gambia,Gambia,Gambia,Gambia,Gambia
 4279121744,0,5,4,6,1,0,0,PFSD015,L_Adroit,机敏,机敏,L'Adroit,L'Adroit,L'Adroit,L'Adroit,L'Adroit
-3542037808,0,8,2,9,,1,0,PWSB718,Turgut_Reis,图尔古特·雷斯,图尔古特·雷伊斯,Turgut Reis,Turgut Reis,Turgut Reis,Turgut Reis,Turgut Reis
+3542037808,0,8,2,9,3,1,0,PWSB718,Turgut_Reis,图尔古特·雷斯,图尔古特·雷伊斯,Turgut Reis,Turgut Reis,Turgut Reis,Turgut Reis,Turgut Reis
 4181636848,0,8,3,7,1,0,0,PISC108,Amalfi,阿马尔菲,阿马尔菲,Amalfi,Amalfi,Amalfi,Amalfi,Amalfi
 4078876656,0,6,3,1,1,0,0,PASC206,Dallas,达拉斯,达拉斯,Dallas,Dallas,Dallas,Dallas,Dallas
 4292818736,0,8,2,3,2,1,0,PGSB002,Tirpiz_1942,提尔皮茨,提尔皮茨,Tirpitz,Tirpitz,Tirpitz,Tirpitz,Tirpitz
@@ -604,7 +604,7 @@
 3530504176,0,9,2,1,3,1,0,PASB729,Georgia,乔治亚,佐治亚,Georgia,Georgia,Georgia,Georgia,Georgia
 4183734096,0,6,3,6,1,0,0,PFSC106,La_Galissonniere,拉·加利索尼埃,拉加利索尼埃,La Galissonnière,La Galissonnière,La Galissonnière,La Galissonnière,La Galissonnière
 4178523984,0,11,2,6,2,0,0,PFSB111,Patrie,祖国,祖国,Patrie,Patrie,Patrie,Patrie,Patrie
-4278105904,0,6,3,3,,0,0,PGSC016,Deutschland,德意志,德意志,Deutschland,Deutschland,Deutschland,Deutschland,Deutschland
+4278105904,0,6,3,3,1,0,0,PGSC016,Deutschland,德意志,德意志,Deutschland,Deutschland,Deutschland,Deutschland,Deutschland
 4182685520,0,7,3,6,1,0,0,PFSC107,Algerie,阿尔及利亚,阿尔及利亚,Algérie,Algérie,Algérie,Algérie,Algérie
 3550393552,0,10,3,8,2,0,1,PZSC710,Incheon,仁海,仁川,Incheon,Incheon,Incheon,Incheon,Incheon
 4184782256,0,5,3,13,1,0,0,PSSC105,Galicia,加利西亚,加利西亚,Galicia,Galicia,Galicia,Galicia,Galicia
@@ -614,7 +614,7 @@
 3699291600,0,7,3,5,2,1,0,PRSC568,Black_Lazo,拉佐 (黑),拉佐 B,Lazo B,Lazo B,Lazo B,Lazo B,Лазо B
 3761190352,0,9,2,5,2,1,0,PRSB509,Navarin,纳瓦林,纳瓦林,Navarin,Navarin,Navarin,Navarin,Наварин
 4183209776,1,6,5,3,1,0,1,PGSS106,U_69,U-69 (旧),U-69 (old),U-69 (old),U-69 (old),U-69 (< 04.10.2022),U-69 (old),U-69 (old)
-4274992432,0,9,2,9,,0,0,PWSB019,Gustav_den_Store,古斯塔夫大帝,古斯塔夫大帝,Gustav den Store,Gustav den Store,Gustav den Store,Gustav den Store,Gustav den Store
+4274992432,0,9,2,9,1,0,0,PWSB019,Gustav_den_Store,古斯塔夫大帝,古斯塔夫大帝,Gustav den Store,Gustav den Store,Gustav den Store,Gustav den Store,Gustav den Store
 3555669712,0,5,2,2,3,1,0,PJSB705,Kongou,ARP Kongō,ARP 金刚,ARP Kongō,ARP Kongō,ARP Kongō,ARP 金剛,ARP Kongō
 4276008752,0,8,3,3,1,0,0,PGSC018,Knesebeck,克尼塞伯克,克尼塞伯克,Knesebeck,Knesebeck,Knesebeck,Knesebeck,Knesebeck
 3751786448,0,6,1,4,2,1,0,PBSA518,Ark_Royal,皇家方舟,皇家方舟,Ark Royal,Ark Royal,Ark Royal,Ark Royal,Ark Royal
@@ -623,7 +623,7 @@
 3720263632,0,8,3,4,2,1,0,PBSC548,Nottingham,诺丁汉,诺丁汉,Nottingham,Nottingham,Nottingham,Nottingham,Nottingham
 4184815568,0,5,2,4,1,0,0,PBSB105,Iron_Duke,铁公爵,铁公爵,Iron Duke,Iron Duke,Iron Duke,Iron Duke,Iron Duke
 3764303664,0,6,3,3,3,1,0,PGSC506,Admiral_Graf_Spee,施佩伯爵,海军上将施佩伯爵,Graf Spee,Graf Spee,Admiral Graf Spee,Graf Spee,Graf Spee
-3551475536,0,9,2,6,,1,0,PFSB709,Roussillon,鲁西永,鲁西永,Roussillon,Roussillon,Roussillon,Roussillon,Roussillon
+3551475536,0,9,2,6,4,1,0,PFSB709,Roussillon,鲁西永,鲁西永,Roussillon,Roussillon,Roussillon,Roussillon,Roussillon
 3753817456,0,6,3,11,2,1,0,PUSC516,Mysore,迈索尔,迈索尔,Mysore,Mysore,Mysore,Mysore,Mysore
 4182685456,0,7,3,10,1,0,0,PHSC107,Eendracht,团结,团结,Eendracht,Eendracht,Eendracht,Eendracht,Eendracht
 4074649040,0,10,4,5,1,0,0,PRSD210,Grozovoy_pr_40N,雷暴,雷暴,Grozovoi,Grozovoi,Grozovoi,Grozovoi,Грозовой
@@ -638,7 +638,7 @@
 4185831248,0,4,3,6,1,0,0,PFSC104,Duguay_Trouin,迪盖·特鲁安,迪盖-特鲁安,Duguay-Trouin,Duguay-Trouin,Duguay-Trouin,Duguay-Trouin,Duguay-Trouin
 4180621136,0,9,2,6,1,0,0,PFSB109,Alsace,阿尔萨斯,阿尔萨斯,Alsace,Alsace,Alsace,Alsace,Alsace
 3760076752,0,10,4,4,3,0,1,PBSD510,Druid,德鲁伊,德鲁伊,Druid,Druid,Druid,Druid,Druid
-3553540048,0,7,3,4,,1,0,PBSC707,STPatric_Belfast_1959,博因,博因,Bóinn,Bóinn,Bóinn,Bóinn,Bóinn
+3553540048,0,7,3,4,4,1,0,PBSC707,STPatric_Belfast_1959,博因,博因,Bóinn,Bóinn,Bóinn,Bóinn,Bóinn
 3530471216,0,9,3,3,4,1,0,PGSC729,Blucher,布吕歇尔,布吕歇尔,Blücher,Blücher,Blücher,Blücher,Blücher
 3445536112,0,10,3,11,3,0,1,PUSC810,Black_Brisbane,布里斯班 (黑),布里斯班 B,Brisbane B,Brisbane B,Brisbane B,Brisbane B,Brisbane B
 3764369232,0,6,1,6,2,1,0,PFSA506,Bearn,贝阿恩,贝阿恩,Béarn,Béarn,Béarn,Béarn,Béarn
@@ -647,7 +647,7 @@
 3969824208,0,10,3,5,1,0,0,PRSC310,Petropavlovsk,彼得罗巴甫洛夫斯克,彼得罗巴甫洛夫斯克,Petropavlovsk,Petropavlovsk,Petropavlovsk,Petropavlovsk,Петропавловск
 3763255024,0,7,3,7,2,1,0,PISC507,Duca_degli_Abruzzi,阿布鲁齐,阿布鲁齐公爵,Abruzzi,Abruzzi,Duca degli Abruzzi,Abruzzi,Abruzzi
 3750638896,0,9,4,9,3,1,0,PWSD519,Jager,猎兵,耶格尔,Jäger,Jäger,Jäger,Jäger,Jäger
-4277089584,0,7,2,9,,0,0,PWSB017,Chios,希俄斯,希俄斯,Chios,Chios,Chios,Chios,Chios
+4277089584,0,7,2,9,1,0,0,PWSB017,Chios,希俄斯,希俄斯,Chios,Chios,Chios,Chios,Chios
 4258182864,0,2,3,2,1,0,0,PJSC035,Chikuma_1912,獾,筑摩,Chikuma,Chikuma,Chikuma,筑摩,Chikuma
 3550426896,0,10,2,10,3,0,1,PHSB710,Willem_de_Eerste,威廉一世,威廉一世,Willem de Eerste,Willem de Eerste,Willem de Eerste,Willem de Eerste,Willem de Eerste
 4186879408,0,3,3,13,1,0,0,PSSC103,Navarra,纳瓦拉,纳瓦拉,Navarra,Navarra,Navarra,Navarra,Navarra
@@ -668,7 +668,7 @@
 4288558800,1,7,4,2,1,0,1,PJSD006,Hatsuharu_1945,梅(旧),初春 (old),Hatsuharu (old),Hatsuharu (old),Hatsuharu (< 01.12.2016),初春 (old),Hatsuharu (old)
 3741235184,0,8,3,1,2,1,0,PASC528,Congress,国会,国会,Congress,Congress,Congress,Congress,Congress
 3730814960,0,8,1,1,2,1,0,PASA538,Hornet,大黄蜂,大黄蜂,Hornet,Hornet,Hornet,Hornet,Hornet
-3549869840,0,10,5,10,,0,1,PHSS710,Tonijn,金枪鱼,金枪鱼,Tonijn,Tonijn,Tonijn,Tonijn,Tonijn
+3549869840,0,10,5,10,3,0,1,PHSS710,Tonijn,金枪鱼,金枪鱼,Tonijn,Tonijn,Tonijn,Tonijn,Tonijn
 4182718288,0,7,2,6,1,0,0,PFSB107,Lyon,里昂,里昂,Lyon,Lyon,Lyon,Lyon,Lyon
 4178457808,0,11,4,8,2,0,0,PZSD111,Kunming,春安,昆明,Kunming,Kunming,Kunming,Kunming,Kunming
 3540956624,0,9,3,5,3,1,0,PRSC719,Kozma_Minin,库兹马·米宁,库兹马·米宁,Kozma Minin,Kozma Minin,Kozma Minin,Kozma Minin,Козьма Минин
@@ -678,7 +678,7 @@
 4178458064,0,11,4,5,2,0,0,PRSD111,Zorky,敏锐,佐尔基,Zorkiy,Zorkiy,Zorkiy,Zorkiy,Зоркий
 3765384656,0,5,2,5,2,1,0,PRSB505,Oktyabrskaya_Revolutsiya,十月革命,十月革命,Okt. Revolutsiya,Okt. Revolutsiya,Oktyabrskaya Revolutsiya,Okt. Revolutsiya,Окт. революция
 3760142064,0,10,2,7,3,0,1,PISB510,Ruggiero_di_Lauria,鲁杰罗·迪·劳里亚,鲁杰罗·迪·劳里亚,R. Lauria,R. Lauria,Ruggiero di Lauria,R. Lauria,R. Lauria
-4279186736,0,5,2,9,,0,0,PWSB015,Tegetthoff,特格特霍夫,特格特霍夫,Tegetthoff,Tegetthoff,Tegetthoff,Tegetthoff,Tegetthoff
+4279186736,0,5,2,9,1,0,0,PWSB015,Tegetthoff,特格特霍夫,特格特霍夫,Tegetthoff,Tegetthoff,Tegetthoff,Tegetthoff,Tegetthoff
 4188976880,0,1,3,7,1,0,0,PISC101,Eritrea,厄立特里亚,厄立特里亚,Eritrea,Eritrea,Eritrea,Eritrea,Eritrea
 3743365072,0,6,2,4,3,1,0,PBSB526,Repulse,反击,反击,Repulse,Repulse,Repulse,Repulse,Repulse
 4178491376,0,11,3,1,2,0,0,PASC111,Annapolis,安纳波利斯,安纳波利斯,Annapolis,Annapolis,Annapolis,Annapolis,Annapolis
@@ -688,14 +688,14 @@
 3768497968,0,2,3,3,2,1,0,PGSC502,Emden_1908,埃姆登,埃姆登,Emden,Emden,Emden,Emden,Emden
 3763287856,0,7,2,3,2,1,0,PGSB507,Scharnhorst,沙恩霍斯特,沙恩霍斯特,Scharnhorst,Scharnhorst,Scharnhorst,Scharnhorst,Scharnhorst
 4078876368,0,6,3,2,1,0,0,PJSC206,Gokase,麂,五濑,Gokase,Gokase,Gokase,五ヶ瀬,Gokase
-3543054064,0,7,3,7,,1,0,PISC717,Fiume,阜姆,阜姆,Fiume,Fiume,Fiume,Fiume,Fiume
+3543054064,0,7,3,7,2,1,0,PISC717,Fiume,阜姆,阜姆,Fiume,Fiume,Fiume,Fiume,Fiume
 3759585264,0,10,5,1,3,0,1,PASS510,Gato,小鲨鱼,猫鲨,Gato,Gato,Gato,Gato,Gato
 4186879760,0,3,3,10,1,0,0,PHSC103,Java,爪哇,爪哇,Java,Java,Java,Java,Java
 3740153648,0,9,4,3,4,1,0,PGSD529,ZF_6,ZF-6,ZF-6,ZF-6,ZF-6,ZF-6,ZF-6,ZF-6
 4078843344,0,6,4,5,1,0,0,PRSD206,Pr_7,愤怒,愤怒,Gnevny,Gnevny,Gnevny,Gnevny,Гневный
 4074682352,0,10,3,1,1,0,0,PASC210,Worcester,伍斯特,伍斯特,Worcester,Worcester,Worcester,Worcester,Worcester
 4290655952,0,5,4,2,1,0,0,PJSD004,Minekadze_1920,樱,峰风,Minekaze,Minekaze,Minekaze,峯風,Minekaze
-3345921744,0,5,3,2,,1,0,PJSC905,East_Furutaka_1926,沙漠猎鹰,沙漠猎鹰,Desert Falcon,Desert Falcon,Desert Falcon,Desert Falcon,Desert Falcon
+3345921744,0,5,3,2,3,1,0,PJSC905,East_Furutaka_1926,沙漠猎鹰,沙漠猎鹰,Desert Falcon,Desert Falcon,Desert Falcon,Desert Falcon,Desert Falcon
 3542005744,0,8,3,1,3,1,0,PASC718,AZUR_Montpelier,AL 蒙彼利埃,AL 蒙彼利埃,AL Montpelier,AL Montpelier,AL Montpelier,AL Montpelier,AL Montpelier
 4183766992,0,6,2,4,1,0,0,PBSB106,Queen_Elizabeth,伊丽莎白女王,伊丽莎白女王,Queen Elizabeth,Queen Elizabeth,Queen Elizabeth,Queen Elizabeth,Queen Elizabeth
 4184815440,0,5,2,6,1,0,0,PFSB105,Bretagne,布列塔尼,布列塔尼,Bretagne,Bretagne,Bretagne,Bretagne,Bretagne
@@ -728,7 +728,7 @@
 4075730384,0,9,3,5,1,0,0,PRSC209,Riga,里加,里加,Riga,Riga,Riga,Riga,Рига
 3764303152,0,6,3,9,3,1,0,PWSC506,Elli,埃利,埃利,Elli,Elli,Elli,Elli,Elli
 4289640144,0,5,3,2,1,0,0,PJSC005,Furutaka_1926,狼,古鹰,Furutaka,Furutaka,Furutaka,古鷹,Furutaka
-3341760496,0,9,2,1,,1,0,PASB909,Pirate_Delaware,鸟鸣,鸟啸,Bird Cry,Bird Cry,Bird Cry,Bird Cry,Bird Cry
+3341760496,0,9,2,1,3,1,0,PASB909,Pirate_Delaware,鸟鸣,鸟啸,Bird Cry,Bird Cry,Bird Cry,Bird Cry,Bird Cry
 3554555600,0,6,4,2,3,1,0,PJSD706,Shinonome,茜,东云,Shinonome,Shinonome,Shinonome,東雲,Shinonome
 3750672080,0,9,3,2,3,1,0,PJSC519,AZUR_Azuma,AL 猉,AL 吾妻,AL Azuma,AL Azuma,AL Azuma,AL 吾妻,AL Azuma
 4282300400,1,7,3,1,1,0,1,PASC012,Pensacola_1944,彭萨科拉,彭萨科拉（旧）,Pensacola (old),Pensacola (old),Pensacola (< 31.05.2018),Pensacola (old),Pensacola (old)
@@ -780,7 +780,7 @@
 4179539408,0,10,3,5,2,0,1,PRSC110,Pr_66_Moskva,莫斯科,莫斯科,Moskva,Moskva,Moskva,Moskva,Москва
 3436131792,0,9,2,5,3,1,0,PRSB819,BA_Zarya_Svobody,BA 气垫船,BA Hovercraft,BA Hovercraft,BA Hovercraft,BA Hovercraft,BA Hovercraft,BA Hovercraft
 4179572720,0,10,2,1,1,0,0,PASB110,Vermont,佛蒙特,佛蒙特,Vermont,Vermont,Vermont,Vermont,Vermont
-3531486928,0,8,4,2,,1,0,PJSD728,Shigure,枍,时雨,Shigure,Shigure,Shigure,時雨,Shigure
+3531486928,0,8,4,2,3,1,0,PJSD728,Shigure,枍,时雨,Shigure,Shigure,Shigure,時雨,Shigure
 3730749392,0,8,3,4,2,1,0,PBSC538,Hampshire,汉普郡,汉普郡,Hampshire,Hampshire,Hampshire,Hampshire,Hampshire
 3751753520,0,8,2,3,2,1,0,PGSB518,Brandenburg,勃兰登堡,勃兰登堡,Brandenburg,Brandenburg,Brandenburg,Brandenburg,Brandenburg
 4182652720,0,7,4,3,1,0,0,PGSD107,Leberecht_Maass,莱伯勒希特·马斯,莱伯勒希特·马斯,Maass,Maass,Leberecht Maass,Maass,Maass
@@ -813,7 +813,7 @@
 4179539760,0,10,3,3,1,0,0,PGSC110,Hindenburg,兴登堡,兴登堡,Hindenburg,Hindenburg,Hindenburg,Hindenburg,Hindenburg
 4293867504,0,3,2,1,1,0,0,PASB001,Michigan_1916,南卡罗来纳,南卡罗来纳,S. Carolina,S. Carolina,South Carolina,S. Carolina,S. Carolina
 3740153840,0,9,4,1,4,1,0,PASD529,Black_Black,布莱克 (黑),布莱克 B,Black B,Black B,Black B,Black B,Black B
-3530471152,0,9,3,7,,1,0,PISC729,Messina,墨西拿,墨西拿,Messina,Messina,Messina,Messina,Messina
+3530471152,0,9,3,7,3,1,0,PISC729,Messina,墨西拿,墨西拿,Messina,Messina,Messina,Messina,Messina
 3746477520,0,3,3,5,3,1,0,PRSC523,AZUR_Avrora,AL 阿芙乐尔,AL 阿芙乐尔,AL Avrora,AL Avrora,AL Avrora,AL Avrora,AL Аврора
 3741267408,0,8,2,5,2,1,0,PRSB528,Borodino,博罗季诺,博罗季诺,Borodino,Borodino,Borodino,Borodino,Бородино
 3553539792,0,7,3,2,3,1,0,PJSC707,Ashigara,ARP狳,ARP 足柄,ARP Ashigara,ARP Ashigara,ARP Ashigara,ARP 足柄,ARP Ashigara
@@ -823,7 +823,7 @@
 3741300720,0,8,1,1,2,1,0,PASA528,Saipan,塞班,塞班,Saipan,Saipan,Saipan,Saipan,Saipan
 3550361584,0,10,4,1,4,0,1,PASD710,Laffey,拉菲,拉菲,Laffey,Laffey,Laffey,Laffey,Laffey
 3762239440,0,8,2,4,2,1,0,PBSB508,Vanguard,前卫,前卫,Vanguard,Vanguard,Vanguard,Vanguard,Vanguard
-3543054128,0,7,3,3,,1,0,PGSC717,Nurnberg_1944,纽伦堡 '44,纽伦堡 44,Nürnberg '44,Nürnberg '44,Nürnberg '44,Nürnberg '44,Nürnberg '44
+3543054128,0,7,3,3,2,1,0,PGSC717,Nurnberg_1944,纽伦堡 '44,纽伦堡 44,Nürnberg '44,Nürnberg '44,Nürnberg '44,Nürnberg '44,Nürnberg '44
 4074714928,0,10,2,3,1,0,0,PGSB210,Schlieffen,施里芬,施里芬,Schlieffen,Schlieffen,Schlieffen,Schlieffen,Schlieffen
 3762271696,0,8,1,5,2,1,0,PRSA508,Chkalov,契卡洛夫,契卡洛夫,Chkalov,Chkalov,Chkalov,Chkalov,Чкалов
 3760175056,0,10,1,4,2,0,1,PBSA510,Malta,马耳他,马耳他,Malta,Malta,Malta,Malta,Malta
@@ -841,7 +841,7 @@
 4186847024,0,3,4,3,1,0,0,PGSD103,G_101,G-101,G-101,G-101,G-101,G-101,G-101,G-101
 4181636912,0,8,3,3,1,0,0,PGSC108,Hipper,希佩尔海军上将,希佩尔上将,Hipper,Hipper,Admiral Hipper,Hipper,Hipper
 3761157488,0,9,3,11,3,1,0,PUSC509,Hector,赫克托,赫克托耳,Hector,Hector,Hector,Hector,Hector
-3340645584,0,10,4,8,,0,1,PZSD910,Black_Lushun,旅安 (黑),旅顺 B,Lüshun B,Lüshun B,Lüshun B,Lüshun B,Lüshun B
+3340645584,0,10,4,8,4,0,1,PZSD910,Black_Lushun,旅安 (黑),旅顺 B,Lüshun B,Lüshun B,Lüshun B,Lüshun B,Lüshun B
 4077795120,0,7,4,3,1,0,0,PGSD207,Z_31,Z-31,Z-31,Z-31,Z-31,Z-31,Z-31,Z-31
 3550393808,0,10,3,5,3,0,1,PRSC710,Sevastopol,塞瓦斯托波尔,塞瓦斯托波尔,Sevastopol,Sevastopol,Sevastopol,Sevastopol,Севастополь
 4179539280,0,10,3,12,1,0,0,PVSC110,San_Martin,圣马丁,圣马丁,San Martín,San Martín,San Martín,San Martín,San Martín
@@ -851,7 +851,7 @@
 3552523984,0,5,2,2,3,1,0,PJSB708,Hiei_Arpeggio,ARP鱿,ARP 比叡,ARP Hiei,ARP Hiei,ARP Hiei,ARP 比叡,ARP Hiei
 3551475152,0,9,2,5,3,1,0,PRSB709,AZUR_Sov_Russia,AL 苏维埃罗西亚,AL 苏维埃罗西亚,AL Sov. Rossiya,AL Sov. Rossiya,AL Sov. Rossiya,AL Sov. Rossiya,AL Сов. Россия
 3529422672,0,10,3,6,3,0,1,PFSC730,Amiral_Lartigue,拉蒂格上将,拉蒂格上将,Amiral Lartigue,Amiral Lartigue,Amiral Lartigue,Amiral Lartigue,Amiral Lartigue
-3319740400,0,10,2,1,,0,1,PASB930,Black_Rhode_Island,罗德岛 (黑),罗德岛 B,Rhode Island B,Rhode Island B,Rhode Island B,Rhode Island B,Rhode Island B
+3319740400,0,10,2,1,3,0,1,PASB930,Black_Rhode_Island,罗德岛 (黑),罗德岛 B,Rhode Island B,Rhode Island B,Rhode Island B,Rhode Island B,Rhode Island B
 4181636528,0,8,3,13,1,0,0,PSSC108,Cataluna,加泰罗尼亚,加泰罗尼亚,Cataluña,Cataluña,Cataluña,Cataluña,Cataluña
 3762239184,0,8,2,2,2,1,0,PJSB508,Kii,鲣,纪伊,Kii,Kii,Kii,紀伊,Kii
 3751687984,0,8,4,3,2,1,0,PGSD518,Z_35,Z-35,Z-35,Z-35,Z-35,Z-35,Z-35,Z-35
@@ -881,7 +881,7 @@
 3540924400,0,9,4,1,3,1,0,PASD719,Johnston,约翰斯顿,约翰斯顿,Johnston,Johnston,Johnston,Johnston,Johnston
 4181636432,0,8,3,12,1,0,0,PVSC108,Ignacio_Allende,伊格纳西奥·阿连德,伊格纳西奥·阿连德,I. Allende,I. Allende,Ignacio Allende,I. Allende,I. Allende
 4079891760,0,5,4,9,1,0,0,PWSD205,Muavenet,支援,穆阿维内特,Muavenet,Muavenet,Muavenet,Muavenet,Muavenet
-3330159920,0,10,4,9,,0,1,PWSD920,PostApoc_Smaland,惊雷卷地,奥韦森,Oväsen,Oväsen,Oväsen,Oväsen,Oväsen
+3330159920,0,10,4,9,4,0,1,PWSD920,PostApoc_Smaland,惊雷卷地,奥韦森,Oväsen,Oväsen,Oväsen,Oväsen,Oväsen
 4288624336,0,6,2,2,1,0,0,PJSB006,Fuso_1943,魟,扶桑,Fusō,Fusō,Fusō,扶桑,Fusō
 3764303312,0,6,3,5,2,1,0,PRSC506,Molotov_1943,莫洛托夫,莫洛托夫,Molotov,Molotov,Molotov,Molotov,Молотов
 3761125360,0,9,4,1,4,1,0,PASD509,Benham,贝纳姆,贝纳姆,Benham,Benham,Benham,Benham,Benham
@@ -889,10 +889,10 @@
 3750705136,0,9,2,1,2,1,0,PASB519,Kearsarge,基尔萨奇,奇尔沙治,Kearsarge,Kearsarge,Kearsarge,Kearsarge,Kearsarge
 4282365936,1,8,1,1,1,0,1,PASA012,Lexington_1944,列克星敦,列克星敦（旧）,Lexington (old),Lexington (old),Lexington (< 23.01.2019),Lexington (old),Lexington (old)
 4179507152,0,10,4,4,1,0,0,PBSD110,Daring,果敢,果敢,Daring,Daring,Daring,Daring,Daring
-3342808880,0,8,2,3,,1,0,PGSB908,PostApoc_Zieten,狂人,瓦恩辛,Wahnsinn,Wahnsinn,Wahnsinn,Wahnsinn,Wahnsinn
+3342808880,0,8,2,3,3,1,0,PGSB908,PostApoc_Zieten,狂人,瓦恩辛,Wahnsinn,Wahnsinn,Wahnsinn,Wahnsinn,Wahnsinn
 3753785136,0,6,4,3,2,1,0,PGSD516,Karl_von_Schonberg,K. 勋伯格,卡尔·冯·勋伯格,K. Schönberg,K. Schönberg,Karl von Schönberg,K. Schönberg,K. Schönberg
 4078909232,0,6,2,3,1,0,0,PGSB206,Mackensen,马肯森,马肯森,Mackensen,Mackensen,Mackensen,Mackensen,Mackensen
-3330258928,0,10,1,1,,0,1,PASA920,Pinata_Essex,饺子皮,皮纳塔波利斯,Piñatapolis,Piñatapolis,Piñatapolis,Piñatapolis,Piñatapolis
+3330258928,0,10,1,1,3,0,1,PASA920,Pinata_Essex,饺子皮,皮纳塔波利斯,Piñatapolis,Piñatapolis,Piñatapolis,Piñatapolis,Piñatapolis
 4187928016,0,2,3,5,1,0,0,PRSC102,Novik,诺维克,诺维克,Novik,Novik,Novik,Novik,Новик
 4182717904,0,7,2,5,1,0,0,PRSB107,Sinop,锡诺普,锡诺普,Sinop,Sinop,Sinop,Sinop,Синоп
 4186846512,0,3,4,9,1,0,0,PWSD103,Romulus,罗慕路斯,罗慕路斯,Romulus,Romulus,Romulus,Romulus,Romulus
@@ -942,23 +942,26 @@
 4181603792,1,8,4,5,1,0,1,PRSD108,Pr_20i_Tashkent,塔什干 (OLD),塔什干 (OLD),Tashkent (OLD),Tashkent (OLD),Tashkent (< 06.03.2017),Tashkent (OLD),Ташкент (OLD)
 4185830736,0,4,3,12,1,0,0,PVSC104,Cordoba,科尔多瓦,科尔多瓦,Córdoba,Córdoba,Córdoba,Córdoba,Córdoba
 4291737040,0,5,3,5,2,1,0,PRSC003,Murmansk_1944,摩尔曼斯克,摩尔曼斯克,Murmansk,Murmansk,Murmansk,Murmansk,Мурманск
-3542005040,0,8,3,9,,1,0,PWSC718,Regele_Carol_I,卡罗尔一世国王,卡罗尔一世,Regele Carol I,Regele Carol I,Regele Carol I,Regele Carol I,Regele Carol I
+3542005040,0,8,3,9,3,1,0,PWSC718,Regele_Carol_I,卡罗尔一世国王,卡罗尔一世,Regele Carol I,Regele Carol I,Regele Carol I,Regele Carol I,Regele Carol I
 4248745968,0,5,3,1,2,1,0,PASC044,Marblehead_1924,马布尔黑德,马布尔黑德,Marblehead,Marblehead,Marblehead,Marblehead,Marblehead
 3655251664,0,10,3,2,5,0,1,PJSC610,Kitakami,獚,北上,Kitakami,Kitakami,Kitakami,北上,Kitakami
-3552524080,0,8,2,3,,1,0,PGSB708,Bismarck_1941,俾斯麦 '41,俾斯麦 41,Bismarck '41,Bismarck '41,Bismarck '41,Bismarck '41,Bismarck '41
-4183209712,0,6,5,7,,0,1,PISS106,Foca,海豹,福卡,Foca,Foca,Foca,Foca,Foca
-4181112560,0,8,5,7,,0,1,PISS108,Pietro_Micca,皮耶特罗·米卡,皮耶特罗·米卡,Pietro Micca,Pietro Micca,Pietro Micca,Pietro Micca,Pietro Micca
-4179015408,0,10,5,7,,0,1,PISS110,Calvi,卡尔维,卡尔维,Calvi,Calvi,Calvi,Calvi,Calvi
-3552524240,0,8,2,4,,1,0,PBSB708,Prince_of_Wales,威尔士亲王,威尔士亲王,Prince of Wales,Prince of Wales,Prince of Wales,Prince of Wales,Prince of Wales
-3530471408,0,9,3,1,,1,0,PASC729,Fort_Worth,沃斯堡,沃斯堡,Fort Worth,Fort Worth,Fort Worth,Fort Worth,Fort Worth
-3550426448,0,10,2,12,,0,1,PVSB710,Sete_de_Setembro,九月七日,九月七日,Sete de Setembro,Sete de Setembro,Sete de Setembro,Sete de Setembro,Sete de Setembro
-3331208656,0,9,4,5,,1,0,PRSD919,Azur_Tashkent,AL 塔什干,AL 塔什干,AL Tashkent,AL Tashkent,AL Tashkent,AL Tashkent,AL Ташкент
-3330258640,0,10,1,2,,0,1,PJSA920,Azur_Shinano,AL 鹗,AL 信浓,AL Shinano,AL Shinano,AL Shinano,AL 信濃,AL Shinano
-3332323312,0,8,2,1,,1,0,PASB918,Azur_Massachusetts,AL 马萨诸塞,AL 马萨诸塞,AL Massachusetts,AL Massachusetts,AL Massachusetts,AL Massachusetts,AL Massachusetts
-3332289744,0,8,3,8,,1,0,PZSC918,Azur_Harbin,AL 会海,AL 哈尔滨,AL Harbin,AL Harbin,AL Harbin,AL Harbin,AL Harbin
-3342808912,0,8,2,6,,1,0,PFSB908,Azur_Richelieu,AL 黎塞留,AL 黎塞留,AL Richelieu,AL Richelieu,AL Richelieu,AL Richelieu,AL Richelieu
-3530470608,0,9,3,8,,1,0,PZSC729,Baotou,朔海,包头,Baotou,Baotou,Baotou,Baotou,Baotou
-3341760240,0,9,2,7,,1,0,PISB909,Azur_Marco_Polo,AL 马可·波罗,AL 马可波罗,AL Marco Polo,AL Marco Polo,AL Marco Polo,AL Marco Polo,AL Marco Polo
-3321837360,0,8,2,3,,1,0,PGSB928,Hunt_Bismarck_1941,铁血宰相,铁血宰相,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler
-3341727728,0,9,3,1,,1,0,PASC909,250TH_Fort_Worth,沃斯堡 (金),金色沃斯堡,Fort Worth G,Fort Worth G,Fort Worth Golden,Fort Worth G,Fort Worth G
-3309254640,0,10,2,1,,0,1,PASB940,250TH_Wisconsin,威斯康星 (金),金色威斯康星,Wisconsin G,Wisconsin G,Wisconsin Golden,Wisconsin G,Wisconsin G
+3552524080,0,8,2,3,3,1,0,PGSB708,Bismarck_1941,俾斯麦 '41,俾斯麦 41,Bismarck '41,Bismarck '41,Bismarck '41,Bismarck '41,Bismarck '41
+4183209712,0,6,5,7,1,0,0,PISS106,Foca,海豹,福卡,Foca,Foca,Foca,Foca,Foca
+4181112560,0,8,5,7,1,0,0,PISS108,Pietro_Micca,皮耶特罗·米卡,皮耶特罗·米卡,Pietro Micca,Pietro Micca,Pietro Micca,Pietro Micca,Pietro Micca
+4179015408,0,10,5,7,1,0,0,PISS110,Calvi,卡尔维,卡尔维,Calvi,Calvi,Calvi,Calvi,Calvi
+3552524240,0,8,2,4,3,1,0,PBSB708,Prince_of_Wales,威尔士亲王,威尔士亲王,Prince of Wales,Prince of Wales,Prince of Wales,Prince of Wales,Prince of Wales
+3530471408,0,9,3,1,3,1,0,PASC729,Fort_Worth,沃斯堡,沃斯堡,Fort Worth,Fort Worth,Fort Worth,Fort Worth,Fort Worth
+3550426448,0,10,2,12,3,0,1,PVSB710,Sete_de_Setembro,九月七日,九月七日,Sete de Setembro,Sete de Setembro,Sete de Setembro,Sete de Setembro,Sete de Setembro
+3331208656,0,9,4,5,3,1,0,PRSD919,Azur_Tashkent,AL 塔什干,AL 塔什干,AL Tashkent,AL Tashkent,AL Tashkent,AL Tashkent,AL Ташкент
+3330258640,0,10,1,2,4,0,1,PJSA920,Azur_Shinano,AL 鹗,AL 信浓,AL Shinano,AL Shinano,AL Shinano,AL 信濃,AL Shinano
+3332323312,0,8,2,1,4,1,0,PASB918,Azur_Massachusetts,AL 马萨诸塞,AL 马萨诸塞,AL Massachusetts,AL Massachusetts,AL Massachusetts,AL Massachusetts,AL Massachusetts
+3332289744,0,8,3,8,3,1,0,PZSC918,Azur_Harbin,AL 会海,AL 哈尔滨,AL Harbin,AL Harbin,AL Harbin,AL Harbin,AL Harbin
+3342808912,0,8,2,6,3,1,0,PFSB908,Azur_Richelieu,AL 黎塞留,AL 黎塞留,AL Richelieu,AL Richelieu,AL Richelieu,AL Richelieu,AL Richelieu
+3530470608,0,9,3,8,3,1,0,PZSC729,Baotou,朔海,包头,Baotou,Baotou,Baotou,Baotou,Baotou
+3341760240,0,9,2,7,3,1,0,PISB909,Azur_Marco_Polo,AL 马可·波罗,AL 马可波罗,AL Marco Polo,AL Marco Polo,AL Marco Polo,AL Marco Polo,AL Marco Polo
+3321837360,0,8,2,3,4,1,0,PGSB928,Hunt_Bismarck_1941,铁血宰相,铁血宰相,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler
+3341727728,0,9,3,1,4,1,0,PASC909,250TH_Fort_Worth,沃斯堡 (金),金色沃斯堡,Fort Worth G,Fort Worth G,Fort Worth Golden,Fort Worth G,Fort Worth G
+3309254640,0,10,2,1,4,0,1,PASB940,250TH_Wisconsin,威斯康星 (金),金色威斯康星,Wisconsin G,Wisconsin G,Wisconsin Golden,Wisconsin G,Wisconsin G
+3550361296,0,10,4,2,3,0,1,PJSD710,Fuyutsuki,柚,冬月,Fuyutsuki,Fuyutsuki,Fuyutsuki,冬月,Fuyutsuki
+3539941104,0,10,2,7,3,0,1,PISB720,Conte_Verde,绿伯爵,绿伯爵,Conte Verde,Conte Verde,Conte Verde,Conte Verde,Conte Verde
+4283381488,0,11,2,7,2,0,1,PISB011,Affondatore,沉舰者,沉舰者,Affondatore,Affondatore,Affondatore,Affondatore,Affondatore

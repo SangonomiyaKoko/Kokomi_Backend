@@ -116,9 +116,6 @@ class ShipModel:
                 SELECT
                     ship_id,
                     is_old, 
-                    tier,
-                    type_id,
-                    nation_id,
                     rarity_id, 
                     premium,
                     special,
@@ -133,21 +130,7 @@ class ShipModel:
             
             result = {}
             for row in rows:
-                ship_id = int(row[0])
-                is_old = 1 if row[1] else 0
-                tier = row[2]
-                type_id = row[3]
-                nation_id = row[4]
-                rarity_id = row[5]
-                premium = 1 if row[6] else 0
-                special = 1 if row[7] else 0
-                prefix = row[8]  # index_code
-                name = row[9]
-                
-                result[ship_id] = [
-                    is_old, tier, type_id, nation_id, rarity_id, 
-                    premium, special, prefix, name
-                ]
+                result[row[0]] = row[1:]
             
             return JSONResponse.success(result)
 
@@ -238,7 +221,7 @@ class ShipModel:
 
                     for table_name in constant.SHIP_INIT_TABLE_LIST:
                         sql = f"INSERT INTO {table_name} (ship_id) VALUES (%s);"
-                        cur.execute(sql, [ship_id])
+                        await cur.execute(sql, [ship_id])
                     
                     pvp_data = []
                     for metric_id in [3, 4, 5, 7, 8, 9]:

@@ -26,13 +26,24 @@ else:
 DB_CONFIG = {
     "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "user": os.getenv("MYSQL_USER"),
-    "password": os.getenv("MYSQL_PASSWORD"),
+    "user": 'root',
+    "password": 'qazwsxedc0258@',
     "database": os.getenv("MYSQL_DATABASE"),
     'autocommit': False
 }
-
 sql = """
+INSERT INTO T_ship_pvp_stats (ship_id) VALUES (3550361296);
+INSERT INTO T_ship_stats_by_battles (ship_id) VALUES (3550361296);
+INSERT INTO T_ship_stats_by_users (ship_id) VALUES (3550361296);
+INSERT INTO T_ship_rating_distribution (ship_id) VALUES (3550361296);
+INSERT INTO T_ship_pvp_stats (ship_id) VALUES (3539941104);
+INSERT INTO T_ship_stats_by_battles (ship_id) VALUES (3539941104);
+INSERT INTO T_ship_stats_by_users (ship_id) VALUES (3539941104);
+INSERT INTO T_ship_rating_distribution (ship_id) VALUES (3539941104);
+INSERT INTO T_ship_pvp_stats (ship_id) VALUES (4283381488);
+INSERT INTO T_ship_stats_by_battles (ship_id) VALUES (4283381488);
+INSERT INTO T_ship_stats_by_users (ship_id) VALUES (4283381488);
+INSERT INTO T_ship_rating_distribution (ship_id) VALUES (4283381488);
 """
 
 def main():
