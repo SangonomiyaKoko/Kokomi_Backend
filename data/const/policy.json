@@ -1,0 +1,10 @@
+{
+    "SERVER_RESET_OFFSET": 5,
+    "USER_INACTIVE_DAYS": 30,
+    "USER_NO_BATTLE_DAYS": 180,
+    "USER_HIDDEN_PROFILE_DAYS": 30,
+    "USER_REFRESH_TIMEOUT": {
+        "1": 86400,
+        "2": 3600
+    }
+}

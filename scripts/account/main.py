@@ -172,7 +172,8 @@ def worker(mysql_connection: Connection, redis_client: Redis, lock_client: Redis
             desc=f"Processing user",
             logger_obj=logger
         ):
-            if not send_task(celery_app, f'user_refresh', update_data, 'refresh_queue'):
+            result = send_task(celery_app, f'user_refresh', update_data, 'refresh_queue')
+            if not result:
                 redis_client.delete(f"refresh_lock:user:{update_data}")
                 failed_count += 1
         logger.disable_tqdm()

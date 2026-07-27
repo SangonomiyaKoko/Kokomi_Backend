@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS ship_latest_cache (
     created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
 );
-
+INSERT INTO ship_latest_cache (ship_id, battles, snapshot_date) VALUES (1000000000, 0, NULL);
 
 -- 日期-快照映射表
 -- 将一个日期下的所有船只快照索引打包成JSON对象

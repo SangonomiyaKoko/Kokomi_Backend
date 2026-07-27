@@ -28,6 +28,21 @@ class RecentSummaryData:
             'hot_map': self.hot_map
         }
     
+    
+@dataclass
+class RecentData:
+    """PVE统计数据"""
+    overall: Dict[str, Any] = field(default_factory=dict)
+    battle_type: Dict[str, Any] = field(default_factory=dict)
+    hot_map: List[int] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'overall': self.overall,
+            'battle_type': self.battle_type,
+            'hot_map': self.hot_map
+        }
+    
 @dataclass
 class RecentStatistics:
     """Recent统计数据"""
