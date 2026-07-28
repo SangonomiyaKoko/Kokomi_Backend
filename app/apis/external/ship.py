@@ -18,7 +18,8 @@ class ShipStatsExternalAPI:
                 'battles': ship_data[0],
                 'win_rate': ship_data[1],
                 'avg_damage': ship_data[2],
-                'avg_frags': ship_data[3]
+                'avg_frags': ship_data[3],
+                'avg_exp': ship_data[4]
             })
         
         return JSONResponse.success(result)

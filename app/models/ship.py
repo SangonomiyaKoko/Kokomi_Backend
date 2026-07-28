@@ -173,14 +173,15 @@ class ShipModel:
                     battles, 
                     win_rate,
                     avg_damage, 
-                    avg_frags 
+                    avg_frags, 
+                    avg_exp
                 FROM T_ship_stats_by_battles;
             """
             await cur.execute(sql)
             rows = await cur.fetchall()
             for row in rows:
                 if row[1] > 0:
-                    result[row[0]] = [row[1], row[2], row[3], row[4]]
+                    result[row[0]] = [row[1], row[2], row[3], row[4], row[5]]
             return JSONResponse.success(result)
         
     @ExceptionLogger.handle_database_exception_async

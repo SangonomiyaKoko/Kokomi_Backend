@@ -103,7 +103,8 @@ async def lifespan(app: FastAPI):
         writer_thread.join()
 
 app_description = """
-接口返回值文档：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/return.md
+接口返回值文档：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/cn/return.md
+API Responses：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/en/return.md
 """
 
 # 加载APP

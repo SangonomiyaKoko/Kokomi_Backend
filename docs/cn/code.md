@@ -12,6 +12,12 @@
 | 1004 | ok | ClanNotExist | 公会数据不存在 |
 | 1005 | ok | UserDataIsNone | 用户数据为空 |
 | 1006 | ok | ClanDataIsNone | 公会数据为空 |
-| 1007 | ok | UserHiddenProfile | 用户隐藏战绩 |
-| 1008 | ok | AcqurieLockFailed | 获取写入锁失败 |
-| 1009 | ok | NoStatisticsData | 无统计数据 |
+| 1007 | ok | UserInBlacklist | 用户处于黑名单中 |
+| 1008 | ok | ClanInBlacklist | 公会处于黑名单中 |
+| 1009 | ok | UserHiddenProfile | 用户隐藏战绩 |
+| 1010 | ok | AcqurieLockFailed | 获取写入锁失败 |
+| 1011 | ok | NoStatisticsData | 无统计数据 |
+| 1012 | ok | RecentNotEnable | 近期战绩功能未启用 |
+| 1013 | ok | UserNotActive | 用户处于不活跃状态 |
+| 1014 | ok | InvalidAccessToken | Access Token 无效 |
+| 1015 | ok | InvalidAuthToken | Auth Token 无效 |
