@@ -14,7 +14,6 @@ class UpdateAction(Enum):
 
 class SkipReason(Enum):
     """跳过原因"""
-    DB_NOT_READY = "DbNotReady"
     NOT_CONFIGURED = "NotConfigured"
     DB_OPERATION_FAILED = "DbOperationFailed"
     NO_LOCAL_DATA = "NoLocalData"

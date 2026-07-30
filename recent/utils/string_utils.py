@@ -1,3 +1,5 @@
+import json
+
 class StringUtils:
     def ship_snapshot_encode(data: list):
         parts = []

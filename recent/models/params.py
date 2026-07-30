@@ -1,8 +1,9 @@
 from typing import Optional
 from dataclasses import dataclass, field
 
-from models import SingleShipData
 from utils import StringUtils
+
+from .ship_stats import SingleShipData
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +31,7 @@ class ShipSnapshotParams:
     ship_id: int
     snapshot_date: int
     snapshot_data: SingleShipData
-    _encoded: str
+    _encoded: str = field(init=False)
     
     def __post_init__(self):
         object.__setattr__(self, '_encoded', StringUtils.ship_snapshot_encode(self.snapshot_data.to_list))
@@ -49,7 +50,7 @@ class DailyIndexParams:
     snapshot_date: int
     ship_count: SingleShipData
     ship_map: dict
-    _encoded: str
+    _encoded: str = field(init=False)
     
     def __post_init__(self):
         object.__setattr__(self, '_encoded', StringUtils.ship_map_encode(self.ship_map))

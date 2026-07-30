@@ -13,8 +13,8 @@ class UserStats:
     pvp_battles: int = 0
     ranked_battles: int = 0
     karma: int = 0
-    last_battle_at: int | None
-    updated_at: int | None = None
+    last_battle_at: int = None
+    updated_at: int = None
 
     @property
     def is_hidden(self) -> bool:
@@ -57,7 +57,7 @@ class UserStats:
             return cls(is_public=True, updated_at=updated_at)
         
         basic = statistics.get('basic', {})
-        karam = basic.get('karam', 0)
+        karma = basic.get('karma', 0)
         leveling_points = basic.get('leveling_points', 0)
         if leveling_points >= 1_000_000:
             leveling_points -= 1_000_000
@@ -75,7 +75,7 @@ class UserStats:
             pve_battles=pve_battles,
             pvp_battles=pvp_battles,
             ranked_battles=ranked_battles,
-            karma=karam,
+            karma=karma,
             last_battle_at=last_battle_time,
             updated_at=updated_at
         )

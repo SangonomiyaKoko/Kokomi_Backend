@@ -6,12 +6,9 @@ from pymysql import Connection
 
 from loggers import TqdmAwareLogger, logger
 from utils import TimeUtils
-from models import UserStats
-from context import UpdateContext
+from models import UpdateContext
 from db import fetch_recent_user_ids, fetch_user_record
-from coordinator import UserUpdater
-from processor import UserDataProcessor
-from refresher import UserRefresher
+from refresher import UserUpdater, UserRefresher, UserDataProcessor
 from settings import USE_TQDM, SQLITE_DIR
 
 
@@ -123,7 +120,8 @@ async def run_worker(
 
             logger.debug(f'{account_id} | NEED_UPDATE - {result.reason_text}')
 
-            result = UserDataProcessor.main(update_context)
+
+            result = await UserDataProcessor.main(update_context)
             if result.is_skip:
                 logger.debug(f'{account_id} | SKIP - {result.reason_text}')
                 continue
@@ -131,7 +129,7 @@ async def run_worker(
                 logger.debug(f'{account_id} | DISABLED - {result.reason_text}')
                 disable_id_dict[account_id] = result.reason_text
                 continue
-
+            
             refresh_result = await UserRefresher.main(update_context)
             logger.debug(f'{account_id} | UPDATED - {refresh_result}')
 

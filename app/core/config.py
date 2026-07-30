@@ -61,6 +61,12 @@ class ConstantsConfig:
     SPECIAL_ACTIVITY_STRATEGY: list[list]
     METRIC_RATING_THRESHOLDS: dict[list]
 
+@dataclass(frozen=True)
+class PolicyConfig:
+    USER_ACTIVITY_THRESHOLDS: list[list]
+    USER_ACTIVITY_STRATEGY: dict[str, int]
+    SPECIAL_ACTIVITY_STRATEGY: list[list]
+
 class EnvConfig:
     PLATFORM: Optional[str] = None
     DEV_MODE: Optional[bool] = False
@@ -79,6 +85,7 @@ class EnvConfig:
     SQLITE_SQL: str = None
 
     _config: Optional[RuntimeConfig] = None
+    _policy: Optional[PolicyConfig] = None
     _endpoints: Optional[EndpointsConfig] = None
     _constants: Optional[ConstantsConfig] = None
 
@@ -212,10 +219,18 @@ class EnvConfig:
             USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
             CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
             SHIP_INIT_TABLE_LIST=data['SHIP_INIT_TABLE_LIST'],
+            METRIC_RATING_THRESHOLDS=data['METRIC_RATING_THRESHOLDS']
+        )
+
+    @classmethod
+    def _init_policy(cls):
+        file_path = cls.DATA_DIR / 'const/policy.json'
+        data = cls._load_json_file(file_path)
+        
+        cls._constants = PolicyConfig(
             USER_ACTIVITY_THRESHOLDS=data['USER_ACTIVITY_THRESHOLDS'],
             USER_ACTIVITY_STRATEGY=data['USER_ACTIVITY_STRATEGY'],
-            SPECIAL_ACTIVITY_STRATEGY=data['SPECIAL_ACTIVITY_STRATEGY'],
-            METRIC_RATING_THRESHOLDS=data['METRIC_RATING_THRESHOLDS']
+            SPECIAL_ACTIVITY_STRATEGY=data['SPECIAL_ACTIVITY_STRATEGY']
         )
 
     @classmethod
@@ -236,6 +251,7 @@ class EnvConfig:
         # 读取子节点的区域配置
         cls._init_region()
         # 加载运行必要的数据文件
+        cls._init_policy()
         cls._init_endpoints()
         cls._init_constants()
 

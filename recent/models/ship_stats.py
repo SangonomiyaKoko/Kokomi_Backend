@@ -96,7 +96,7 @@ class SingleShipData:
 
     @property
     def battles(self):
-        return sum(i[0] if i else 0 for i in self.stats)
+        return sum(i.battles if i else 0 for i in self.stats)
 
     @property
     def to_list(self):
@@ -139,15 +139,15 @@ class ShipDataCollection:
         return self.ships.get(ship_id)
     
     @classmethod
-    def from_responses(cls, responses: List[Dict]) -> ShipDataCollection:
+    def from_responses(cls,account_id: int, responses: List[Dict]) -> ShipDataCollection:
         """从API响应创建ShipDataCollection对象"""
         collection = cls()
         modes = BattleMode.list_modes()
         
         for mode_index, response in enumerate(responses):
             mode = modes[mode_index]
-            
-            for ship_id_str, ship_data in response.items():
+            mode_data = response[str(account_id)]['statistics']
+            for ship_id_str, ship_data in mode_data.items():
                 ship_id = int(ship_id_str)
                 
                 # 获取该船只的统计数据

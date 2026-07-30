@@ -373,7 +373,7 @@ class UserStatsSyncer:
             cursor.execute(sql, [account_id])
 
     @classmethod
-    def refresh(cls, conn: Connection, account_id: int, api_result: dict, return_refresh_time: bool = False) -> int | None:
+    def refresh(cls, conn: Connection, account_id: int, api_result: dict, return_refresh_time: bool = False) -> int | str | None:
         """基于用户基本信息接口的数据，刷新数据库的用户数据表"""
         current_timestamp = TimeUtils.get_current_timestamp()
         user_data = cls._extract_user_data(account_id, current_timestamp, api_result)

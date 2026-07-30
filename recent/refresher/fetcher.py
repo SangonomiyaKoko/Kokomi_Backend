@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from loggers import logger, write_exception
 from utils import TimeUtils
-from context import UpdateContext
+from models import UpdateContext
 from settings import VORTEX_API
 
 

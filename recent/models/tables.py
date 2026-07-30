@@ -4,10 +4,9 @@ from typing import NamedTuple
 from dataclasses import dataclass, field
 
 from .ship_stats import SingleShipData
-from .user import UserStats
 
 
-SPECIAL_SHIP_ID_FOR_INDEX = 1000000000
+SPECIAL_SHIP_ID_FOR_INDEX = 1_000_000_000
 
 @dataclass(frozen=True, slots=True)
 class DailySummary:
@@ -31,7 +30,7 @@ class DailySummary:
             self.ranked_battles,
             self.karma,
             self.index_table,
-            self.updated_at,
+            self.updated_at
         ]
 
     @classmethod
@@ -45,26 +44,7 @@ class DailySummary:
             ranked_battles=row[4],
             karma=row[5],
             index_table=row[6],
-            updated_at=row[7],
-        )
-
-    @classmethod
-    def hidden(cls, updated_at: int) -> DailySummary:
-        """构造一条隐藏战绩记录"""
-        return cls(updated_at=updated_at)
-
-    @classmethod
-    def from_stats(cls, stats: UserStats, index_table: str | None) -> DailySummary:
-        """从 UserStats 构造一条记录"""
-        return cls(
-            is_public=stats.is_public,
-            total_battles=stats.total_battles,
-            pve_battles=stats.pve_battles,
-            pvp_battles=stats.pvp_battles,
-            ranked_battles=stats.ranked_battles,
-            karma=stats.karma,
-            index_table=index_table,
-            updated_at=stats.updated_at,
+            updated_at=row[7]
         )
 
     def __str__(self) -> str:
@@ -86,16 +66,12 @@ class ShipCacheTuple(NamedTuple):
     battles_count: int
     snapshot_date: int
 
-    def is_battle_changed(self, battles: int) -> bool:
-        """判断战斗场次是否与缓存一致（True = 一致，False = 有变动）"""
+    def is_battle_unchanged(self, battles: int) -> bool:
+        """判断战斗场次是否与缓存一致"""
         return battles == self.battles_count
 
-    def is_date_changed(self, date: int) -> bool:
-        """判断快照日期是否与缓存一致（True = 一致，False = 有变动）"""
-        return date == self.snapshot_date
-
     def __str__(self) -> str:
-        return f"ShipCacheTuple(battles={self.battles}, date={len(self.snapshot_date)})"
+        return f"ShipCacheTuple(battles={self.battles_count}, date={self.snapshot_date})"
 
 @dataclass(frozen=True, slots=True)
 class ShipCache:
@@ -111,7 +87,7 @@ class ShipCache:
         ship_cache = self.data.get(ship_data.ship_id)
         if ship_cache is None:
             return False
-        return ship_cache.is_battle_changed(ship_data.battles)
+        return ship_cache.is_battle_unchanged(ship_data.battles)
 
     def is_date_unchanged(self, ship_id: int, now_date: int) -> bool:
         """检测船只缓存数据中的 snapshot_date 是否等于 now_date"""
@@ -119,7 +95,9 @@ class ShipCache:
     
     def get_ship_ids(self) -> list[int]:
         """获取缓存中船只 ID 列表"""
-        return list(self.data.keys())
+        if self.data:
+            return list(self.data.keys())
+        return []
 
     def get_ship_tuple(self, ship_id: int) -> tuple[int, int]:
         """获取缓存中指定船只 snapshot_date 数据"""
@@ -129,15 +107,15 @@ class ShipCache:
         return ship_data.battles_count, ship_data.snapshot_date
 
     @classmethod
-    def from_rows(cls, rows: dict) -> ShipCache:
+    def from_rows(cls, rows: tuple[tuple]) -> ShipCache:
         """从数据库加载全部数据"""
         date = None
         data = {}
-        for ship_id_str, (battles, snapshot_date) in rows.items():
-            ship_id = int(ship_id_str)
+        for ship_id, battles, snapshot_date in rows:
             # 在数据表中通过特殊 ID 来储存 ship_cache 对应的 index_table
             if ship_id == SPECIAL_SHIP_ID_FOR_INDEX:
-                date = snapshot_date
+                if snapshot_date != 0:
+                    date = snapshot_date
             else:
                 data[ship_id] = ShipCacheTuple(battles, snapshot_date)
         return cls(date=date, data=data)

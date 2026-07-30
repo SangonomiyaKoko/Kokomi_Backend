@@ -64,7 +64,7 @@ def sqlite_read_only(account_id: int):
             error_name=error_name,
             error_info=traceback.format_exc(),
         )
-    else:
+    finally:
         conn.close()
 
 @contextmanager
@@ -92,4 +92,5 @@ def sqlite_transaction(account_id: int):
         raise
     else:
         cursor.execute("COMMIT")
+    finally:
         conn.close()

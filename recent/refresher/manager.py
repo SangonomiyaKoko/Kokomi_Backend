@@ -1,14 +1,14 @@
 from db import sqlite_read_only
 from loggers import logger
-from context import UpdateContext
+from repository import ShipSnapshotRepository
 from models import (
+    UpdateContext,
+    SnapshotUpdatePlan,
     ShipCacheParams,
     ShipSnapshotParams,
     DailyIndexParams,
     RecentStatsParams,
-    SingleShipData,
-    ShipSnapshotRepository,
-    SnapshotUpdatePlan
+    SingleShipData
 )
 
 
@@ -32,27 +32,29 @@ class SnapshotManager:
                 ship_map[ship_id] = ctx.yesterday_date
                 plan.cache['insert'].append(ShipCacheParams(ship_id, ship_data.battles, ctx.yesterday_date))
                 plan.snapshot['insert'].append(ShipSnapshotParams(ship_id, ctx.yesterday_date, ship_data))
+            plan.count = ship_count
             plan.table = ctx.yesterday_date
             plan.index['insert'] = DailyIndexParams(ctx.yesterday_date, ship_count, ship_map)
             return plan
 
-
         for ship_id, ship_data in battle_stats:
             battle_count, ship_index = local_cache.get_ship_tuple(ship_id)
 
-            # 数据未变动，沿用旧索引
-            if battle_count and ship_data.battles == battle_count:
-                ship_map[ship_id] = local_cache.get_ship_index(ship_id)
-                continue
-
             # 本地缓存中没有船只：新建记录
             if battle_count is None:
+                changed_ships.add(ship_id)
                 ship_map[ship_id] = ctx.yesterday_date
                 plan.cache['insert'].append(ShipCacheParams(ship_id, ship_data.battles, ctx.yesterday_date))
                 plan.snapshot['insert'].append(ShipSnapshotParams(ship_id, ctx.yesterday_date, ship_data))
                 continue
 
+            # 数据未变动，沿用旧索引
+            if ship_data.battles == battle_count:
+                ship_map[ship_id] = ship_index
+                continue
+
             # 本地缓存中已有船只：数据发生变动
+            changed_ships.add(ship_id)
             ship_map[ship_id] = ctx.now_date
             plan.cache['update'].append(ShipCacheParams(ship_id, ship_data.battles, ctx.now_date))
             if ship_index == ctx.now_date:
@@ -70,13 +72,19 @@ class SnapshotManager:
 
         if len(changed_ships) == 0:
             plan.is_changed = False
+            plan.table = ctx.latest_summary.index_table
             return plan
-
+        
+        plan.count = ship_count
         plan.table = ctx.now_date
+        if local_cache.date == ctx.now_date:
+            plan.index['update'] = DailyIndexParams(ctx.now_date, ship_count, ship_map)
+        else:
+            plan.index['insert'] = DailyIndexParams(ctx.now_date, ship_count, ship_map)
         recent_ship = []
-
+        
         if ctx.is_pro:
-            with sqlite_read_only() as cursor:
+            with sqlite_read_only(ctx.account_id) as cursor:
                 for ship_id in changed_ships:
                     ship_data = battle_stats.get_ship_data(ship_id)
                     if ship_data is None or ship_data.battles == 0:
@@ -88,7 +96,7 @@ class SnapshotManager:
                         recent_ship.append((ship_id, ship_data, None))
                         continue
 
-                    if battle_count <= ship_data.battles:
+                    if battle_count >= ship_data.battles:
                         continue
 
                     ship_snapshot = ShipSnapshotRepository.read(cursor, ship_id, ship_index)

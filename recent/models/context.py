@@ -6,13 +6,10 @@ from pymysql import Connection
 from dataclasses import dataclass, field
 
 from utils import TimeUtils
-from models  import (
-    DailySummary, 
-    ShipCache, 
-    UserStats, 
-    UserRecord,
-    ShipDataCollection
-)
+
+from .tables import DailySummary, ShipCache
+from .ship_stats import ShipDataCollection
+from .user import UserRecord, UserStats
 
 
 @dataclass
@@ -23,22 +20,22 @@ class UpdateContext:
     mysql_connection: Connection
 
     # 当前时间戳
-    now_date: int
-    yesterday_date: int
     current_timestamp: int
+    now_date: int = field(init=False)
+    yesterday_date: int = field(init=False)
 
     # 用户基本信息
     account_id: int
-    user_stats: UserStats
-    user_record: UserRecord
+    user_stats: UserStats = field(init=False)
+    user_record: UserRecord = field(init=False)
 
     # 用户数据库信息
-    date_list: list[int] = field(default_factory=list)
-    daily_summary: dict[int, DailySummary] = field(default_factory=dict)
-    ship_cache: ShipCache = field(default_factory=dict)
+    date_list: list[int] = field(init=False)
+    daily_summary: dict[int, DailySummary] = field(init=False)
+    ship_cache: ShipCache = field(init=False)
 
     # 数据接口请求结果
-    ship_data: ShipDataCollection = field(default_factory=dict)
+    ship_data: ShipDataCollection = field(init=False)
 
     def __post_init__(self) -> None:
         self.now_date = TimeUtils.get_reset_date(self.current_timestamp)
@@ -91,3 +88,19 @@ class UpdateContext:
         if self.current_timestamp - latest_summary.updated_at > 3600:
             return False
         return True
+
+    def __str__(self) -> str:
+        # 获取原始字符串表示
+        s = super().__str__()
+        
+        # 替换这三个字段的显示
+        replacements = {
+            f"redis_client={self.redis_client}": f"redis_client={hex(id(self.redis_client))}",
+            f"async_client={self.async_client}": f"async_client={hex(id(self.async_client))}",
+            f"mysql_connection={self.mysql_connection}": f"mysql_connection={hex(id(self.mysql_connection))}",
+        }
+        
+        for old, new in replacements.items():
+            s = s.replace(old, new)
+        
+        return s

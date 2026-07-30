@@ -22,13 +22,13 @@ CREATE TABLE IF NOT EXISTS ship_latest_cache (
     id               INTEGER      PRIMARY KEY,
 
     ship_id          INT          UNIQUE,                     -- 船只ID（唯一）
-    battles          INT          DEFAULT 0,                  -- 该船总战斗场次
-    snapshot_date    INT          NOT NULL,                   -- 该船最新快照所在日期
+    battles          INT          NOT NULL DEFAULT 0,         -- 该船总战斗场次
+    snapshot_date    INT          NOT NULL DEFAULT 0,         -- 该船最新快照所在日期
 
     created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO ship_latest_cache (ship_id, battles, snapshot_date) VALUES (1000000000, 0, NULL);
+INSERT INTO ship_latest_cache (ship_id) VALUES (1000000000);
 
 -- 日期-快照映射表
 -- 将一个日期下的所有船只快照索引打包成JSON对象
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS daily_snapshot_index (
     id                INTEGER      PRIMARY KEY,
 
     snapshot_date     INT          UNIQUE,                    -- 快照日期，格式：YYYYMMDD（唯一）
-    ship_count        INT          DEFAULT 0,                 -- 该映射刷新时间
+    ship_count        INT          NOT NULL DEFAULT 0,        -- 该映射刷新时间
     ship_map          TEXT         NOT NULL,                  -- 该映射刷新时间
 
     updated_at        DATETIME     DEFAULT CURRENT_TIMESTAMP
@@ -50,14 +50,14 @@ CREATE TABLE IF NOT EXISTS user_daily_summary (
 
     snapshot_date    INT          UNIQUE,                     -- 快照日期，格式：YYYYMMDD（唯一）
     is_public        BOOLEAN      NOT NULL,                   -- 用户是否公开战绩
-    total_battles    INT          DEFAULT 0,                  -- 总战斗场次
-    pve_battles      INT          DEFAULT 0,                  -- PvE战斗场次
-    pvp_battles      INT          DEFAULT 0,                  -- PvP战斗场次
-    ranked_battles   INT          DEFAULT 0,                  -- 排位战斗场次
-    karma            INT          DEFAULT 0,                  -- 业力值
+    total_battles    INT          NOT NULL DEFAULT 0,         -- 总战斗场次
+    pve_battles      INT          NOT NULL DEFAULT 0,         -- PvE战斗场次
+    pvp_battles      INT          NOT NULL DEFAULT 0,         -- PvP战斗场次
+    ranked_battles   INT          NOT NULL DEFAULT 0,         -- 排位战斗场次
+    karma            INT          NOT NULL DEFAULT 0,         -- 业力值
     index_table      TEXT         DEFAULT NULL,               -- 固定值 'daily_snapshot_index'，指向映射表
 
-    updated_at       INT          DEFAULT NULL
+    updated_at       INT          NOT NULL
 );
 
 
