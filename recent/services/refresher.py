@@ -29,7 +29,7 @@ class UserRefresher:
             return cls._handle_no_battle_user(ctx)
 
         # 生成船只快照更新计划
-        plan = SnapshotManager.compare(ctx)
+        plan = SnapshotManager.build_update_plan(ctx)
 
         # 全新用户（本地无任何 daily_summary 数据）
         if not ctx.has_any_summary:

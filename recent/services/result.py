@@ -20,9 +20,9 @@ class SkipReason(Enum):
     USER_HIDDEN = "UserHidden"
     STATS_UNCHANGED = "StatsUnchanged"
     NO_COMPETITIVE_STATS = "NoCompetitiveStats"
-    UNEXPECTED_ERROR = "UnexpectedError"
     OBTAIN_DATA_FAILED = "ObtainDataFailed"
     MYSQL_REFRESH_FAILED = "MySQLRefreshFailed"
+    UNEXPECTED_ERROR = "UnexpectedError"
 
 class DisableReason(Enum):
     """禁用原因"""

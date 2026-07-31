@@ -1,10 +1,11 @@
 from .refresher import UserRefresher
 from .manager import SnapshotManager
 from .pipeline import UserDataProcessor
-from .updater import UserUpdater, UpdateResult
+from .updater import RefreshCoordinator
+from .result import UpdateResult
 
 __all__ = [
-    'UserUpdater', 
+    'RefreshCoordinator', 
     'UpdateResult',
     'UserRefresher',
     'SnapshotManager',

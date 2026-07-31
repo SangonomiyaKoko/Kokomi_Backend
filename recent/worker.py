@@ -8,7 +8,7 @@ from loggers import TqdmAwareLogger, logger
 from utils import TimeUtils
 from models import UpdateContext
 from db import fetch_recent_user_ids, fetch_user_record
-from refresher import UserUpdater, UserRefresher, UserDataProcessor
+from services import RefreshCoordinator, UserRefresher, UserDataProcessor
 from settings import USE_TQDM, SQLITE_DIR
 
 
@@ -109,7 +109,7 @@ async def run_worker(
                 logger.info(f'{account_id} | SKIP - AcqurieLockFailed')
                 continue
 
-            result = UserUpdater.main(update_context)
+            result = RefreshCoordinator.main(update_context)
             if result.is_skip:
                 logger.debug(f'{account_id} | SKIP - {result.reason_text}')
                 continue
@@ -119,6 +119,7 @@ async def run_worker(
                 continue
 
             logger.debug(f'{account_id} | NEED_UPDATE - {result.reason_text}')
+            logger.debug(f'{account_id} | Pro: {update_context.is_pro}')
 
 
             result = await UserDataProcessor.main(update_context)

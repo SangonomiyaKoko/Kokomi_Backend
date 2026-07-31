@@ -16,7 +16,7 @@ class SnapshotManager:
     """船只快照对比管理器"""
 
     @classmethod
-    def compare(cls, ctx: UpdateContext) -> SnapshotUpdatePlan:
+    def build_update_plan(cls, ctx: UpdateContext) -> SnapshotUpdatePlan:
         """对比新旧船只数据，生成快照更新计划"""
         plan = SnapshotUpdatePlan()
         local_cache = ctx.ship_cache  # 本地缓存

@@ -55,7 +55,7 @@ class UserDataProcessor:
         for response in responses[1:]:
             api_data = response.get(str(ctx.account_id))
             if 'hidden_profile' in api_data:
-                return ValidationResult.skip(SkipReason.USER_HIDDEN)
+                return ValidationResult.skip(SkipReason.UNEXPECTED_ERROR)
             
             if (
                 api_data is None or 

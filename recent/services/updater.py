@@ -22,7 +22,7 @@ from .result import (
 
 
 
-class UserUpdater:
+class RefreshCoordinator:
     """用户 SQLite 数据库的流程协调者"""
 
     @classmethod
