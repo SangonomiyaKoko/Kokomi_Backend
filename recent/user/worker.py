@@ -1,4 +1,4 @@
-from typing import Iterator
+﻿from typing import Iterator
 from contextlib import contextmanager
 
 from redis import Redis
@@ -60,16 +60,16 @@ async def run_worker(
     redis_client: Redis,
     async_client,
 ) -> None:
-    """工作函数，遍历所有启用的用户并执行完整的更新流程。
+    """Recent功能后台更新服务，按用户顺序执行完整更新流程。
 
-    整体流程：
-    1. 从 MySQL 获取所有启用的用户列表
-    2. 逐用户读取配置与战绩快照
-    3. 获取 Redis 分布式锁
-    4. 通过 UserUpdater.main() 完成校验 + 停用 + 更新判定
-    5. 调用外部 API 获取用户最新数据
-    6. 通过 UserStatsSyncer.refresh() 刷新 MySQL
-    7. 通过 UserRefresh.main() 更新 SQLite 近期数据
+    流程说明：
+    1. 从 MySQL 读取所有需要处理的启用用户
+    2. 逐个加载用户记录与统计信息，组装更新上下文
+    3. 检查 SQLite 挂载点是否存在，避免在异常环境下继续执行
+    4. 获取 Redis 分布式锁，防止同一用户被并发重复刷新
+    5. 通过 RefreshCoordinator 进行预判，决定是跳过、停用还是继续更新
+    6. 如果需要更新，则调用外部接口拉取最新用户数据
+    7. 根据用户状态选择全量初始化或增量刷新，并同步写回 MySQL / SQLite
     """
     
     disable_id_dict = {}
@@ -83,7 +83,7 @@ async def run_worker(
         desc="Processing user",
         logger_obj=logger,
     ):
-        # 效验数据库文件路径是否合法
+        # 校验数据库文件路径是否合法
         marker_file= SQLITE_DIR / '_MOUNT_POINT'
         if not marker_file.exists():
             logger.error(f'File {marker_file} missing')
@@ -136,7 +136,7 @@ async def run_worker(
                 disable_id_dict[account_id] = result.reason_text
                 continue
 
-            # 新用户走全量初始化，正常用户走 diff 更新
+            # 新用户走全量初始化，已有用户走增量更新
             if update_context.update_strategy == UpdateStrategy.NEW_USER:
                 refresh_result = UserInitializer.main(update_context)
             else:
