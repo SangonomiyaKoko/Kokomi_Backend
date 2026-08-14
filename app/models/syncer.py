@@ -280,7 +280,11 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            await cursor.execute(sql, [30*86400, account_id])
+            if user_level > 0:
+                interval_seconds = 86400
+            else:
+                interval_seconds = 30*86400
+            await cursor.execute(sql, [interval_seconds, account_id])
         else:
             constants = EnvConfig.get_constants()
             if user_level == 2 and user_data['activity_level'] == 1:

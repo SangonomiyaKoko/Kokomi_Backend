@@ -1,8 +1,9 @@
 from pymysql import Connection
 from pymysql.cursors import Cursor
 
-from .utils import get_current_timestamp
-from .settings import (
+from db import mysql_transaction
+from utils import TimeUtils
+from settings import (
     REGION, 
     USER_ACTIVITY_THRESHOLDS,
     SPECIAL_ACTIVITY_STRATEGY,
@@ -266,7 +267,7 @@ class UserStatsSyncer:
             if user_level > 0:
                 interval_seconds = 86400
             else:
-                interval_seconds = 30 * 86400
+                interval_seconds = 30*86400
             cursor.execute(sql, [interval_seconds, account_id])
         else:
             if user_level == 2 and user_data['activity_level'] == 1:
@@ -376,20 +377,13 @@ class UserStatsSyncer:
             cursor.execute(sql, [account_id])
 
     @classmethod
-    def refresh(cls, conn: Connection, account_id: int, api_result: dict, return_refresh_time: bool = False) -> int | None:
-        """基于用户基本信息接口的数据，刷新数据库的 user_stats 表
-        
-        eg. https://vortex.worldofwarships.asia/api/accounts/2023619512/
-        
-        Returns:
-            None: 成功
-            str: 错误类型名称
-        """
-        current_timestamp = get_current_timestamp()
+    def refresh(cls, conn: Connection, account_id: int, api_result: dict, return_refresh_time: bool = False) -> int | str | None:
+        """基于用户基本信息接口的数据，刷新数据库的用户数据表"""
+        current_timestamp = TimeUtils.get_current_timestamp()
         user_data = cls._extract_user_data(account_id, current_timestamp, api_result)
-        
+            
         try:
-            with conn.cursor() as cursor:
+            with mysql_transaction(conn, account_id) as cursor:
                 # 从数据库中读取用户的username
                 existing = cls._fetch_user_base_row(cursor, account_id)
                 
@@ -413,11 +407,8 @@ class UserStatsSyncer:
 
                 # 更新 T_user_cache
                 cls._update_user_cache(cursor, account_id, user_data, random)
-            
-            conn.commit()
 
-            if return_refresh_time:
-                return update_timestamp
+                if return_refresh_time:
+                    return update_timestamp
         except Exception:
-            conn.rollback()
-            raise
+            return 
