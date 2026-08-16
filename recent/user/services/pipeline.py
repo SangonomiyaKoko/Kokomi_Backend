@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from models import (
     UpdateContext,
-    BattleMode,
     UpdateResult,
     SkipReason,
     UpdateReason
@@ -10,7 +9,8 @@ from models import (
 from clients import (
     EndpointRegistry,
     ApiRequester,
-    ResponseValidator,
+    PreResponseValidator,
+    PostResponseValidator,
     ResponseParser
 )
 
@@ -37,8 +37,8 @@ class UserDataProcessor:
         if update_timestamp is None or isinstance(update_timestamp, str):
             return UpdateResult.skip(SkipReason.MYSQL_REFRESH_FAILED)
 
-        # 效验返回数据
-        result = ResponseValidator.main(ctx, fetch_result)
+        # 效验API返回数据格式
+        result = PreResponseValidator.validate(ctx, fetch_result)
         if result.is_skip:
             return UpdateResult.skip(result.reason)
         if result.is_disabled:
@@ -46,5 +46,12 @@ class UserDataProcessor:
 
         # 解析并挂载领域模型
         ResponseParser.parse_response(ctx, fetch_result, update_timestamp)
+
+        # 效验数据解析结果的结构完整性
+        result = PostResponseValidator.validate(ctx)
+        if result.is_skip:
+            return UpdateResult.skip(result.reason)
+        if result.is_disabled:
+            return UpdateResult.disabled(result.reason)
         
         return UpdateResult.need_update(UpdateReason.CONTINUE)

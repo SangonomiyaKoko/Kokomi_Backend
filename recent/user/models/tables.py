@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from .mode import BattleMode, FULL_UPDATE_MODES
 
@@ -95,18 +95,19 @@ class ShipCache:
     def is_new_user(self) -> bool:
         """判定是否存在本地缓存数据，即所有模式的索引均为 None"""
         for mode in FULL_UPDATE_MODES:
-            if self.indexs.get(mode):
+            if not (self.indexs.get(mode) is None):
                 return False
         return True
+
+    @property
+    def ship_ids(self) -> List[int]:
+        return list(self.entries.keys())
 
     def is_exists(self, ship_id: int) -> bool:
         return ship_id in self.entries
 
     def get_entry(self, ship_id: int) -> Optional[ShipCacheEntry]:
         return self.entries.get(ship_id)
-
-    def get_ship_ids(self) -> list:
-        return list(self.entries.keys())
 
     def get_battle(self, mode: BattleMode) -> int:
         """获取指定模式的总场次缓存"""

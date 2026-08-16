@@ -37,83 +37,75 @@ class UpdatePlanner:
     @classmethod
     def _plan_mode(cls, ctx: UpdateContext, mode: BattleMode) -> ModePlan:
         """生成单个模式的更新计划（ship_map / data 行 / recent）"""
-        cache = ctx.ship_cache
-        collection = ctx.ship_data.get(mode)
-        mode_ships = list(collection.ships.items()) if collection else []
+        cache = ctx.ship_cache  # 本地缓存数据
+        mode_stats = ctx.mode_data.get(mode)  # 各模式下总体统计数据(API请求获取)
+        collection = ctx.ship_data.get(mode)  # 各模式下船只数据合集(API请求获取)
 
-        ship_map = {}
-        cache_changes = {}
+        changed = False     # 标记是否发生变更
+        ship_map = {}       # 待重新构建的ship_map数据
+        cache_changes = {}  # 发生更改的latest_cache船只合集
         data_insert, data_update = [], []
         recent_ships = []
-        changed = False
 
-        for ship_id, ship_data in mode_ships:
-            entry = cache.get_entry(ship_id)
+        mode_ships = collection.ship_ids
+        for ship_id in mode_ships:
+            ship_data = collection.get_ship_data(ship_id)
             new_battles = ship_data.battles
-
-            if entry is None:
-                # 缓存中无此船：新船，快照归入昨日作为基线
-                changed = True
-                index = ctx.yesterday_date
-                ship_map[ship_id] = index
-                cache_changes[ship_id] = (new_battles, index)
-                data_insert.append(ShipIndexDataParams.from_ship_data(
-                    ship_id, mode, index, ship_data
-                ))
-                if ctx.is_pro:
-                    recent_ships.append((ship_id, ship_data, None))
+            if new_battles == 0:
                 continue
 
+            # 缓存中无此船：新船，快照归入昨日作为基线
+            entry = cache.get_entry(ship_id)
+            if entry is None:
+                changed = True
+                ship_map[ship_id] = ctx.yesterday_date
+                cache_changes[ship_id] = (new_battles, ctx.yesterday_date)
+                data_insert.append(ShipIndexDataParams.from_ship_data(ship_id, mode, ctx.yesterday_date, ship_data))
+                if ctx.is_pro:
+                    recent_ships.append((ship_id, ship_data, None, ctx.user_stats.last_battle_at))
+                continue
+
+            # 未变动：沿用旧索引
             old_battles = entry.get_battle(mode)
             if old_battles == new_battles:
-                # 未变动：沿用旧索引
                 ship_map[ship_id] = entry.get_index(mode)
                 continue
 
             # 数据发生变动
             changed = True
-            index = ctx.now_date
-            ship_map[ship_id] = index
-            cache_changes[ship_id] = (new_battles, index)
-            if entry.get_index(mode) == index:
+            ship_map[ship_id] = ctx.now_date
+            cache_changes[ship_id] = (new_battles, ctx.now_date)
+            if entry.get_index(mode) == ctx.now_date:
                 # 同一天内再次更新：原地更新已有数据行
-                data_update.append(ShipIndexDataParams.from_ship_data(
-                    ship_id, mode, index, ship_data
-                ))
+                data_update.append(ShipIndexDataParams.from_ship_data(ship_id, mode, ctx.now_date, ship_data))
             else:
-                data_insert.append(ShipIndexDataParams.from_ship_data(
-                    ship_id, mode, index, ship_data
-                ))
+                data_insert.append(ShipIndexDataParams.from_ship_data(ship_id, mode, ctx.now_date, ship_data))
             if ctx.is_pro:
-                recent_ships.append((ship_id, ship_data, entry))
+                recent_ships.append((ship_id, ship_data, entry, ctx.user_stats.last_battle_at))
 
-        # 该模式下缓存有战绩但现已消失的船（出售/该模式清空）：强制重建 map，将其从 ship_map 剔除
-        mode_ship_ids = {ship_id for ship_id, _ in mode_ships}
-        for ship_id in cache.get_ship_ids():
+        # 该模式下缓存有战绩但现已消失的船
+        for ship_id in cache.ship_ids:
             entry = cache.get_entry(ship_id)
-            if (entry.get_battle(mode) or 0) > 0 and ship_id not in mode_ship_ids:
+            old_battles = entry.get_battle(mode)
+            if old_battles > 0 and ship_id not in mode_ships:
                 changed = True
+                cache_changes[ship_id] = (0, None)
 
+        # 该模式无任何变动
         if not changed:
-            # 该模式无任何变动：沿用上一个 summary 索引
-            index = 0 if ctx.latest_summary is None else ctx.latest_summary.get_index(mode)
-            return ModePlan(mode=mode, is_changed=False, map_index=index)
+            return ModePlan(mode=mode, is_changed=False)
 
-        # 构建 ship_index_map 行（聚合数据来自 mode_data 的简略统计）
-        map_index = ctx.now_date
-        ships_count = len(mode_ships)
-        mode_stats = ctx.mode_data.get(mode)
-
+        # 构建 ship_index_map 行
         map_row = ShipIndexMapParams(
             ship_mode=mode.value,
-            ship_index=map_index,
-            ships=ships_count,
-            battles=mode_stats.battles if mode_stats else 0,
-            wins=mode_stats.wins if mode_stats else 0,
-            damage=mode_stats.damage if mode_stats else 0,
-            frags=mode_stats.frags if mode_stats else 0,
-            exp=mode_stats.exp if mode_stats else 0,
-            index_map=StringUtils.index_map_encode(ship_map),
+            ship_index=ctx.now_date,
+            ships=collection.count,
+            battles=mode_stats.battles,
+            wins=mode_stats.wins,
+            damage=mode_stats.damage,
+            frags=mode_stats.frags,
+            exp=mode_stats.exp,
+            index_map=StringUtils.index_map_encode(ship_map)
         )
         if cache.get_index(mode) == ctx.now_date:
             map_params = {'update': map_row}
@@ -124,28 +116,27 @@ class UpdatePlanner:
         recent = []
         if ctx.is_pro and recent_ships:
             with sqlite_read_only(ctx.account_id) as cursor:
-                for ship_id, ship_data, entry in recent_ships:
+                for ship_id, ship_data, entry, lbt in recent_ships:
+                    if not lbt or ctx.current_timestamp - lbt > 3600:
+                        continue
                     old_data = None
                     old_index = entry.get_index(mode) if entry else None
                     if old_index is not None:
                         old_data = ShipIndexDataRepository.read(cursor, ship_id, mode, old_index)
                         if old_data is None:
-                            logger.error(
-                                f'{ctx.account_id} | Missing snapshot `{ship_id}-{mode.name}-{old_index}`'
-                            )
+                            logger.error(f'{ctx.account_id} | Missing snapshot `{ship_id}-{mode.name}-{old_index}`')
                             continue
-                    recent.extend(cls.calc_recent_diff(
-                        mode, ship_id, ship_data, old_data, ctx.current_timestamp
-                    ))
+                    recent.extend(cls.calc_recent_diff(mode, ship_id, ship_data, old_data, lbt))
 
         return ModePlan(
             mode=mode,
             is_changed=True,
-            map_index=map_index,
+            no_stats=True if mode_stats.battles == 0 else False,
+            map_index=ctx.now_date,
             map_params=map_params,
             data_params={'insert': data_insert, 'update': data_update},
             cache_changes=cache_changes,
-            recent=recent,
+            recent=recent
         )
 
     @classmethod
@@ -176,31 +167,15 @@ class UpdatePlanner:
             else:
                 update.append(ShipLatestIndexParams(
                     ship_id=ship_id,
-                    pvp_battles=pvp_change[0] if pvp_change else (entry.get_battle(BattleMode.PVP) or 0),
-                    rank_battles=rank_change[0] if rank_change else (entry.get_battle(BattleMode.RANK) or 0),
-                    clan_battles=clan_change[0] if clan_change else (entry.get_battle(BattleMode.CLAN) or 0),
+                    pvp_battles=pvp_change[0] if pvp_change else entry.get_battle(BattleMode.PVP),
+                    rank_battles=rank_change[0] if rank_change else entry.get_battle(BattleMode.RANK),
+                    clan_battles=clan_change[0] if clan_change else entry.get_battle(BattleMode.CLAN),
                     pvp_index=pvp_change[1] if pvp_change else entry.get_index(BattleMode.PVP),
                     rank_index=rank_change[1] if rank_change else entry.get_index(BattleMode.RANK),
                     clan_index=clan_change[1] if clan_change else entry.get_index(BattleMode.CLAN),
                 ))
 
-        # 已从所有模式消失的船（出售/清空）：仅当全量请求时才能确认删除，避免误删仍存在于未请求模式的船
-        delete = []
-        if ctx.fetch_modes == BASE_UPDATE_MODES or ctx.fetch_modes == FULL_UPDATE_MODES:
-            for ship_id in cache.get_ship_ids():
-                if cls._is_ship_gone(ctx, ship_id):
-                    delete.append(ShipLatestIndexParams(ship_id=ship_id))
-
-        return {'insert': insert, 'update': update, 'delete': delete}
-
-    @staticmethod
-    def _is_ship_gone(ctx: UpdateContext, ship_id: int) -> bool:
-        """判断船只是否在本次请求的所有模式中均不再出现"""
-        for mode in ctx.fetch_modes:
-            collection = ctx.ship_data.get(mode)
-            if collection is not None and collection.is_exists(ship_id):
-                return False
-        return True
+        return {'insert': insert, 'update': update}
 
     @staticmethod
     def calc_recent_diff(

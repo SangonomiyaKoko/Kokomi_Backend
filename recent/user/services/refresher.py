@@ -7,6 +7,7 @@ from models import (
     BattleMode,
     SnapshotUpdatePlan,
     UpdateStrategy,
+    FULL_UPDATE_MODES
 )
 from repository import (
     DailySummaryRepository,
@@ -24,12 +25,12 @@ class UserRefresher:
 
     @classmethod
     def main(cls, ctx: UpdateContext) -> str:
-        """主入口：正常用户（含 MISSING_SUMMARY）根据本地数据与 API 数据比对确定写入"""
-        # 隐藏战绩用户（防御性分支，正常情况下已在 coordinator 被 skip）
+        """主入口：正常用户（含 MISSING_SUMMARY）"""
+        # 隐藏战绩用户
         if ctx.user_stats.is_hidden:
             return cls._handle_hidden_user(ctx)
 
-        # 正常流程（含 MISSING_SUMMARY）：根据本地数据与 API 数据比对确定写入
+        # 根据本地数据与 API 数据比对确定写入
         plan = UpdatePlanner.build_plan(ctx)
         return cls._commit_changed(ctx, plan)
 
@@ -53,52 +54,41 @@ class UserRefresher:
     @classmethod
     def _commit_changed(cls, ctx: UpdateContext, plan: SnapshotUpdatePlan) -> str:
         """提交正常用户的更新数据（summary + map/data + latest_index + recent）"""
-        summary = DailySummaryRepository.from_stats(
-            ctx.user_stats, cls._build_summary_indices(ctx, plan)
-        )
+        indices = cls._build_mode_indices(ctx, plan)
+        _indices = {
+            BattleMode.PVP: indices.get(BattleMode.PVP)[1],
+            BattleMode.RANK: indices.get(BattleMode.RANK)[1],
+            BattleMode.CLAN: indices.get(BattleMode.CLAN)[1]
+        }
+        summary = DailySummaryRepository.from_stats(ctx.user_stats, _indices)
         try:
             with sqlite_transaction(ctx.account_id) as cursor:
+                cls._commit_plan(cursor, plan, indices)
                 cls._write_summary(cursor, ctx, summary)
-                cls._commit_plan(cursor, ctx, plan)
                 RecentStatsRepository.insert(cursor, plan.recent_params)
         except Exception:
             return 'Exception'
         return 'Success'
 
-    # ---------- 辅助 ----------
-
     @classmethod
-    def _build_summary_indices(cls, ctx: UpdateContext, plan: SnapshotUpdatePlan) -> dict:
+    def _build_mode_indices(cls, ctx: UpdateContext, plan: SnapshotUpdatePlan) -> dict[BattleMode, tuple]:
         """各模式 summary 索引：变更模式用新 map_index，未变更模式沿用旧索引"""
         indices = {}
-        if ctx.latest_summary is not None:
-            indices = {
-                BattleMode.PVP: ctx.latest_summary.pvp_index,
-                BattleMode.RANK: ctx.latest_summary.rank_index,
-                BattleMode.CLAN: ctx.latest_summary.clan_index,
-            }
-        for mode, mode_plan in plan.modes.items():
-            indices[mode] = mode_plan.map_index
-        return indices
-
-    @staticmethod
-    def _mode_tuple(
-        ctx: UpdateContext, plan: SnapshotUpdatePlan, mode: BattleMode
-    ) -> tuple:
-        """构造特殊行中某模式的 (battles, index)：
-        变更模式用最新统计 + 新 map 索引；未请求模式沿用缓存原值"""
-        if mode in plan.modes:
-            if mode == BattleMode.PVP:
-                battles = ctx.user_stats.pvp_battles
-            elif mode == BattleMode.RANK:
-                battles = ctx.user_stats.ranked_battles
+        for mode, mode_plan in plan:
+            if mode_plan.no_stats:
+                indices[mode] = (0, 0)
             else:
-                battles = ctx.user_stats.rating_battles
-            index = plan.modes[mode].map_index
-        else:
-            battles = ctx.ship_cache.get_battle(mode)
-            index = ctx.ship_cache.get_index(mode)
-        return (battles, index)
+                if mode == BattleMode.PVP:
+                    battles = ctx.user_stats.pvp_battles
+                elif mode == BattleMode.RANK:
+                    battles = ctx.user_stats.ranked_battles
+                else:
+                    battles = ctx.user_stats.rating_battles
+                indices[mode] = (battles, mode_plan.map_index)
+        for mode in FULL_UPDATE_MODES:
+            if mode not in indices:
+                indices[mode] = (ctx.ship_cache.get_battle(mode), ctx.ship_cache.get_index(mode))
+        return indices
 
     @staticmethod
     def _write_summary(cursor, ctx: UpdateContext, summary) -> None:
@@ -108,15 +98,16 @@ class UserRefresher:
         DailySummaryRepository.update(cursor, ctx.now_date, summary)
 
     @staticmethod
-    def _commit_plan(cursor, ctx: UpdateContext, plan: SnapshotUpdatePlan) -> None:
+    def _commit_plan(cursor, plan: SnapshotUpdatePlan, indices: dict[BattleMode, tuple]) -> None:
         """按模式提交 map/data 行，并刷新船只缓存与特殊行"""
         for mode_plan in plan.modes.values():
-            ShipIndexMapRepository.refresh(cursor, mode_plan.map_params)
-            ShipIndexDataRepository.refresh(cursor, mode_plan.data_params)
+            if not mode_plan.no_stats:
+                ShipIndexMapRepository.refresh(cursor, mode_plan.map_params)
+                ShipIndexDataRepository.refresh(cursor, mode_plan.data_params)
         ShipCacheRepository.record_latest_index(
             cursor,
-            pvp=UserRefresher._mode_tuple(ctx, plan, BattleMode.PVP),
-            rank=UserRefresher._mode_tuple(ctx, plan, BattleMode.RANK),
-            clan=UserRefresher._mode_tuple(ctx, plan, BattleMode.CLAN),
+            pvp=indices[BattleMode.PVP],
+            rank=indices[BattleMode.RANK],
+            clan=indices[BattleMode.CLAN]
         )
         ShipCacheRepository.refresh(cursor, plan.cache_params)

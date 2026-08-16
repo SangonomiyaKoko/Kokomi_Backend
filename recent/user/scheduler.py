@@ -6,6 +6,7 @@ import time
 import redis
 import httpx
 import pymysql
+import asyncio
 import traceback
 from redis import Redis
 from httpx import AsyncClient
@@ -105,8 +106,8 @@ async def start_scheduler() -> None:
 
         if sleep_time >= 1:
             logger.info(f'The process sleeps for {sleep_time} seconds')
-            time.sleep(sleep_time)
+            await asyncio.sleep(sleep_time)
         else:
             logger.info(f'The process sleeps for 1 seconds')
-            time.sleep(1)
+            await asyncio.sleep(1)
         logger.info('-'*70)

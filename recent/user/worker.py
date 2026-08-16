@@ -135,7 +135,7 @@ async def run_worker(
                 logger.debug(f'{account_id} | DISABLED - {result.reason_text}')
                 disable_id_dict[account_id] = result.reason_text
                 continue
-
+            
             # 新用户走全量初始化，已有用户走增量更新
             if update_context.update_strategy == UpdateStrategy.NEW_USER:
                 refresh_result = UserInitializer.main(update_context)

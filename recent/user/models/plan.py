@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Tuple, Optional, TypedDict, Iterator
 
 from .mode import BattleMode
 from .params import RecentStatsParams
@@ -18,7 +18,8 @@ class ModePlan:
     """单个模式的更新计划（只包含该模式独立的写入）"""
     mode: BattleMode
     is_changed: bool
-    map_index: Optional[int] = None                     # 本模式本次采用的 map 索引（供 summary 写入）
+    no_stats: bool = False
+    map_index: Optional[int] = None                    # 本模式本次采用的 map 索引
     map_params: Optional[UpdateParams] = None          # ship_index_map 的 insert/update
     data_params: Optional[UpdateParams] = None         # ship_index_data 的 insert/update
     cache_changes: Dict[int, tuple] = field(default_factory=dict)  # ship_id → (battles, index)，供跨模式合并
@@ -36,6 +37,10 @@ class SnapshotUpdatePlan:
     @property
     def is_changed(self) -> bool:
         return any(plan.is_changed for plan in self.modes.values())
+
+    def __iter__(self) -> Iterator[Tuple[int, ModePlan]]:
+        """返回迭代器，产生 (mode, mode_plan) 元组"""
+        return iter(self.modes.items())
 
     def mode(self, mode: BattleMode) -> Optional[ModePlan]:
         return self.modes.get(mode)

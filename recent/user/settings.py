@@ -11,6 +11,12 @@ DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
 ROOT_DIR = Path(os.getcwd())
+if not (ROOT_DIR / 'README.md').exists():
+    print(
+        f"Invalid working directory: {ROOT_DIR}. "
+        f"Please start the service from the project root directory."
+    )
+    exit(1)
 LOG_DIR = ROOT_DIR / 'logs'
 DATA_DIR = ROOT_DIR / 'data'
 

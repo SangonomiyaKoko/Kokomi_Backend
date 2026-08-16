@@ -79,9 +79,3 @@ class ShipCacheRepository:
             cursor.executemany(
                 sql, [p.as_update_params() for p in params['update']]
             )
-
-        if params.get('delete'):
-            sql = "DELETE FROM ship_latest_index WHERE ship_id = ?;"
-            cursor.executemany(
-                sql, [p.as_delete_params() for p in params['delete']]
-            )

@@ -11,11 +11,11 @@ from models import (
 from .requester import FetchResult
 
 
-class ResponseValidator:
+class PreResponseValidator:
     """效验API返回数据是否符合预期"""
 
     @staticmethod
-    def main(ctx: UpdateContext, fr: FetchResult) -> ValidationResult:
+    def validate(ctx: UpdateContext, fr: FetchResult) -> ValidationResult:
         """效验账号基础信息响应"""
         basic_data = fr.account.get(str(ctx.account_id))
         if basic_data is None:
@@ -40,4 +40,19 @@ class ResponseValidator:
                 if 'statistics' not in api_data:
                     return ValidationResult.skip(SkipReason.OBTAIN_DATA_FAILED)
 
+        return ValidationResult.other()
+
+
+class PostResponseValidator:
+    """效验API返回数据格式是否合法"""
+
+    @staticmethod
+    def validate(ctx: UpdateContext) -> ValidationResult:
+        for mode in ctx.fetch_modes:
+            mode_stats = ctx.mode_data.get(mode)
+            collection = ctx.ship_data.get(mode)
+            if mode_stats.battles == 0:
+                if collection.count == 0:
+                    continue
+                return ValidationResult.skip(SkipReason.OBTAIN_DATA_FAILED)
         return ValidationResult.other()

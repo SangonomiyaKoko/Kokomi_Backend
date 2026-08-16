@@ -83,22 +83,18 @@ class ResponseParser:
 
         ship_collection = {}
         for mode, types in fr.ships.items():
-            if mode not in ship_collection:
-                ship_collection[mode] = ShipDataCollection()
-
+            ship_collection.setdefault(mode, ShipDataCollection())
             mode_collection: ShipDataCollection = ship_collection[mode]
-
             for data_type, response in types.items():
                 mode_key = EndpointRegistry.mode_key(mode, data_type)
                 stats_map = response.get(str(ctx.account_id), {}).get('statistics', {})
                 for ship_id_str, ship_stats in stats_map.items():
                     battle_stats = ship_stats.get(mode_key, {})
-                    if not battle_stats or battle_stats.get('battles_count', 0) == 0:
+                    if battle_stats.get('battles_count', 0) == 0:
                         continue
 
                     ship_id = int(ship_id_str)
-                    if not mode_collection.is_exists(ship_id):
-                        mode_collection.add_ship_data(ship_id, ShipData())
+                    mode_collection.setdefault(ship_id)
                     mode_collection.add_type_data(
                         ship_id, data_type, ShipBattleStats.from_api_data(battle_stats)
                     )

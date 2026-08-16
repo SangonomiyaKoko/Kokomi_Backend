@@ -130,9 +130,17 @@ class ShipDataCollection:
     def count(self) -> int:
         return len(self.ships)
 
+    @property
+    def ship_ids(self) -> List[int]:
+        return list(self.ships.keys())
+
     def __iter__(self) -> Iterator[Tuple[int, ShipData]]:
         """返回迭代器，产生 (ship_id, ship_data) 元组"""
         return iter(self.ships.items())
+
+    def setdefault(self, ship_id: int):
+        if ship_id not in self.ships:
+            self.ships[ship_id] = ShipData()
 
     def is_exists(self, ship_id: int) -> bool:
         return ship_id in self.ships
