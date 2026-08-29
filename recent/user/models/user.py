@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
+
+from .mode import BattleMode
 
 
 @dataclass(frozen=True, slots=True)
 class UserStats:
-    """用户战绩统计数据（从数据库或API接口读取到的最新数据）"""
+    """用户战绩统计数据"""
     is_enabled: bool = True
     is_public: bool = False
     total_battles: int = 0
@@ -25,23 +25,28 @@ class UserStats:
     @property
     def is_valid(self) -> bool:
         """用户是否有效"""
-        return self.is_enabled
-
-    @property
-    def no_competitive(self) -> bool:
-        """用户是否有竞技类战绩（PVP/Rank）"""
-        return self.pvp_battles + self.ranked_battles + self.rating_battles == 0
+        return self.is_enabled  
 
     def is_cache_outdated(self, updated_at: int | None) -> bool:
-        """检查MySQL数据是否比缓存更新"""
+        """检查 MySQL 数据是否比缓存更新"""
         if self.updated_at is None:
             return False
         if updated_at is None:
             return True
         return self.updated_at >= updated_at
 
+    def battles_for(self, mode: BattleMode) -> int:
+        """返回指定模式的战斗场次"""
+        if mode == BattleMode.PVP:
+            return self.pvp_battles
+        elif mode == BattleMode.RANK:
+            return self.ranked_battles
+        elif mode == BattleMode.CLAN:
+            return self.rating_battles
+        else:
+            raise ValueError(f'Unknown parameter {mode}')
+
     def __str__(self) -> str:
-        """输出字符串"""
         return (
             f"UserStats("
             f"is_enabled={self.is_enabled}, "
@@ -71,7 +76,6 @@ class UserRecord:
         return self.user_level > 0 and self.storage_limit > 0
 
     def __str__(self) -> str:
-        """输出字符串"""
         return (
             f"UserRecord("
             f"user_level={self.user_level}, "

@@ -10,7 +10,7 @@ from scheduler import start_scheduler
 from settings import REGION, CLIENT_NAME, REFRESH_INTERVAL
 
 
-def handler(*_):
+def handler(*_: object) -> None:
     """信号处理器，退出"""
     logger.info('The process is closing')
     os._exit(0)
@@ -18,7 +18,7 @@ def handler(*_):
 
 async def main() -> None:
     """主函数，程序入口"""
-    
+
     logger.info('Start running service: %s', CLIENT_NAME)
     logger.info('Service refresh interval: %s seconds', REFRESH_INTERVAL)
     logger.info('Current node region: %s', REGION.upper())

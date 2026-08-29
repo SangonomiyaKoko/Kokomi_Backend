@@ -1,227 +1,383 @@
-from __future__ import annotations
+from dataclasses import replace
 
-from typing import Optional
-
-from db import sqlite_read_only
 from loggers import logger
+from db import sqlite_read_only
+from context import UpdateContext
+from utils import TimeUtils
+from repository import ShipDataRepository
 from models import (
-    BattleMode,
     DataType,
-    UpdateContext,
-    ModePlan,
-    SnapshotUpdatePlan,
-    ShipLatestIndexParams,
-    ShipIndexDataParams,
-    ShipIndexMapParams,
-    RecentStatsParams,
-    ShipData,
-    BASE_UPDATE_MODES,
-    FULL_UPDATE_MODES,
+    BattleMode,
+    UpdateStrategy,
+    FULL_UPDATE_MODES
 )
-from repository import ShipIndexDataRepository
-from utils import StringUtils
+from settings import REGION
 
 
 class UpdatePlanner:
-    """船只快照对比管理器：按模式生成整体更新计划"""
+    """写回层：把拉取到的用户数据按模式落库"""
 
     @classmethod
-    def build_plan(cls, ctx: UpdateContext) -> SnapshotUpdatePlan:
-        """对比新旧船只数据，生成整体更新计划"""
-        plan = SnapshotUpdatePlan()
-        for mode in ctx.fetch_modes:
-            plan.modes[mode] = cls._plan_mode(ctx, mode)
-        plan.cache_params = cls._merge_cache(ctx, plan.modes)
-        return plan
-
-    @classmethod
-    def _plan_mode(cls, ctx: UpdateContext, mode: BattleMode) -> ModePlan:
-        """生成单个模式的更新计划（ship_map / data 行 / recent）"""
-        cache = ctx.ship_cache  # 本地缓存数据
-        mode_stats = ctx.mode_data.get(mode)  # 各模式下总体统计数据(API请求获取)
-        collection = ctx.ship_data.get(mode)  # 各模式下船只数据合集(API请求获取)
-
-        changed = False     # 标记是否发生变更
-        ship_map = {}       # 待重新构建的ship_map数据
-        cache_changes = {}  # 发生更改的latest_cache船只合集
-        data_insert, data_update = [], []
-        recent_ships = []
-
-        mode_ships = collection.ship_ids
-        for ship_id in mode_ships:
-            ship_data = collection.get_ship_data(ship_id)
-            new_battles = ship_data.battles
-            if new_battles == 0:
-                continue
-
-            # 缓存中无此船：新船，快照归入昨日作为基线
-            entry = cache.get_entry(ship_id)
-            if entry is None:
-                changed = True
-                ship_map[ship_id] = ctx.yesterday_date
-                cache_changes[ship_id] = (new_battles, ctx.yesterday_date)
-                data_insert.append(ShipIndexDataParams.from_ship_data(ship_id, mode, ctx.yesterday_date, ship_data))
-                if ctx.is_pro:
-                    recent_ships.append((ship_id, ship_data, None, ctx.user_stats.last_battle_at))
-                continue
-
-            # 未变动：沿用旧索引
-            old_battles = entry.get_battle(mode)
-            if old_battles == new_battles:
-                ship_map[ship_id] = entry.get_index(mode)
-                continue
-
-            # 数据发生变动
-            changed = True
-            ship_map[ship_id] = ctx.now_date
-            cache_changes[ship_id] = (new_battles, ctx.now_date)
-            if entry.get_index(mode) == ctx.now_date:
-                # 同一天内再次更新：原地更新已有数据行
-                data_update.append(ShipIndexDataParams.from_ship_data(ship_id, mode, ctx.now_date, ship_data))
-            else:
-                data_insert.append(ShipIndexDataParams.from_ship_data(ship_id, mode, ctx.now_date, ship_data))
-            if ctx.is_pro:
-                recent_ships.append((ship_id, ship_data, entry, ctx.user_stats.last_battle_at))
-
-        # 该模式下缓存有战绩但现已消失的船
-        for ship_id in cache.ship_ids:
-            entry = cache.get_entry(ship_id)
-            old_battles = entry.get_battle(mode)
-            if old_battles > 0 and ship_id not in mode_ships:
-                changed = True
-                cache_changes[ship_id] = (0, None)
-
-        # 该模式无任何变动
-        if not changed:
-            return ModePlan(mode=mode, is_changed=False)
-
-        # 构建 ship_index_map 行
-        map_row = ShipIndexMapParams(
-            ship_mode=mode.value,
-            ship_index=ctx.now_date,
-            ships=collection.count,
-            battles=mode_stats.battles,
-            wins=mode_stats.wins,
-            damage=mode_stats.damage,
-            frags=mode_stats.frags,
-            exp=mode_stats.exp,
-            index_map=StringUtils.index_map_encode(ship_map)
-        )
-        if cache.get_index(mode) == ctx.now_date:
-            map_params = {'update': map_row}
+    def main(cls, ctx: UpdateContext) -> str:
+        """根据更新策略生成数据库写回计划"""
+        if ctx.update_strategy == UpdateStrategy.NEW_USER:
+            return cls._initialize(ctx)
+        elif ctx.user_stats.is_hidden:
+            return cls._mark_hidden(ctx)
         else:
-            map_params = {'insert': map_row}
-
-        # 近期差值计算（仅 Plus 用户）
-        recent = []
-        if ctx.is_pro and recent_ships:
-            with sqlite_read_only(ctx.account_id) as cursor:
-                for ship_id, ship_data, entry, lbt in recent_ships:
-                    if not lbt or ctx.current_timestamp - lbt > 3600:
-                        continue
-                    old_data = None
-                    old_index = entry.get_index(mode) if entry else None
-                    if old_index is not None:
-                        old_data = ShipIndexDataRepository.read(cursor, ship_id, mode, old_index)
-                        if old_data is None:
-                            logger.error(f'{ctx.account_id} | Missing snapshot `{ship_id}-{mode.name}-{old_index}`')
-                            continue
-                    recent.extend(cls.calc_recent_diff(mode, ship_id, ship_data, old_data, lbt))
-
-        return ModePlan(
-            mode=mode,
-            is_changed=True,
-            no_stats=True if mode_stats.battles == 0 else False,
-            map_index=ctx.now_date,
-            map_params=map_params,
-            data_params={'insert': data_insert, 'update': data_update},
-            cache_changes=cache_changes,
-            recent=recent
-        )
-
-    @classmethod
-    def _merge_cache(cls, ctx: UpdateContext, mode_plans: dict) -> dict:
-        """合并各模式的船只缓存变动为全行状态的 insert/update/delete"""
-        cache = ctx.ship_cache
-        changed_ids = set()
-        for mode_plan in mode_plans.values():
-            changed_ids |= set(mode_plan.cache_changes.keys())
-
-        insert, update = [], []
-        for ship_id in changed_ids:
-            entry = cache.get_entry(ship_id)
-            pvp_change = mode_plans[BattleMode.PVP].cache_changes.get(ship_id) if BattleMode.PVP in mode_plans else None
-            rank_change = mode_plans[BattleMode.RANK].cache_changes.get(ship_id) if BattleMode.RANK in mode_plans else None
-            clan_change = mode_plans[BattleMode.CLAN].cache_changes.get(ship_id) if BattleMode.CLAN in mode_plans else None
-
-            if entry is None:
-                insert.append(ShipLatestIndexParams(
-                    ship_id=ship_id,
-                    pvp_battles=pvp_change[0] if pvp_change else 0,
-                    rank_battles=rank_change[0] if rank_change else 0,
-                    clan_battles=clan_change[0] if clan_change else 0,
-                    pvp_index=pvp_change[1] if pvp_change else None,
-                    rank_index=rank_change[1] if rank_change else None,
-                    clan_index=clan_change[1] if clan_change else None,
-                ))
-            else:
-                update.append(ShipLatestIndexParams(
-                    ship_id=ship_id,
-                    pvp_battles=pvp_change[0] if pvp_change else entry.get_battle(BattleMode.PVP),
-                    rank_battles=rank_change[0] if rank_change else entry.get_battle(BattleMode.RANK),
-                    clan_battles=clan_change[0] if clan_change else entry.get_battle(BattleMode.CLAN),
-                    pvp_index=pvp_change[1] if pvp_change else entry.get_index(BattleMode.PVP),
-                    rank_index=rank_change[1] if rank_change else entry.get_index(BattleMode.RANK),
-                    clan_index=clan_change[1] if clan_change else entry.get_index(BattleMode.CLAN),
-                ))
-
-        return {'insert': insert, 'update': update}
+            return cls._normal(ctx)
 
     @staticmethod
-    def calc_recent_diff(
-        mode: BattleMode,
-        ship_id: int,
-        new_data: ShipData,
-        old_data: Optional[ShipData],
-        battle_time: int,
-    ) -> list:
-        """计算新旧船只数据的差值（按 mode 内的 data_type 生成多条记录）"""
-        params = []
-        for data_type in (DataType.SOLO, DataType.DIV2, DataType.DIV3):
-            new_sbs = new_data.get_type_stats(data_type)
-            if new_sbs is None:
-                continue
-            new_list = new_sbs.to_list()
-            old_sbs = old_data.get_type_stats(data_type) if old_data else None
-            old_list = old_sbs.to_list() if old_sbs else [0] * 12
+    def _initialize(ctx: UpdateContext) -> str:
+        """生成新用户的完整初始化计划"""
+        stats = ctx.user_stats
 
-            delta_battles = new_list[0] - old_list[0]
-            if delta_battles <= 0:
-                continue
+        for mode in ctx.fetch_modes:
+            ship_map = {}
+            mode_stats = ctx.latest_data[mode].mode
+            collection = ctx.latest_data[mode].ship
 
-            delta_hits = new_list[10] - old_list[10]
-            delta_shots = new_list[11] - old_list[11]
-            hit_rate = (
-                round(delta_hits / delta_shots * 100, 2)
-                if delta_shots != 0
-                else 0.0
+            ctx.update_plan.mode_latest.set_update_params(
+                ship_mode=mode,
+                mode_data=mode_stats, 
+                mode_index=ctx.yesterday_date, 
+                updated_at=ctx.update_timestamp
+            )
+            for ship_id, ship_data in collection:
+                if ship_data.battles == 0:
+                    continue
+                ship_map[ship_id] = ctx.yesterday_date
+                ctx.update_plan.ship_data.set_insert_params(
+                    ship_id=ship_id, 
+                    ship_mode=mode, 
+                    ship_index=ctx.yesterday_date, 
+                    ship_data=ship_data
+                )
+                ctx.update_plan.ship_latest.set_insert_params(
+                    ship_id=ship_id, 
+                    ship_mode=mode, 
+                    ship_data=ship_data.aggregate(), 
+                    ship_index=ctx.yesterday_date
+                )
+            ctx.update_plan.ship_map.set_insert_params(
+                ship_mode=mode, 
+                ship_index=ctx.yesterday_date, 
+                ship_map=ship_map, 
+                ship_data=collection.aggregate(), 
+                updated_at=ctx.update_timestamp
             )
 
-            params.append(RecentStatsParams(
-                ship_id=ship_id,
-                data_mode=mode.value,
-                data_type=data_type.value,
-                battles=delta_battles,
-                wins=new_list[1] - old_list[1],
-                losses=new_list[2] - old_list[2],
-                damage=new_list[3] - old_list[3],
-                frags=new_list[4] - old_list[4],
-                survived=new_list[5] - old_list[5],
-                scout_damage=new_list[6] - old_list[6],
-                art_agro=new_list[7] - old_list[7],
-                exp=new_list[8] - old_list[8],
-                planes=new_list[9] - old_list[9],
-                hit_rate=hit_rate,
-                battle_time=battle_time,
-            ))
-        return params
+        # 整理摘要写回的索引与统计
+        indices = {
+            BattleMode.PVP: ctx.yesterday_date,
+            BattleMode.RANK: ctx.yesterday_date,
+            BattleMode.CLAN: ctx.yesterday_date
+        }
+        if REGION == 'ru':
+            new_stats = stats
+        elif BattleMode.CLAN in ctx.fetch_modes:
+            new_stats = replace(
+                stats, 
+                rating_battles=ctx.latest_data[BattleMode.CLAN].battles
+            )
+        else:
+            new_stats = stats
+            indices[BattleMode.CLAN] = None
+
+        ctx.update_plan.user_summary.set_insert_params_from_stats(
+            snapshot_date=ctx.yesterday_date, 
+            stats=new_stats, 
+            indices=indices
+        )
+        ctx.update_plan.user_summary.set_insert_params_from_stats(
+            snapshot_date=ctx.now_date, 
+            stats=new_stats, 
+            indices=indices
+        )
+
+        return 'Initialize'
+
+    @staticmethod
+    def _mark_hidden(ctx: UpdateContext) -> str:
+        """生成隐藏用户的摘要更新计划"""
+        stats = ctx.user_stats
+
+        # 按需将今日 summary 更新为隐藏状态
+        if ctx.latest_summary.is_public:
+            # 当前 summary 有战绩但更新时间非今日 → 更新为隐藏
+            if TimeUtils.get_reset_date(stats.updated_at) != ctx.now_date:
+                ctx.update_plan.user_summary.set_update_params_from_hidden(
+                    snapshot_date=ctx.now_date, 
+                    updated_at=ctx.update_timestamp
+                )
+        else:
+            # 当前 summary 已是隐藏但更新时间过旧 → 刷新时间戳
+            if stats.is_cache_outdated(ctx.latest_summary.updated_at):
+                ctx.update_plan.user_summary.set_update_params_from_hidden(
+                    snapshot_date=ctx.now_date, 
+                    updated_at=ctx.update_timestamp
+                )
+
+        return 'Hidden'
+
+    @classmethod
+    def _normal(cls, ctx: UpdateContext) -> str:
+        """生成普通用户的增量更新计划"""
+        up = ctx.update_plan
+        indices = {}
+        recent_ships = []
+
+        for mode in FULL_UPDATE_MODES:
+            # 不在更新计划中则复用数据库中的数据索引
+            if mode not in ctx.fetch_modes:
+                indices[mode] = ctx.local_data[mode].mode_index
+                continue
+
+            # 本地数据库读取的数据
+            local_mode_data = ctx.local_data[mode].mode
+            local_ship_data = ctx.local_data[mode].ship
+
+            # 数据接口获取的数据
+            latest_mode_data = ctx.latest_data[mode].mode
+            latest_ship_data = ctx.latest_data[mode].ship
+
+            # 没有数据变动，直接跳过并复用数据库中的数据索引
+            if local_mode_data.battles == latest_mode_data.battles:
+                indices[mode] = local_mode_data.mode_index
+                continue
+
+            # 极低概率触发回档情况，写入日志文件
+            if local_mode_data.battles > latest_mode_data.battles:
+                logger.warning(
+                    f'{ctx.account_id} | Detected data rollback: '
+                    f'{mode.name} {local_mode_data.battles} -> {latest_mode_data.battles}'
+                )
+
+            # 有数据变动则更新数据索引
+            indices[mode] = ctx.now_date
+
+            # 接口返回该模式无战绩数据时的特殊处理
+            if latest_mode_data.battles == 0:
+                # 如果本地存在数据则置 0
+                # 该情况仅账号回档后出现
+                for ship_id, ship_data in local_ship_data:
+                    if ship_data.battle == 0:
+                        continue
+
+                    if ship_data.index == ctx.now_date:
+                        up.ship_data.set_update_params(
+                            ship_id=ship_id, 
+                            ship_mode=mode, 
+                            ship_index=ctx.now_date, 
+                            ship_data=None
+                        )
+                    else:
+                        up.ship_data.set_insert_params(
+                            ship_id=ship_id, 
+                            ship_mode=mode, 
+                            ship_index=ctx.now_date, 
+                            ship_data=None
+                        )
+                    up.ship_latest.set_update_params(
+                        ship_id=ship_id,
+                        ship_mode=mode,
+                        ship_data=None,
+                        ship_index=ctx.now_date
+                    )
+                if local_mode_data.mode_index == ctx.now_date:
+                    up.mode_latest.set_update_params(
+                        ship_mode=mode, 
+                        mode_data=latest_mode_data, 
+                        mode_index=ctx.now_date, 
+                        updated_at=ctx.update_timestamp
+                    )
+                    up.ship_map.set_update_params(
+                        ship_mode=mode, 
+                        ship_index=ctx.now_date, 
+                        ship_map={}, 
+                        ship_data=None, 
+                        updated_at=ctx.update_timestamp
+                    )
+                else:
+                    up.mode_latest.set_update_params(
+                        ship_mode=mode, 
+                        mode_data=latest_mode_data, 
+                        mode_index=ctx.now_date, 
+                        updated_at=ctx.update_timestamp
+                    )
+                    up.ship_map.set_insert_params(
+                        ship_mode=mode, 
+                        ship_index=ctx.now_date, 
+                        ship_map={}, 
+                        ship_data=None, 
+                        updated_at=ctx.update_timestamp
+                    )
+                continue
+
+            ship_map = {}
+            compute_recent = ctx.is_pro and (mode != BattleMode.CLAN or REGION == 'ru')
+            for ship_id, ship_data in latest_ship_data:
+                if ship_data.battles == 0:
+                    continue
+                if not local_ship_data.is_exists(ship_id):
+                    ship_map[ship_id] = ctx.yesterday_date
+                    up.ship_data.set_insert_params(
+                        ship_id=ship_id, 
+                        ship_mode=mode, 
+                        ship_index=ctx.yesterday_date, 
+                        ship_data=ship_data
+                    )
+                    up.ship_latest.set_insert_params(
+                        ship_id=ship_id,
+                        ship_mode=mode,
+                        ship_data=ship_data.aggregate(),
+                        ship_index=ctx.yesterday_date
+                    )
+                    if compute_recent:
+                        recent_ships.append((mode, ship_id, ship_data, None))
+                    continue
+                ship_entry = local_ship_data.get_entry(ship_id)
+                if ship_entry.battle == ship_data.battles:
+                    ship_map[ship_id] = ship_entry.index
+                else:
+                    ship_map[ship_id] = ctx.now_date
+                    if ship_entry.index == ctx.now_date:
+                        up.ship_data.set_update_params(
+                            ship_id=ship_id, 
+                            ship_mode=mode, 
+                            ship_index=ctx.now_date, 
+                            ship_data=ship_data
+                        )
+                    else:
+                        up.ship_data.set_insert_params(
+                            ship_id=ship_id, 
+                            ship_mode=mode, 
+                            ship_index=ctx.now_date, 
+                            ship_data=ship_data
+                        )
+                    up.ship_latest.set_update_params(
+                        ship_id=ship_id,
+                        ship_mode=mode,
+                        ship_data=ship_data.aggregate(),
+                        ship_index=ctx.now_date
+                    )
+                    if compute_recent:
+                        recent_ships.append((mode, ship_id, ship_data, ship_entry))
+
+
+            up.mode_latest.set_update_params(
+                ship_mode=mode, 
+                mode_data=latest_mode_data, 
+                mode_index=ctx.now_date, 
+                updated_at=ctx.update_timestamp
+            )
+            if local_mode_data.mode_index == ctx.now_date:
+                up.ship_map.set_update_params(
+                    ship_mode=mode, 
+                    ship_index=ctx.now_date, 
+                    ship_map=ship_map, 
+                    ship_data=latest_mode_data, 
+                    updated_at=ctx.update_timestamp
+                )
+            else:
+                up.ship_map.set_insert_params(
+                    ship_mode=mode, 
+                    ship_index=ctx.now_date, 
+                    ship_map=ship_map, 
+                    ship_data=latest_mode_data, 
+                    updated_at=ctx.update_timestamp
+                )
+
+        # 按更新策略写回 daily_summary 记录
+        if ctx.update_strategy == UpdateStrategy.MISSING_SUMMARY:
+            up.user_summary.set_update_params_from_stats(
+                snapshot_date=ctx.yesterday_date, 
+                stats=ctx.user_stats, 
+                indices=indices
+            )
+            up.user_summary.set_update_params_from_stats(
+                snapshot_date=ctx.now_date, 
+                stats=ctx.user_stats, 
+                indices=indices
+            )
+        elif (
+            BattleMode.CLAN in ctx.fetch_modes and 
+            ctx.update_strategy == UpdateStrategy.SPECIAL_CLAN_UPDATE
+        ):
+            clan_mode_data = ctx.latest_data[BattleMode.CLAN].mode
+            yestoday_summary = ctx.daily_summary[ctx.yesterday_date]
+            replaced_summary = replace(
+                yestoday_summary, 
+                clan_battles=clan_mode_data.battles, 
+                clan_index=indices[BattleMode.CLAN]
+            )
+            up.user_summary.set_update_params_from_local(
+                snapshot_date=ctx.yesterday_date, 
+                summary=replaced_summary
+            )
+            up.user_summary.set_update_params_from_stats(
+                snapshot_date=ctx.now_date, 
+                stats=ctx.user_stats, 
+                indices=indices
+            )
+        else:
+            up.user_summary.set_update_params_from_stats(
+                snapshot_date=ctx.now_date, 
+                stats=ctx.user_stats, 
+                indices=indices
+            )
+
+        # 计算详细近期数据，仅 Plus 用户参与，CLAN 模式限俄服
+        if recent_ships:
+            cls._calc_recent(ctx, recent_ships)
+
+        return 'Success'
+
+    @staticmethod
+    def _calc_recent(ctx: UpdateContext, recent_ships: list) -> None:
+        """计算各船近期战斗差值，并写入 user_recent_stats 行"""
+        battle_time = ctx.user_stats.last_battle_at
+        if not battle_time or ctx.current_timestamp - battle_time > 7200:
+            # 无有效战斗时间戳或时间过旧，不做近期计算
+            return
+
+        with sqlite_read_only(ctx.account_id) as cursor:
+            for mode, ship_id, ship_data, old_entry in recent_ships:
+                # 读取已有旧快照，用于计算各数据类型的差值
+                old_data = None
+                old_index = old_entry.index if old_entry else None
+                if old_index is not None:
+                    old_data = ShipDataRepository.read(cursor, ship_id, mode, old_index)
+                    if old_data is None:
+                        logger.error(
+                            f'{ctx.account_id} | Missing snapshot '
+                            f'`{ship_id}-{mode.name}-{old_index}`'
+                        )
+                        continue
+
+                for data_type in (DataType.SOLO, DataType.DIV2, DataType.DIV3):
+                    new_sbs = ship_data.get_type_stats(data_type)
+                    if new_sbs is None:
+                        continue
+                    new_list = new_sbs.to_list()
+                    old_sbs = old_data.get_type_stats(data_type) if old_data else None
+                    old_list = old_sbs.to_list() if old_sbs else [0] * 12
+
+                    # 差值战斗场次 <= 0 表示该类型近期无战斗，跳过
+                    delta_battles = new_list[0] - old_list[0]
+                    if delta_battles <= 0:
+                        continue
+                    # 任一字段出现负差值则数据异常，跳过
+                    deltas = [new - old for new, old in zip(new_list[1:], old_list[1:])]
+                    if any(delta < 0 for delta in deltas):
+                        continue
+
+                    # 记录近期数据行
+                    ctx.update_plan.user_recent.set_insert_params(
+                        ship_id=ship_id, 
+                        ship_mode=mode, 
+                        data_type=data_type, 
+                        battles=delta_battles, 
+                        deltas=deltas, 
+                        battle_time=battle_time
+                    )

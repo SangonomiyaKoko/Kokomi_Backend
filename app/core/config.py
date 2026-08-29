@@ -56,9 +56,6 @@ class ConstantsConfig:
     USER_INIT_TABLE_LIST: list[str]
     CLAN_INIT_TABLE_LIST: list[str]
     SHIP_INIT_TABLE_LIST: list[str]
-    USER_ACTIVITY_THRESHOLDS: list[list]
-    USER_ACTIVITY_STRATEGY: dict[str, int]
-    SPECIAL_ACTIVITY_STRATEGY: list[list]
     METRIC_RATING_THRESHOLDS: dict[list]
 
 @dataclass(frozen=True)
@@ -227,7 +224,7 @@ class EnvConfig:
         file_path = cls.DATA_DIR / 'const/policy.json'
         data = cls._load_json_file(file_path)
         
-        cls._constants = PolicyConfig(
+        cls._policy = PolicyConfig(
             USER_ACTIVITY_THRESHOLDS=data['USER_ACTIVITY_THRESHOLDS'],
             USER_ACTIVITY_STRATEGY=data['USER_ACTIVITY_STRATEGY'],
             SPECIAL_ACTIVITY_STRATEGY=data['SPECIAL_ACTIVITY_STRATEGY']
@@ -263,6 +260,12 @@ class EnvConfig:
         if cls._config is None:
             raise RuntimeError("Configuration not initialized")
         return cls._config
+
+    @classmethod
+    def get_policy(cls) -> PolicyConfig:
+        if cls._policy is None:
+            raise RuntimeError("Endpoints not initialized. Call EnvConfig.init() first")
+        return cls._policy
 
     @classmethod
     def get_endpoints(cls) -> EndpointsConfig:

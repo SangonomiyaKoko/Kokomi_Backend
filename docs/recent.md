@@ -94,15 +94,16 @@ CREATE TABLE IF NOT EXISTS ship_index_map (
 
     ships            INT          NOT NULL DEFAULT 0,    -- 总船只数
     battles          INT          NOT NULL DEFAULT 0,    -- 总战斗场次
-    wins             INT          NOT NULL DEFAULT 0,    -- 总胜场
-    damage           INT          NOT NULL DEFAULT 0,    -- 总伤害
-    frags            INT          NOT NULL DEFAULT 0,    -- 总击毁数
-    exp              INT          NOT NULL DEFAULT 0,    -- 总经验值
+    win_rate         REAL         NOT NULL DEFAULT 0.0,  -- 胜率 %
+    avg_damage       INT          NOT NULL DEFAULT 0,    -- 场均伤害
+    avg_frags        REAL         NOT NULL DEFAULT 0.0,  -- 场均击杀
+    avg_exp          INT          NOT NULL DEFAULT 0,    -- 场均经验
 
     index_map        TEXT         DEFAULT NULL,          -- 船只索引合集
 
     updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(ship_mode, ship_index)
+    UNIQUE(ship_mode, ship_index),
+    CHECK(ship_mode IN (1, 2, 3))
 );
 ```
 
@@ -141,35 +142,62 @@ battles,wins,losses,damage,frags,survived,scouting_damage,art_agro,original_exp,
 
 **只有数据变化时才插入新行**，因此底层空间随"变化量"增长，而不是随"天数"增长。
 
-### 3.4 辅助表：`ship_latest_index`（最新缓存）
+### 3.4 辅助表：`mode_latest_index`（模式最新索引）
 
-记录每艘船最新的场次和索引，更新时用来判断"这艘船变没变、该 insert 还是 update"。
+从旧设计中 `ship_latest_index` 里的"特殊行"独立成表：每模式一行，记录该模式的聚合统计与最新索引，用于更新时判断"该模式变没变"，以及 summary 不完整时的兜底来源。
+
+```sql
+CREATE TABLE IF NOT EXISTS mode_latest_index (
+    id               INTEGER      PRIMARY KEY,
+    ship_mode        INT          UNIQUE,                -- 模式：1-pvp 2-rank 3-clan
+
+    battles          INT          NOT NULL DEFAULT 0,    -- 总场次
+    win_rate         REAL         NOT NULL DEFAULT 0.0,  -- 胜率 %
+    avg_damage       INT          NOT NULL DEFAULT 0,    -- 场均伤害
+    avg_frags        REAL         NOT NULL DEFAULT 0.0,  -- 场均击杀
+    avg_exp          INT          NOT NULL DEFAULT 0,    -- 场均经验
+
+    mode_index       INT          DEFAULT NULL,          -- 指向 ship_index_map 的数据索引
+
+    update_time      INT          DEFAULT NULL,          -- 快照更新时间戳
+    created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    CHECK(ship_mode IN (1, 2, 3))
+);
+-- 预置三行，保证每个模式始终存在
+INSERT OR IGNORE INTO mode_latest_index (ship_mode) VALUES (1);
+INSERT OR IGNORE INTO mode_latest_index (ship_mode) VALUES (2);
+INSERT OR IGNORE INTO mode_latest_index (ship_mode) VALUES (3);
+```
+
+`mode_index` 指向**中层** `ship_index_map`。当顶层 `user_daily_summary` 出现极低概率的数据不完整时，仍能从该表读到各模式的最新索引，保证更新逻辑不因脏数据中断。
+
+### 3.5 辅助表：`ship_latest_index`（船只最新缓存）
+
+记录每艘船在**每个模式**下的最新场次、统计概览与数据索引，更新时用来判断"这艘船在某个模式变没变、该 insert 还是 update"。按 `(ship, mode)` 拆行，`data_index` 指向**底层** `ship_index_data`。
 
 ```sql
 CREATE TABLE IF NOT EXISTS ship_latest_index (
     id               INTEGER      PRIMARY KEY,
-    ship_id          INT          UNIQUE,                -- 船只 ID
+    ship_id          INT          NOT NULL,              -- 船只 ID
+    ship_mode        INT          NOT NULL,              -- 模式：1-pvp 2-rank 3-clan
 
-    pvp_battles      INT          NOT NULL DEFAULT 0,    -- 该船 PvP 场次
-    rank_battles     INT          NOT NULL DEFAULT 0,    -- 该船 Rank 场次
-    clan_battles     INT          NOT NULL DEFAULT 0,    -- 该船 Clan 场次
+    battles          INT          NOT NULL DEFAULT 0,    -- 该船该模式场次
+    win_rate         REAL         NOT NULL DEFAULT 0.0,  -- 胜率 %
+    avg_damage       INT          NOT NULL DEFAULT 0,    -- 场均伤害
+    avg_frags        REAL         NOT NULL DEFAULT 0.0,  -- 场均击杀
+    avg_exp          INT          NOT NULL DEFAULT 0,    -- 场均经验
 
-    pvp_index        INT          DEFAULT NULL,          -- 该船 PvP 数据索引
-    rank_index       INT          DEFAULT NULL,          -- 该船 Rank 数据索引
-    clan_index       INT          DEFAULT NULL,          -- 该船 Clan 数据索引
+    data_index       INT          DEFAULT NULL,          -- 指向 ship_index_data 的数据索引
 
-    updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
+    updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ship_mode, ship_id),
+    CHECK(ship_mode IN (1, 2, 3))
 );
-
--- 特殊行：记录各模式的最新索引，作为异常时的兜底来源
-INSERT OR IGNORE INTO ship_latest_index (ship_id) VALUES (1000000000);
 ```
 
-其中一行特殊行（`ship_id = 1000000000`，不可能与真实船只 ID 冲突）用于兜底记录"各模式最新索引"。当顶层 `user_daily_summary` 出现极低概率的数据不完整时，仍能从特殊行读到各模式的最新索引，保证更新逻辑不因脏数据中断。
+> **索引目标一目了然**：`mode_latest_index.mode_index` 指向 map 层；`ship_latest_index.data_index` 指向 data 层。拆表后不再需要区分"特殊行 vs 普通行"。
 
-> **引用层级注意**：特殊行的 `*_index` 指向 map 层；普通船只行的 `*_index` 指向 data 层。
-
-### 3.5 辅助表：`user_recent_stats`（近期明细）
+### 3.6 辅助表：`user_recent_stats`（近期明细）
 
 面向少量 Plus 用户，把"按天"的差异进一步细分到"按战斗"粒度。
 
@@ -205,7 +233,7 @@ CREATE TABLE IF NOT EXISTS user_recent_stats (
 
 ### 4.1 更新发现（判断要不要更新）
 
-Recent 服务读 MySQL 中由上游维护的 `T_user_stats` 表，拿到各模式最新战斗场次，与本地特殊行缓存的场次逐一比对，**找出哪些模式的数据发生了变化**。
+Recent 服务读 MySQL 中由上游维护的 `T_user_stats` 表，拿到各模式最新战斗场次，与本地 `mode_latest_index` 缓存的场次逐一比对，**找出哪些模式的数据发生了变化**。
 
 - 某模式场次变了 → 该模式需要重新请求；
 - 都没变 → 不请求，仅当缓存过期时更新一次顶层 summary。
@@ -220,24 +248,42 @@ Recent 服务读 MySQL 中由上游维护的 `T_user_stats` 表，拿到各模�
 | `NORMAL` | 本地数据正常 | 按模式 diff，只写变化的数据 |
 | `MISSING_SUMMARY` | 今日+昨日 summary 缺失（服务崩溃）或均为隐藏战绩 | 同 NORMAL，但 summary 同时写昨日+今日，避免丢失今日近期数据 |
 
-### 4.3 单用户更新流程
+### 4.3 模式 × 服务器的更新差异
 
-1. 读 MySQL `T_user_stats` 最新场次 + SQLite 特殊行缓存，**比对哪些模式变了**；
+三种模式中，**PVP 与 RANK 所有服务器通用**，均通过 VORTEX 接口获取，更新策略完全一致。差异集中在 CLAN 模式：
+
+| 服务器 | CLAN 模式记录内容 | 数据来源 | 更新方式 |
+| --- | --- | --- | --- |
+| 国服 `cn` | 不记录 | 无（官方未提供接口） | 不请求 |
+| 俄服 `ru` | rating（评分战）数据 | VORTEX 接口 | 同 PVP，支持完整近期统计 |
+| 直营服 `sg / eu / na` | clan battle 数据 | OFFICIAL API | 定时补全基础场次，无详细近期统计 |
+
+- **国服（cn）**：官方未提供 CLAN 相关接口，因此不记录该模式数据，更新范围只有 PVP + RANK。
+- **俄服（ru）**：官方用 rating（评分战）取代了原 clan battle，CLAN 模式下记录的实际是 rating 战数据。该数据与 PVP 同走 VORTEX 接口，因此采用与 PVP 相同的更新策略，可统计完整的近期明细。
+- **直营服（sg + eu + na）**：CLAN 模式记录当前的 clan battle 数据，但该接口由 OFFICIAL API 提供——通过 VORTEX 接口读取用户基本信息时**读取不到 CLAN 模式的总体数据**，因此无法统计该模式的详细近期数据（`user_recent_stats` 不含 CLAN 明细）。
+
+> **直营服 CLAN 的定时兜底**：clan battle 为固定时间段开放（如当地时间周三 / 四 / 六 / 日晚上开启，且均在次日 0 点前关闭），无需实时跟踪。只需在每日 **1:00–5:00** 之间对全部活跃用户执行一次 CLAN 数据更新（因为本地数据库默认在每日 **5:00** 跨日），即可保证基本的近期数据。
+
+### 4.4 单用户更新流程
+
+1. 读 MySQL `T_user_stats` 最新场次 + SQLite `mode_latest_index` 缓存，**比对哪些模式变了**；
 2. 只请求**变化模式**的接口（account 基础接口恒请求，一次并发）；
 3. 同步 MySQL 用户基础数据（`T_user_stats` 等）；
 4. 逐船 diff：变化的船写新快照（底层 insert），没变化的船索引复用（中层沿用旧索引）；
-5. 合并新索引写入中层 `ship_index_map`，刷新 `ship_latest_index`（普通船 + 特殊行）；
+5. 合并新索引写入中层 `ship_index_map`，刷新 `mode_latest_index` 与 `ship_latest_index`（均按 (ship, mode) 拆行 upsert）；
 6. 顶层 `user_daily_summary` 更新为"今天"，指向新的映射；
 7. 若是 Plus 用户，顺带计算 `user_recent_stats` 近期明细差值。
 
-### 4.4 代码分层
+写回阶段由 `UpdatePlanner`（按策略产出自描述计划）与 `UserDataWriter`（单事务执行）协作完成：策略只影响"计划什么"，执行器只读计划、不感知策略。
+
+### 4.5 代码分层
 
 ```
 recent/
-├── models/        # 数据结构与领域模型
+├── models/        # 数据结构与领域模型（UpdateContext / RunContext / 各类 Plan / Params）
 ├── clients/       # API 接入：endpoints(端点注册) / requester(请求) / validator(校验) / parser(解析)
-├── services/      # 业务编排：coordinator(判定) / pipeline(取数) / planner(diff) / refresher(写库) / initializer(初始化)
-├── repository/    # 数据访问：summary / cache / index_map / index_data / recent
+├── services/      # 业务编排：runner(单用户流水线) / coordinator(判定) / pipeline(取数) / planner(规划) / writer(写库)
+├── repository/    # 数据访问：summary / cache(船只缓存) / mode_latest(模式索引) / index_map / index_data / recent
 └── db/            # MySQL / SQLite 连接与事务
 ```
 
@@ -257,7 +303,7 @@ recent/
 按引用图从顶层向底层逐层清理，防止悬空引用——复用索引会让旧数据行仍被近期行引用，因此**不能按日期直接删除**，只能按"是否仍被引用"来判断：
 
 1. 删除顶层超期的 `user_daily_summary` 行（按日期 cutoff，这是保留策略的唯一锚点）；
-2. 收集仍被引用的 map 行 = 剩余 summary 的各模式索引 ∪ 特殊行的各模式索引，删除其余 `ship_index_map` 行；
-3. 收集仍被引用的 data 行 = 剩余 map 的 `index_map` 解析结果 ∪ 普通船只行的各模式索引，删除其余 `ship_index_data` 行。
+2. 收集仍被引用的 map 行 = 剩余 summary 的各模式索引 ∪ `mode_latest_index` 的各模式索引，删除其余 `ship_index_map` 行；
+3. 收集仍被引用的 data 行 = 剩余 map 的 `index_map` 解析结果 ∪ `ship_latest_index` 的各数据索引，删除其余 `ship_index_data` 行。
 
-> **引用层级注意**：特殊行引用 map 层（计入步骤 2）；普通 `ship_latest_index` 行引用 data 层（计入步骤 3）。
+> **引用层级注意**：`mode_latest_index` 引用 map 层（计入步骤 2）；`ship_latest_index` 引用 data 层（计入步骤 3）。

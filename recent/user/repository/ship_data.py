@@ -1,25 +1,28 @@
 from sqlite3 import Cursor
 
+from params import ShipDataUpdateParams
 from models import (
-    ShipData,
-    ShipBattleStats,
-    UpdateParams,
-    BattleMode,
     DataType,
+    BattleMode,
+    ShipDataEntry,
+    ShipBattleStats
 )
 from utils import StringUtils
 
 
-class ShipIndexDataRepository:
+class ShipDataRepository:
     """ship_index_data 表的数据访问对象"""
 
     @staticmethod
     def read(
         cursor: Cursor, ship_id: int, mode: BattleMode, ship_index: int
-    ) -> ShipData | None:
+    ) -> ShipDataEntry | None:
         """读取单条船只快照数据"""
         sql = """
-            SELECT data_type_1, data_type_2, data_type_3
+            SELECT
+                data_type_1,
+                data_type_2,
+                data_type_3
             FROM ship_index_data
             WHERE ship_mode = ?
               AND ship_id = ?
@@ -30,7 +33,7 @@ class ShipIndexDataRepository:
         if not result:
             return None
 
-        data = ShipData()
+        data = ShipDataEntry()
         if result[0]:
             data.set_type_stats(
                 DataType.SOLO,
@@ -49,12 +52,11 @@ class ShipIndexDataRepository:
         return data
 
     @staticmethod
-    def refresh(cursor: Cursor, params: UpdateParams) -> None:
-        """批量刷新 ship_index_data（insert / update）"""
-        if not params:
-            return
-
-        if params.get('insert'):
+    def refresh(
+        cursor: Cursor, params: ShipDataUpdateParams
+    ) -> None:
+        """刷新船只明细快照"""
+        if params.has_insert_params:
             sql = """
                 INSERT INTO ship_index_data (
                     ship_id,
@@ -65,22 +67,17 @@ class ShipIndexDataRepository:
                     data_type_3
                 ) VALUES (?,?,?,?,?,?);
             """
-            cursor.executemany(
-                sql, [p.as_insert_params() for p in params['insert']]
-            )
+            cursor.executemany(sql, params.get_insert_params)
 
-        if params.get('update'):
+        if params.has_update_params:
             sql = """
                 UPDATE ship_index_data
                 SET
                     data_type_1 = ?,
                     data_type_2 = ?,
-                    data_type_3 = ?,
-                    updated_at = CURRENT_TIMESTAMP
+                    data_type_3 = ?
                 WHERE ship_id = ?
                   AND ship_mode = ?
                   AND ship_index = ?;
             """
-            cursor.executemany(
-                sql, [p.as_update_params() for p in params['update']]
-            )
+            cursor.executemany(sql, params.get_update_params)

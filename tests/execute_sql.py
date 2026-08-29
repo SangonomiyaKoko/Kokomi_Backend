@@ -32,18 +32,7 @@ DB_CONFIG = {
     'autocommit': False
 }
 sql = """
-INSERT INTO T_ship_pvp_stats (ship_id) VALUES (3550361296);
-INSERT INTO T_ship_stats_by_battles (ship_id) VALUES (3550361296);
-INSERT INTO T_ship_stats_by_users (ship_id) VALUES (3550361296);
-INSERT INTO T_ship_rating_distribution (ship_id) VALUES (3550361296);
-INSERT INTO T_ship_pvp_stats (ship_id) VALUES (3539941104);
-INSERT INTO T_ship_stats_by_battles (ship_id) VALUES (3539941104);
-INSERT INTO T_ship_stats_by_users (ship_id) VALUES (3539941104);
-INSERT INTO T_ship_rating_distribution (ship_id) VALUES (3539941104);
-INSERT INTO T_ship_pvp_stats (ship_id) VALUES (4283381488);
-INSERT INTO T_ship_stats_by_battles (ship_id) VALUES (4283381488);
-INSERT INTO T_ship_stats_by_users (ship_id) VALUES (4283381488);
-INSERT INTO T_ship_rating_distribution (ship_id) VALUES (4283381488);
+ALTER TABLE T_user_config ADD COLUMN recent_enabled_at DATETIME DEFAULT NULL AFTER user_level;
 """
 
 def main():

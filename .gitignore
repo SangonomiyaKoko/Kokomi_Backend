@@ -1,6 +1,7 @@
 .idea/
 .venv/
 .vscode/
+.claude/
 .VSCodeCounter/
 
 __pycache__/
@@ -11,6 +12,7 @@ env.prod
 redis.conf
 /temp/
 /data/db/*
+/data/local/*
 /data/json/*
 /data/trash/*
 /logs/error/*

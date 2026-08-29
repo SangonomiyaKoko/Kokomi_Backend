@@ -171,12 +171,7 @@ class UserStatsSyncer:
 
     @staticmethod
     def _fetch_user_base_row(cursor: Cursor, account_id: int) -> tuple | None:
-        """从 T_user_base 表查询用户基本信息行
-
-        Args:
-            cursor: 数据库游标
-            account_id: 用户 ID
-        """
+        """从 T_user_base 表查询用户基本信息行"""
         sql = """
             SELECT
                 b.username,
@@ -380,11 +375,12 @@ class UserStatsSyncer:
     def refresh(cls, conn: Connection, account_id: int, api_result: dict, return_refresh_time: bool = False) -> int | str | None:
         """基于用户基本信息接口的数据，刷新数据库的用户数据表"""
         current_timestamp = TimeUtils.get_current_timestamp()
-        user_data = cls._extract_user_data(account_id, current_timestamp, api_result)
             
         try:
+            user_data = cls._extract_user_data(account_id, current_timestamp, api_result)
+
             with mysql_transaction(conn, account_id) as cursor:
-                # 从数据库中读取用户的username
+                # 从数据库中读取用户的 username
                 existing = cls._fetch_user_base_row(cursor, account_id)
                 
                 if existing is None:
@@ -411,4 +407,4 @@ class UserStatsSyncer:
                 if return_refresh_time:
                     return update_timestamp
         except Exception:
-            return 
+            return

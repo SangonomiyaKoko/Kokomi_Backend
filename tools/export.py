@@ -47,9 +47,7 @@ class ShipDataExporter:
                     b.tier,
                     t.name AS type,
                     n.name AS nation,
-                    a.zh_sg AS ship_name
                 FROM T_ship_base b
-                INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
                 INNER JOIN D_ship_type t ON b.type_id = t.id
                 INNER JOIN D_ship_nation n ON b.nation_id = n.id
                 WHERE b.is_enabled = 1 AND b.is_old = 0 
@@ -63,8 +61,7 @@ class ShipDataExporter:
                     'ship_id': row[0],
                     'tier': row[1],
                     'type': row[2],
-                    'nation': row[3],
-                    'ship_name': row[4]
+                    'nation': row[3]
                 })
             logger.info(f"Loaded {len(self.ships)} enabled ships")
         finally:

@@ -1,12 +1,15 @@
-import traceback
-from pymysql.cursors import Cursor
+import random
 from contextlib import contextmanager
+from typing import Iterator
 
+from pymysql import Connection
+from pymysql.cursors import Cursor
+
+from loggers import logger
 from models import UserStats, UserRecord
-from loggers import write_exception, logger
 
 @contextmanager
-def mysql_transaction(conn, account_id: int):
+def mysql_transaction(conn: Connection, account_id: int) -> Iterator[Cursor]:
     """MySQL 事务上下文管理器"""
     try:
         with conn.cursor() as cur:
@@ -15,11 +18,6 @@ def mysql_transaction(conn, account_id: int):
         conn.rollback()
         error_name = type(e).__name__
         logger.error(f'{account_id} | Database operation error: {error_name}')
-        write_exception(
-            error_type="DatabaseError",
-            error_name=error_name,
-            error_info=traceback.format_exc(),
-        )
         raise
     else:
         conn.commit()
@@ -34,11 +32,21 @@ def fetch_recent_user_ids(cursor: Cursor) -> list[int]:
         WHERE user_level > 0;
     """
     cursor.execute(sql)
-    return [row[0] for row in cursor.fetchall()]
+    user_ids = [row[0] for row in cursor.fetchall()]
+    if len(user_ids) == 1:
+        return user_ids
+
+    # 打乱读取的用户 ID 列表，确保所有用户更新频次
+    random.shuffle(user_ids)
+    return user_ids
 
 
-def fetch_user_record(cursor: Cursor, account_id: int) -> tuple[UserRecord, UserStats]:
+def fetch_user_record(
+    cursor: Cursor, account_id: int
+) -> tuple[UserRecord | None, UserStats | None]:
     """读取单个用户的配置与战绩快照"""
+    # user_stats -> 由其他服务维护的用户最新统计数据，用于判断需要更新的模式
+    # user_record -> 用户配置数据，用于记录用户等级、上次查询时间等数据
     sql = """
         SELECT
             c.user_level,
@@ -84,17 +92,16 @@ def fetch_user_record(cursor: Cursor, account_id: int) -> tuple[UserRecord, User
             rating_battles=row[9] or 0,
             karma=row[10] or 0,
             last_battle_at=int(row[11]) if row[11] is not None else None,
-            updated_at=int(row[13]),
+            updated_at=int(row[13]) if row[13] is not None else None,
         )
     else:
         stats = None
-        
+
     return record, stats
-    
 
 
 def deactivate_user(cursor: Cursor, account_id: int) -> None:
-    """将指定用户的 user_level 与 storage_limit 置为 0"""
+    """批量停用用户"""
     sql = """
         UPDATE T_user_config
         SET

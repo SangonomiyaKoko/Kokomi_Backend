@@ -1,27 +1,28 @@
-﻿from typing import Iterator
+import traceback
+from typing import Iterator
 from contextlib import contextmanager
 
-from redis import Redis
-from pymysql import Connection
-
-from loggers import TqdmAwareLogger, logger
+from loggers import logger, TqdmAwareLogger, write_exception
 from utils import TimeUtils
-from models import UpdateContext, UpdateStrategy
-from db import fetch_recent_user_ids, fetch_user_record
-from services import RefreshCoordinator, UserRefresher, UserDataProcessor, UserInitializer
-from settings import USE_TQDM, SQLITE_DIR
+from context import RunContext
+from services import UserUpdateRunner
+from db import (
+    mysql_transaction,
+    fetch_recent_user_ids,
+    deactivate_user,
+    remove_file
+)
+from settings import USE_TQDM, SQLITE_DIR, LOG_DIR
 
 
 @contextmanager
 def recent_refresh_lock(
-    redis_client: Redis, account_id: int
+    run_ctx: RunContext, account_id: int
 ) -> Iterator[bool]:
-    """用户级别的分布式锁，防止并发重复刷新同一用户。
-
-    锁的 TTL 为 60 秒，超时自动释放以避免死锁。
-    """
+    """用户级别的分布式锁，防止并发重复刷新同一用户"""
     lock_key = f"refresh_lock:recent:{account_id}"
-    acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
+    # 任务理论上不存在超过 20s 的可能，因此设置 60s 过期时间防止死锁
+    acquired = run_ctx.redis_client.set(lock_key, 1, nx=True, ex=60)
 
     if not acquired:
         logger.info(f'{account_id} | Failed to acquire lock')
@@ -31,13 +32,31 @@ def recent_refresh_lock(
     try:
         yield True
     finally:
-        redis_client.delete(lock_key)
+        run_ctx.redis_client.delete(lock_key)
 
+
+def delete_user_file(
+    run_ctx: RunContext, account_id: int
+) -> None:
+    deletion_log_path = LOG_DIR / 'scripts' / 'UserDeletion.log'
+    with mysql_transaction(run_ctx.mysql_connection, account_id=account_id) as cursor:
+        deactivate_user(cursor, account_id)
+    reason = run_ctx.disabled_users[account_id]
+    try:
+        remove_file(account_id)
+    except Exception:
+        logger.warning(f'{account_id} | Failed to remove local db file')
+    line = (
+        f'{TimeUtils.get_formatted_date()} [DELETE] '
+        f'{account_id} | {reason}\n'
+    )
+    with open(deletion_log_path, mode='a', encoding='utf-8') as f:
+        f.write(line)
 
 def progress_iterable(
     items: list, desc: str, logger_obj: TqdmAwareLogger
 ) -> Iterator:
-    """遍历列表，tqdm 模式下用进度条，否则日志输出进度。"""
+    """遍历列表，tqdm 模式下用进度条，否则日志输出进度"""
     if USE_TQDM:
         from tqdm import tqdm
 
@@ -55,92 +74,47 @@ def progress_iterable(
             yield item
 
 
-async def run_worker(
-    mysql_connection: Connection,
-    redis_client: Redis,
-    async_client,
-) -> None:
-    """Recent功能后台更新服务，按用户顺序执行完整更新流程。
+async def run_worker(run_ctx: RunContext) -> None:
+    """Recent 功能后台更新服务"""
 
-    流程说明：
-    1. 从 MySQL 读取所有需要处理的启用用户
-    2. 逐个加载用户记录与统计信息，组装更新上下文
-    3. 检查 SQLite 挂载点是否存在，避免在异常环境下继续执行
-    4. 获取 Redis 分布式锁，防止同一用户被并发重复刷新
-    5. 通过 RefreshCoordinator 进行预判，决定是跳过、停用还是继续更新
-    6. 如果需要更新，则调用外部接口拉取最新用户数据
-    7. 根据用户状态选择全量初始化或增量刷新，并同步写回 MySQL / SQLite
-    """
-    
-    disable_id_dict = {}
     # 读取所有需要更新的用户列表
-    with mysql_connection.cursor() as cursor:
+    with run_ctx.mysql_connection.cursor() as cursor:
         update_list = fetch_recent_user_ids(cursor)
 
+    # 主更新循环
     logger.enable_tqdm()
-    for account_id in progress_iterable(
-        items=update_list,
-        desc="Processing user",
-        logger_obj=logger,
-    ):
-        # 校验数据库文件路径是否合法
-        marker_file= SQLITE_DIR / '_MOUNT_POINT'
-        if not marker_file.exists():
-            logger.error(f'File {marker_file} missing')
-            break
-        
-        timestamp = TimeUtils.get_current_timestamp()
-        update_context = UpdateContext(
-            redis_client=redis_client,
-            async_client=async_client,
-            mysql_connection=mysql_connection,
-            current_timestamp=timestamp,
-            account_id=account_id,
-            update_strategy=UpdateStrategy.NORMAL
-        )
+    try:
+        for account_id in progress_iterable(
+            items=update_list,
+            desc="Processing user",
+            logger_obj=logger,
+        ):
+            # 校验 SQLite 存储目录是否正确挂载，防止外挂云硬盘掉盘后误写入系统盘
+            # 挂载丢失时目录仍可能存在，导致程序误判为首次初始化并创建新的数据库文件
+            marker_file = SQLITE_DIR / '_MOUNT_POINT'  # _MOUNT_POINT 用于确认外挂云硬盘已正确挂载
+            if not marker_file.exists():
+                logger.error(f'Marker file not found: {marker_file}')
+                raise RuntimeError('SQLite storage volume is not mounted correctly')
 
-        with mysql_connection.cursor() as cursor:
-            record, stats = fetch_user_record(cursor, account_id)
-            update_context.user_record = record
-            update_context.user_stats = stats
+            # 获取分布式锁，避免并发写导致的问题
+            with recent_refresh_lock(run_ctx, account_id) as locked:
+                if not locked:
+                    logger.info(f'{account_id} | SKIP - AcquireLockFailed')
+                    continue
 
-        with recent_refresh_lock(
-            redis_client, account_id
-        ) as locked:
-            if not locked:
-                logger.info(f'{account_id} | SKIP - AcqurieLockFailed')
-                continue
+                try:
+                    await UserUpdateRunner.run(run_ctx, account_id)
+                except Exception as e:
+                    error_name = type(e).__name__
+                    logger.error(f'{account_id} | Failed: {type(e).__name__}')
+                    write_exception(
+                        error_type="ProgramError",
+                        error_name=error_name,
+                        error_info=traceback.format_exc()
+                    )
 
-            result = RefreshCoordinator.main(update_context)
-            if result.is_skip:
-                logger.debug(f'{account_id} | SKIP - {result.reason_text}')
-                continue
-            if result.is_disabled:
-                logger.debug(f'{account_id} | DISABLED - {result.reason_text}')
-                disable_id_dict[account_id] = result.reason_text
-                continue
-
-            update_context.fetch_modes = result.modes
-
-            logger.debug(f'{account_id} | NEED_UPDATE - {result.reason_text}')
-            logger.debug(f'{account_id} | Modes:    {[mode.name for mode in update_context.fetch_modes]}')
-            logger.debug(f'{account_id} | Strategy: {update_context.update_strategy}')
-            logger.debug(f'{account_id} | IsPro:    {update_context.is_pro}')
-
-            result = await UserDataProcessor.main(update_context)
-            if result.is_skip:
-                logger.debug(f'{account_id} | SKIP - {result.reason_text}')
-                continue
-            if result.is_disabled:
-                logger.debug(f'{account_id} | DISABLED - {result.reason_text}')
-                disable_id_dict[account_id] = result.reason_text
-                continue
-            
-            # 新用户走全量初始化，已有用户走增量更新
-            if update_context.update_strategy == UpdateStrategy.NEW_USER:
-                refresh_result = UserInitializer.main(update_context)
-            else:
-                refresh_result = UserRefresher.main(update_context)
-            logger.debug(f'{account_id} | UPDATED - {refresh_result}')
-
-    logger.disable_tqdm()
+                # 停用后再删除用户文件并记录日志
+                if account_id in run_ctx.disabled_users:
+                    delete_user_file(run_ctx, account_id)
+    finally:
+        logger.disable_tqdm()

@@ -1,62 +1,54 @@
-from .context import UpdateContext
-from .plan import SnapshotUpdatePlan, UpdateParams, ModePlan
+from dataclasses import dataclass
+
 from .user import UserStats, UserRecord
-from .mode import BattleMode, DataType, UpdateStrategy, BASE_UPDATE_MODES, FULL_UPDATE_MODES
-from .result import (
-    UpdateAction,
+from .mode import BattleMode, DataType, UpdateStrategy
+from .reason import (
     SkipReason,
-    DisableReason,
     UpdateReason,
-    ValidationResult,
-    UpdateResult
+    DisableReason,
+    UpdateResult,
+    ValidationResult
 )
-from .tables import (
-    DailySummary,
-    ShipCache,
-    ShipCacheEntry,
-    SPECIAL_SHIP_ID_FOR_INDEX
-)
-from .params import (
-    ShipLatestIndexParams,
-    ShipIndexDataParams,
-    ShipIndexMapParams,
-    RecentStatsParams
-)
-from .ship_data import (
+from .stats import (
     ShipBattleStats,
     ModeBattleStats,
-    ShipData,
+    ShipDataEntry,
     ShipDataCollection
 )
 
+
+@dataclass(slots=True)
+class LatestDataEntry:
+    """保存某个模式的概览数据和船只数据"""
+
+    mode: ModeBattleStats
+    ship: ShipDataCollection
+
+    @property
+    def battles(self) -> int:
+        """返回该模式的总战斗场次"""
+        return self.mode.battles
+
+BASE_UPDATE_MODES = {BattleMode.PVP, BattleMode.RANK}
+FULL_UPDATE_MODES = {BattleMode.PVP, BattleMode.RANK, BattleMode.CLAN}
+
+
 __all__ = [
-    'UpdateContext',
-    'SnapshotUpdatePlan',
-    'UpdateParams',
-    'ModePlan',
-    'DailySummary',
-    'ShipCache',
-    'ShipCacheEntry',
-    'SPECIAL_SHIP_ID_FOR_INDEX',
     'UserStats',
     'UserRecord',
-    'BattleMode',
     'DataType',
+    'BattleMode',
     'UpdateStrategy',
-    'UpdateAction',
     'SkipReason',
-    'DisableReason',
     'UpdateReason',
-    'ValidationResult',
+    'DisableReason',
     'UpdateResult',
-    'ShipLatestIndexParams',
-    'ShipIndexDataParams',
-    'ShipIndexMapParams',
-    'RecentStatsParams',
+    'ValidationResult',
+    'LatestDataEntry',
     'ShipBattleStats',
     'ModeBattleStats',
-    'ShipData',
+    'ShipDataEntry',
     'ShipDataCollection',
-    'BASE_UPDATE_MODES', 
+    'BASE_UPDATE_MODES',
     'FULL_UPDATE_MODES'
 ]

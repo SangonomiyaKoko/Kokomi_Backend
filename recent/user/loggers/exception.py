@@ -13,7 +13,8 @@ def write_exception(
     error_name: str,
     error_info: Optional[str] = None,
     error_id: Optional[str] = None
-):
+) -> None:
+    """写入异常摘要和详细异常日志"""
     now_iso = TimeUtils.get_current_iso_time()
 
     if error_id is None:
@@ -34,4 +35,4 @@ def write_exception(
         f.write(f"[TYPE]:    {error_type}\n")
         f.write(f"[NAME]:    {error_name}\n")
         f.write("\n")
-        f.write(error_info)
+        f.write(error_info or '')

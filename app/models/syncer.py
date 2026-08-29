@@ -39,8 +39,8 @@ class UserStatsSyncer:
 
         diff = current_timestamp - last_battle_time
 
-        constants = EnvConfig.get_constants()
-        for threshold, level in constants.USER_ACTIVITY_THRESHOLDS:
+        policy = EnvConfig.get_policy()
+        for threshold, level in policy.USER_ACTIVITY_THRESHOLDS:
             if diff <= threshold:
                 return level
 
@@ -286,16 +286,16 @@ class UserStatsSyncer:
                 interval_seconds = 30*86400
             await cursor.execute(sql, [interval_seconds, account_id])
         else:
-            constants = EnvConfig.get_constants()
+            policy = EnvConfig.get_policy()
             if user_level == 2 and user_data['activity_level'] == 1:
                 diff_timestamp = current_timestamp - user_data['last_battle_at']
                 interval_seconds = 600  # 默认 10min
-                for item in constants.SPECIAL_ACTIVITY_STRATEGY:
+                for item in policy.SPECIAL_ACTIVITY_STRATEGY:
                     if diff_timestamp < item[0]:
                         interval_seconds = item[1]
                         break
             else:
-                interval_seconds = constants.USER_ACTIVITY_STRATEGY.get(f"{user_level}-{user_data['activity_level']}", 30*86400)
+                interval_seconds = policy.USER_ACTIVITY_STRATEGY.get(f"{user_level}-{user_data['activity_level']}", 30*86400)
 
             sql = """
                 UPDATE T_user_stats 

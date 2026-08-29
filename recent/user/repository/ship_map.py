@@ -1,18 +1,17 @@
 from sqlite3 import Cursor
 
-from models import UpdateParams
+from params import ShipMapUpdateParams
 
 
-class ShipIndexMapRepository:
+class ShipMapRepository:
     """ship_index_map 表的数据访问对象"""
 
     @staticmethod
-    def refresh(cursor: Cursor, params: UpdateParams) -> None:
-        """批量刷新 ship_index_map（insert / update）"""
-        if not params:
-            return
-
-        if params.get('insert'):
+    def refresh(
+        cursor: Cursor, params: ShipMapUpdateParams
+    ) -> None:
+        """刷新模式船只索引映射"""
+        if params.has_insert_params:
             sql = """
                 INSERT INTO ship_index_map (
                     ship_mode,
@@ -23,14 +22,13 @@ class ShipIndexMapRepository:
                     damage,
                     frags,
                     exp,
-                    index_map
-                ) VALUES (?,?,?,?,?,?,?,?,?);
+                    index_map,
+                    update_time
+                ) VALUES (?,?,?,?,?,?,?,?,?,?);
             """
-            cursor.execute(
-                sql, params['insert'].as_insert_params()
-            )
+            cursor.executemany(sql, params.get_insert_params)
 
-        if params.get('update'):
+        if params.has_update_params:
             sql = """
                 UPDATE ship_index_map
                 SET
@@ -41,10 +39,8 @@ class ShipIndexMapRepository:
                     frags = ?,
                     exp = ?,
                     index_map = ?,
-                    updated_at = CURRENT_TIMESTAMP
+                    update_time = ?
                 WHERE ship_mode = ?
                   AND ship_index = ?;
             """
-            cursor.execute(
-                sql, params['update'].as_update_params()
-            )
+            cursor.executemany(sql, params.get_update_params)
