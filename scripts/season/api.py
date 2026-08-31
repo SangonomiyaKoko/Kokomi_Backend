@@ -3,7 +3,8 @@ from redis import Redis
 from requests import Session
 from typing import Optional, Union
 
-from loggers import logger, write_exception
+from logger import logger
+from exception import write_exception
 from utils import (
     get_current_iso_time,
     formtime_to_timestamp
@@ -25,13 +26,13 @@ def fetch_data(session: Session, url: str) -> Union[dict, str]:
 
         if resp.status_code == 200:
             return resp.json()
-
+        
         return f'HTTP_STATUS_{resp.status_code}'
     except Exception as e:
         return f'ERROR_{type(e).__name__}'
 
 def record_http_metrics(
-    redis_client: Redis,
+    redis_client: Redis, 
     responses: list[Union[dict, str]],
     urls: list[str]
 ) -> Optional[str]:
@@ -58,7 +59,7 @@ def record_http_metrics(
             logger.info(f'{response} {urls[i]}')
             error_count += 1
             error = response
-
+    
     # 记录游戏 API 调用的统计数据
     try:
         redis_client.incrby(f'metrics:http:annual:{today[:4]}', len(urls))
@@ -74,9 +75,9 @@ def record_http_metrics(
 
 def fetch_clan_leagues(
     session: Session,
-    redis_client: Redis,
-    realm: str,
-    league: str,
+    redis_client: Redis, 
+    realm: str, 
+    league: str, 
     division: str
 ) -> Optional[list]:
     """获取指定联赛和分段的公会排行榜数据
@@ -102,7 +103,7 @@ def fetch_clan_leagues(
         error = record_http_metrics(redis_client, [response], [url])
         if error:
             return
-
+        
         for temp_data in response:
             clan_data_list.append([
                 temp_data['id'],
@@ -111,7 +112,7 @@ def fetch_clan_leagues(
                 formtime_to_timestamp(temp_data['last_battle_at']),
                 temp_data['season_number']
             ])
-
+        
         return clan_data_list
     except Exception as e:
         error_name = type(e).__name__
@@ -139,7 +140,7 @@ def fetch_clan_season(session: Session, redis_client: Redis, clan_id: int) -> Op
         error = record_http_metrics(redis_client, [response], [url])
         if error:
             return
-
+        
         return response
     except Exception as e:
         error_name = type(e).__name__

@@ -53,7 +53,7 @@ class TqdmAwareLogger(logging.Logger):
 
         # tqdm 输出到控制台
         tqdm.write(f'{get_formatted_date()} [{level}] {msg}')
-
+        
         # 如果是 WARNING 及以上，写入文件
         level_value = getattr(logging, level, logging.WARNING)
         if level_value >= logging.WARNING and self._file_handler:
@@ -109,7 +109,7 @@ def _create_file_handler() -> logging.FileHandler:
     """创建文件 handler（只记录 WARNING 及以上）"""
     log_path = Path(LOG_DIR) / 'scripts' / f'{CLIENT_NAME}.log'
     log_path.parent.mkdir(parents=True, exist_ok=True)
-
+    
     handler = logging.FileHandler(log_path, mode='a', encoding='utf-8')
     handler.setLevel(logging.WARNING)  # 只记录 WARNING 及以上
     handler.setFormatter(logging.Formatter(
@@ -127,30 +127,30 @@ def init_logger(console_level: int = logging.INFO) -> TqdmAwareLogger:
     # 保存原 logger 类并设置自定义类
     old_class = logging.getLoggerClass()
     logging.setLoggerClass(TqdmAwareLogger)
-
+    
     # 获取或创建 logger
     logger = logging.getLogger(CLIENT_NAME)
-
+    
     # 恢复默认类
     logging.setLoggerClass(old_class)
-
+    
     # 清除已有的 handlers（避免重复）
     if logger.handlers:
         logger.handlers.clear()
-
+    
     # 设置 logger 级别为最低（DEBUG），让 handler 自己控制
     logger.setLevel(logging.DEBUG)
-
+    
     # 创建 handlers
     console_handler = _create_console_handler(console_level)
     file_handler = _create_file_handler()  # 内部已设置 WARNING 级别
-
+    
     # 设置 handlers 到 logger
     logger.set_handlers(console_handler, file_handler)
-
+    
     # 防止日志传播到 root logger
     logger.propagate = False
-
+    
     return logger
 
 

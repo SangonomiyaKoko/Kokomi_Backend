@@ -4,11 +4,27 @@ from datetime import datetime, timezone, time
 from settings import (
     REGION,
     DATA_DIR,
+    DATE_FMT,
     CLAN_BATTLE_WINDOWS,
     METRIC_RATING_THRESHOLDS
 )
-from .time_utils import get_current_timestamp
 
+
+def get_formatted_date() -> str:
+    """获取当前日期格式化字符串，用于日志输出"""
+    return datetime.now().strftime(DATE_FMT)
+
+def get_current_timestamp() -> int:
+    """获取当前 UTC 时间的 int 类型时间戳（秒）"""
+    return int(datetime.now(timezone.utc).timestamp())
+
+def get_current_iso_time() -> str:
+    """获取当前 UTC 时间的 ISO 格式字符串"""
+    return datetime.now(timezone.utc).isoformat(timespec='seconds')
+
+def formtime_to_timestamp(formtime: str) -> int:
+    """将 ISO 格式时间字符串转换为 Unix 时间戳"""
+    return int(datetime.fromisoformat(formtime).timestamp())
 
 def read_season_data() -> dict:
     """从本地 JSON 文件读取当前赛季配置数据"""
@@ -26,7 +42,7 @@ def refresh_season_data(season_id: int) -> dict:
     """刷新本地 JSON 文件中的当前赛季配置数据"""
     file_path = DATA_DIR / f'json/clan_season.json'
     data = {"id": season_id,"start": None,"finish": None}
-
+    
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
@@ -59,7 +75,7 @@ def is_cb_active(season_start: int, season_finish: int) -> bool:
         if time(start[0], start[1]) <= current_time < time(end[0], end[1] + 29):
             if REGION in regions:
                 return True
-
+            
     return False
 
 def get_rating_level(
@@ -86,6 +102,6 @@ def get_rating_level(
     for i, threshold in enumerate(thresholds):
         if value < threshold:
             return i + 1  # 返回等级 (1-7)
-
+    
     # 如果 value 大于等于所有阈值，返回最高等级 8
     return 8

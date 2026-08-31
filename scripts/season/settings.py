@@ -14,6 +14,9 @@ ROOT_DIR = Path(os.getcwd())
 LOG_DIR = ROOT_DIR / 'logs'
 DATA_DIR = ROOT_DIR / 'data'
 
+# 公会战赛季对战明细存储为独立的 SQLite 数据库文件，路径为 DATA_DIR / 'local'
+SQLITE_DIR = DATA_DIR / 'local'
+
 # 生产环境下的环境变量由 Docker Compose 注入 env.prod，开发环境下则通过加载 env.dev 文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
     # 关闭代理，避免请求外部API时被本地环境变量干扰
@@ -29,8 +32,6 @@ else:
 
 SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
 LOG_LEVEL = os.getenv("LOG_LEVEL")
-SQLITE_DIR = Path(os.getenv("SQLITE_DIR")) if os.getenv("SQLITE_DIR") else  ROOT_DIR / 'data/db'
-
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),

@@ -5,14 +5,15 @@ from requests import Session
 from pymysql import Connection
 from typing import Optional
 
-from loggers import logger, write_exception
-from clients import fetch_clan_season
+from logger import logger
+from exception import write_exception
+from api import fetch_clan_season
 from utils import formtime_to_timestamp
-from db import (
+from db_ops import (
     read_clan_cache,
-    update_clan_stats,
-    insert_clan_battles
+    update_clan_cache
 )
+from sqlite_ops import insert_clan_battles
 from settings import REGION
 
 def format_clan_data(data: list) -> Optional[dict]:
@@ -84,22 +85,15 @@ def _build_clan_result(raw_data: dict, clan_id: int, season_id: int) -> dict:
 
             stage_battles = 0
             stage_victories = 0
-            stage_progress_parts = []
             for progress in stage['progress']:
                 stage_battles += 1
                 if progress == 'victory':
                     stage_victories += 1
-                    stage_progress_parts.append('★')  # ★
-                else:
-                    stage_progress_parts.append('☆')  # ☆
-
-            team_result[7] = ''.join(stage_progress_parts)
 
             if team_number == leading_team:
                 clan_result['stage_type'] = team_result[6]
                 clan_result['stage_battles'] = stage_battles
                 clan_result['stage_victories'] = stage_victories
-                clan_result['stage_progress'] = team_result[7]
 
         if team_result[0] > 0:
             clan_result['team_data'][team_number] = team_result
@@ -153,7 +147,7 @@ def _build_insert_data(
             rating_diff = new_data['public_rating'] - old_data['public_rating']
         else:
             rating_diff = new_data['public_rating']
-
+            
         if rating_diff > 0:
             temp_list.append(f'+{rating_diff}')
         elif rating_diff < 0:
@@ -161,22 +155,14 @@ def _build_insert_data(
         else:
             temp_list.append(None)
 
-        # 晋级赛阶段标识
-        if (
-            new_data.get('stage_type')
-            and new_data.get('stage_progress')
-        ):
-            temp_list.append('+' + new_data['stage_progress'][-1])
-        else:
-            temp_list.append(None)
+        # 晋级赛类型（1=晋级 2=保级，非晋级赛为 NULL）
+        temp_list.append(new_data.get('stage_type'))
 
         temp_list.extend([
             new_data['league'],
             new_data['division'],
             new_data['division_rating'],
             new_data['public_rating'],
-            new_data['stage_type'],
-            new_data['stage_progress'],
         ])
 
         insert_data_list.append(temp_list)
@@ -185,9 +171,9 @@ def _build_insert_data(
 
 def update_clan_season(
     session: Session,
-    redis_client: Redis,
-    conn: Connection,
-    season_id: int,
+    redis_client: Redis, 
+    conn: Connection, 
+    season_id: int, 
     clan_id: int
 ) -> None:
     """更新单个公会的赛季数据，并同步更新 Redis 排行榜缓存
@@ -209,7 +195,7 @@ def update_clan_season(
         clan_result = _build_clan_result(result, clan_id, season_id)
         team_data_1 = clan_result['team_data'][1]
         team_data_2 = clan_result['team_data'][2]
-
+        
         # 加载最新数据
         new_team_data = {
             1: format_clan_data(team_data_1),
@@ -219,7 +205,7 @@ def update_clan_season(
         # 加载本地缓存数据
         clan = read_clan_cache(conn, clan_id)
         if not clan:
-            return
+            return 
 
         if clan[0] == season_id:
             # 已有本赛季记录：对比新旧数据
@@ -266,7 +252,7 @@ def update_clan_season(
         ]
 
         # 更新 MySQL 公会统计表，并将对战明细写入赛季 SQLite 数据库
-        update_clan_stats(conn, update_params)
+        update_clan_cache(conn, update_params)
         insert_clan_battles(season_id, insert_data_list)
 
         # 更新 Redis 排行榜缓存

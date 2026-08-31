@@ -1,7 +1,7 @@
 from redis import Redis
 from httpx import AsyncClient
 from pymysql import Connection
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 from dataclasses import dataclass, field
 
 from utils import TimeUtils
@@ -11,11 +11,11 @@ from params import (
     UpdatePlan
 )
 from models import (
-    LatestDataEntry,
-    UserRecord,
+    BattleMode,
     UserStats,
+    UserRecord,
     UpdateStrategy,
-    BattleMode
+    LatestDataEntry
 )
 
 
@@ -26,6 +26,8 @@ class RunContext:
     async_client: AsyncClient = field(init=False)
     mysql_connection: Connection = field(init=False)
 
+    failed_count: int = field(init=False)
+    planned_count: int = field(init=False)
     period_start_ts: int = field(init=False)
     clan_update_count: int = field(init=False, default=0)
     disabled_users: dict[int, str] = field(
@@ -63,6 +65,7 @@ class UpdateContext:
     user_record: UserRecord = field(init=False)
 
     # 用户数据库信息
+    latest_summary: Optional[UserSummaryLocalEntry] = field(init=False)
     date_list: List[int] = field(
         init=False, default_factory=list
     )
@@ -93,12 +96,6 @@ class UpdateContext:
         self.current_timestamp = timestamp
         self.now_date = TimeUtils.get_reset_date(timestamp)
         self.yesterday_date = TimeUtils.get_reset_date(timestamp - 86400)
-
-    @property
-    def latest_summary(self) -> UserSummaryLocalEntry | None:
-        """返回今日日期下的 daily_summary 记录"""
-        return self.daily_summary.get(self.now_date)
-
     @property
     def dates_desc(self) -> list[int]:
         """返回从新到旧的日期列表，降序排列"""

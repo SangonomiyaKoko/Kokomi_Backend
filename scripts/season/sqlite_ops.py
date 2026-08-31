@@ -3,7 +3,8 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
-from loggers import logger, write_exception
+from logger import logger
+from exception import write_exception
 from settings import SQLITE_DIR, CREATE_SQL
 
 
@@ -70,9 +71,9 @@ def insert_clan_battles(season_id: int, insert_data_list: list) -> None:
         insert_sql = """
             INSERT INTO clan_battle (
                 battle_time, clan_id, team_number, battle_result,
-                battle_rating, battle_stage, league, division,
-                division_rating, public_rating, stage_type, stage_progress
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?);
+                battle_rating, stage_type, league, division,
+                division_rating, public_rating
+            ) VALUES (?,?,?,?,?,?,?,?,?,?);
         """
         cursor.executemany(insert_sql, insert_data_list)
         conn.commit()

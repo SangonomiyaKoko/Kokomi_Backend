@@ -2,11 +2,13 @@ from dataclasses import replace
 from sqlite3 import Cursor
 
 from loggers import logger
+from settings import REGION
 from context import UpdateContext
 from utils import TimeUtils
 from params import LocalDataEntry
 from db import sqlite_transaction, ensure_database
 from models import (
+    BattleMode,
     SkipReason,
     UpdateReason,
     DisableReason,
@@ -148,7 +150,18 @@ class UserDataLoader:
             ctx.daily_summary[date] = prev
 
         if not last_summary_date:
+            ctx.latest_summary = None
             return
+
+        ctx.latest_summary = ctx.daily_summary[last_summary_date]
+
+        if not ctx.user_stats.is_hidden and REGION in ['asia', 'eu', 'na']:
+            if ctx.local_data[BattleMode.CLAN].battles > 0:
+                new_stats = replace(
+                    ctx.user_stats, 
+                    rating_battles = ctx.local_data[BattleMode.CLAN].battles
+                )
+                ctx.user_stats = new_stats
 
         if ctx.update_strategy != UpdateStrategy.NORMAL:
             return

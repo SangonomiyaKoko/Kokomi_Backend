@@ -81,6 +81,9 @@ async def run_worker(run_ctx: RunContext) -> None:
     with run_ctx.mysql_connection.cursor() as cursor:
         update_list = fetch_recent_user_ids(cursor)
 
+    run_ctx.failed_count = 0
+    run_ctx.planned_count = len(update_list)
+
     # 主更新循环
     logger.enable_tqdm()
     try:
@@ -112,6 +115,7 @@ async def run_worker(run_ctx: RunContext) -> None:
                         error_name=error_name,
                         error_info=traceback.format_exc()
                     )
+                    run_ctx.failed_count += 1
 
                 # 停用后再删除用户文件并记录日志
                 if account_id in run_ctx.disabled_users:

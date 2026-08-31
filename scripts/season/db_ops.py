@@ -3,7 +3,8 @@ from pymysql import Connection
 from pymysql.cursors import Cursor
 from typing import Optional
 
-from loggers import logger, write_exception
+from logger import logger
+from exception import write_exception
 from utils import get_rating_level
 from settings import CLAN_INIT_TABLE_LIST
 
@@ -26,27 +27,27 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
         with conn.cursor() as cursor:
             # 检查 tracking_value
             sql = """
-                SELECT
-                    CASE
+                SELECT 
+                    CASE 
                         WHEN tracking_value IS NULL THEN TRUE
                         WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 86400 THEN TRUE
                         ELSE FALSE
                     END AS need_update
-                FROM T_tracking_meta
-                WHERE tracking_key = %s
+                FROM T_tracking_meta 
+                WHERE tracking_key = %s 
                   AND tracking_type = %s;
             """
             cursor.execute(sql, [tracking_key, tracking_type])
             result = cursor.fetchone()
             if not result[0]:
                 return False
-
+            
             # 更新 tracking_value 值
             sql = """
-                UPDATE T_tracking_meta
-                SET
-                    tracking_value = NOW()
-                WHERE tracking_key = %s
+                UPDATE T_tracking_meta 
+                SET 
+                    tracking_value = NOW() 
+                WHERE tracking_key = %s 
                   AND tracking_type = %s;
             """
             cursor.execute(sql, [tracking_key, tracking_type])
@@ -78,10 +79,10 @@ def read_clan_cache(conn: Connection, clan_id: int) -> Optional[tuple]:
     try:
         with conn.cursor() as cursor:
             sql = """
-                SELECT
-                    season,
-                    team_data
-                FROM T_clan_stats
+                SELECT 
+                    season, 
+                    team_data 
+                FROM T_clan_stats 
                 WHERE clan_id = %s;
             """
             cursor.execute(sql, [clan_id])
@@ -89,7 +90,10 @@ def read_clan_cache(conn: Connection, clan_id: int) -> Optional[tuple]:
     except Exception:
         logger.error(traceback.format_exc())
 
-def update_clan_stats(conn: Connection, update_params: list) -> None:
+def update_clan_cache(
+    conn: Connection,
+    update_params: list,
+) -> None:
     """更新公会统计缓存
 
     更新 T_clan_stats 表的公会统计数据（对战明细的写入由 sqlite_ops 负责）
@@ -99,7 +103,9 @@ def update_clan_stats(conn: Connection, update_params: list) -> None:
         update_params: 更新参数列表
     """
     try:
+
         with conn.cursor() as cursor:
+            # 更新公会统计表
             update_sql = """
                 UPDATE T_clan_stats
                 SET
@@ -122,6 +128,7 @@ def update_clan_stats(conn: Connection, update_params: list) -> None:
                 WHERE clan_id = %s
             """
             cursor.execute(update_sql, update_params)
+
             conn.commit()
     except Exception as e:
         conn.rollback()
@@ -144,7 +151,7 @@ def init_new_clans(cursor: Cursor, clans: list) -> None:
     for clan in clans:
         values_list.append("(%s, %s, %s)")
         params.extend([clan[0], clan[1], clan[2]])
-
+    
     sql = f"INSERT INTO T_clan_base (clan_id, tag, league) VALUES {','.join(values_list)};"
     cursor.execute(sql, params)
 
@@ -155,13 +162,13 @@ def init_new_clans(cursor: Cursor, clans: list) -> None:
         for clan in clans:
             values_list.append("(%s)")
             params.append(clan[0])
-
+        
         sql = f"INSERT INTO {table_name} (clan_id) VALUES {','.join(values_list)};"
         cursor.execute(sql, params)
 
 def get_update_ids(
-    cursor: Cursor,
-    season_id: int,
+    cursor: Cursor, 
+    season_id: int, 
     clan_data_list: list
 ) -> list:
     """比较排行榜数据与数据库记录，返回需要更新的公会 ID 列表
@@ -179,10 +186,10 @@ def get_update_ids(
 
     placeholders = ','.join(['%s'] * len(clan_ids))
     sql = f"""
-        SELECT
-            clan_id,
-            season,
-            UNIX_TIMESTAMP(last_battle_at)
+        SELECT 
+            clan_id, 
+            season, 
+            UNIX_TIMESTAMP(last_battle_at) 
         FROM T_clan_stats
         WHERE clan_id IN ({placeholders});
     """
@@ -217,9 +224,9 @@ def get_update_ids(
         # 批量更新
         update_sql = """
             UPDATE T_clan_base
-            SET
-                tag = %s,
-                league = %s,
+            SET 
+                tag = %s, 
+                league = %s, 
                 updated_at = NOW()
             WHERE clan_id = %s;
         """
@@ -227,18 +234,18 @@ def get_update_ids(
             [d[1], d[2], d[0]] for d in existing_rows
         ]
         cursor.executemany(update_sql, update_params)
-
+    
     if missing_rows:
         init_new_clans(cursor, missing_rows)
         logger.info(f'Insert {len(missing_rows)} new clans')
-
+    
     return update_ids
 
 def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
     """根据用户ID列表，从数据库中批量读取排行榜数据"""
     placeholders = ','.join(['%s'] * len(clan_ids))
     sql = f"""
-        SELECT
+        SELECT 
             s.clan_id,
             b.tag,
             s.leading_team,
@@ -246,7 +253,7 @@ def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
             s.win_rate,
             s.league,
             s.division,
-            s.public_rating,
+            s.public_rating, 
             s.max_streak,
             s.stage_type,
             s.stage_battles,
@@ -266,11 +273,11 @@ def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
         clan_id = str(row[0])
         rating = row[7] + 0.1 * row[10] + 0.01 * row[11]
         result[clan_id] = [
-            row[1], row[2], row[3], row[4], get_rating_level(row[4], 'win_rate'),
-            row[5], row[6], rating, row[8], row[9],
+            row[1], row[2], row[3], row[4], get_rating_level(row[4], 'win_rate'), 
+            row[5], row[6], rating, row[8], row[9], 
             row[12], row[13]
         ]
-
+    
     payload = []
     for i, user_id in enumerate(clan_ids):
         payload.append([i+1, int(user_id)] + result.get(user_id))
