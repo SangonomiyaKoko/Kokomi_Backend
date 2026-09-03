@@ -61,11 +61,11 @@ class EndpointRegistry:
                 # 只有直营服的 CLAN 模式数据需要通过 OFFICAL_API 接口获取
                 targets.append(RequestTarget(
                     url=(
-                        f'{OFFICIAL_API}/wows/ships/stats/?'
-                        f'application_id={TOKEN}&account_id={ctx.account_id}&extra=clan'
+                        f'{OFFICIAL_API}/ships/stats/?application_id={TOKEN}'
+                        f'&account_id={ctx.account_id}&extra=clan'
                     ),
                     mode=BattleMode.CLAN,
-                    data_type=DataType.DIV2,
+                    data_type=DataType.DIV2
                 ))
             else:
                 # 其他模式均通过 VORTEX_API 接口读取数据

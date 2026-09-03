@@ -7,7 +7,11 @@ import asyncio
 
 from loggers import logger
 from scheduler import start_scheduler
-from settings import REGION, CLIENT_NAME, REFRESH_INTERVAL
+from settings import (
+    REGION, 
+    CLIENT_NAME, 
+    REFRESH_INTERVAL
+)
 
 
 def handler(*_: object) -> None:

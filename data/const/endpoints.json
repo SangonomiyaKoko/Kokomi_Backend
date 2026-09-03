@@ -3,25 +3,25 @@
     "uid_rule": [1, 499999999],
     "vortex_api": ["https://vortex.korabli.su"],
     "clan_api": "https://clans.korabli.su",
-    "official_api": "https://api.korabli.su"
+    "official_api": "https://api.korabli.su/mk"
   },
   "eu": {
     "uid_rule": [500000001, 999999999],
     "vortex_api": ["https://vortex.worldofwarships.eu"],
     "clan_api": "https://clans.worldofwarships.eu",
-    "official_api": "https://api.worldofwarships.eu"
+    "official_api": "https://api.worldofwarships.eu/wows"
   },
   "na": {
     "uid_rule": [1000000001, 1999999999],
     "vortex_api": ["https://vortex.worldofwarships.com"],
     "clan_api": "https://clans.worldofwarships.com",
-    "official_api": "https://api.worldofwarships.com"
+    "official_api": "https://api.worldofwarships.com/wows"
   },
   "asia": {
     "uid_rule": [2000000001, 3999999999],
     "vortex_api": ["https://vortex.worldofwarships.asia"],
     "clan_api": "https://clans.worldofwarships.asia",
-    "official_api": "https://api.worldofwarships.asia"
+    "official_api": "https://api.worldofwarships.asia/wows"
   },
   "cn": {
     "uid_rule": [7000000001, 7999999999],

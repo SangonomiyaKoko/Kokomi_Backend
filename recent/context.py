@@ -17,24 +17,31 @@ from models import (
     UpdateStrategy,
     LatestDataEntry
 )
+from settings import CLIENT_NAME, REFRESH_INTERVAL
 
 
 @dataclass
 class RunContext:
     """整轮循环的上下文"""
+
+    # 中间件客户端或者连接池
     redis_client: Redis = field(init=False)
     async_client: AsyncClient = field(init=False)
     mysql_connection: Connection = field(init=False)
 
-    failed_count: int = field(init=False)
-    planned_count: int = field(init=False)
-    period_start_ts: int = field(init=False)
-    clan_update_count: int = field(init=False, default=0)
+    # 循环运行参数
+    failed_count: int = field(default=0)        # 更新失败用户数
+    processed_count: int = field(default=0)     # 已处理的用户数
+    clan_update_count: int = field(default=0)   # CLAN 模式已更新用户数
+    loop_start_ts: int = field(init=False)      # 本次循环的更新开始时间戳
+    key_expired_ts: int = field(init=False)
+    period_start_ts: int = field(init=False)    # CLAN 模式更新活跃时间段开启时间
     disabled_users: dict[int, str] = field(
         default_factory=dict
     )  # 被禁用用户 → 原因
 
     def __post_init__(self) -> None:
+        self.loop_start_ts = TimeUtils.get_current_timestamp()
         self.period_start_ts = TimeUtils.is_cb_active()
 
     def __str__(self) -> str:
@@ -43,10 +50,49 @@ class RunContext:
             f"redis_client={id(self.redis_client)}, "
             f"async_client={id(self.async_client)}, "
             f"mysql_connection={id(self.mysql_connection)}, "
-            f"period_start_ts={self.period_start_ts}, "
+            f"failed_count={self.failed_count}, "
+            f"processed_count={self.processed_count}, "
             f"clan_update_count={self.clan_update_count}, "
+            f"loop_start_ts={self.loop_start_ts}, "
+            f"key_expired_ts={self.key_expired_ts}, "
+            f"period_start_ts={self.period_start_ts}, "
             f"disabled_users={self.disabled_users}"
             f")"
+        )
+
+    @property
+    def failure_rate(self) -> int:
+        """返回本次循环执行的任务失败率"""
+        if self.processed_count <= 100:
+            # 样本过少，直接跳过
+            return 0
+        
+        return int(self.failed_count / self.processed_count * 100)
+
+    def is_user_disabled(
+        self, account_id: int
+    ) -> bool:
+        """返回用户是否在待删除用户合集中"""
+        return account_id in self.disabled_users
+
+    def is_key_expiring(self) -> bool:
+        """检查key有效期是否处于安全的区间内"""
+        now_ts = TimeUtils.get_current_timestamp()
+        return now_ts + 10 >= self.key_expired_ts
+
+    def set_status_key(self) -> None:
+        """刷新标识服务状态的键有效期"""
+        self.redis_client.set(
+            name=f'status:{CLIENT_NAME}',
+            value=1,
+            ex=REFRESH_INTERVAL
+        )
+        self.key_expired_ts = TimeUtils.get_current_timestamp() + REFRESH_INTERVAL
+
+    def del_status_key(self):
+        """删除表示服务状态的键"""
+        self.redis_client.delete(
+            name=f'status:{CLIENT_NAME}'
         )
 
 
@@ -96,6 +142,7 @@ class UpdateContext:
         self.current_timestamp = timestamp
         self.now_date = TimeUtils.get_reset_date(timestamp)
         self.yesterday_date = TimeUtils.get_reset_date(timestamp - 86400)
+
     @property
     def dates_desc(self) -> list[int]:
         """返回从新到旧的日期列表，降序排列"""

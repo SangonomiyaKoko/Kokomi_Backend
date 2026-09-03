@@ -5,6 +5,7 @@ from .ship_latest import ShipLatestRepository
 from .user_recent import UserRecentRepository
 from .user_summary import UserSummaryRepository
 
+
 __all__ = [
     'ShipMapRepository',
     'ShipDataRepository',
