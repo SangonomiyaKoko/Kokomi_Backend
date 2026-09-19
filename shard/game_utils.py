@@ -1,4 +1,5 @@
 from datetime import datetime, time, timezone
+from typing import Optional
 
 from .time_utils import TimeUtils
 
@@ -61,31 +62,51 @@ class GameUtils:
     # NA: 19.30 ~ 23.30 UTC-5
     CLAN_BATTLE_WINDOWS = [
         [
-            [[0,30],  [4,30],  ["asia","eu","na"]]
-        ],
+            # [[开始时间],[结束时间],[对应服务器],人为定义的时间区间索引]
+            [[0,30],  [4,30],  ["asia","eu","na"], 3]
+        ],  # 周一
         [], # 周二未有时间窗口
         [
-            [[11,30], [15,30], ["asia","eu","na","cn"]],
-            [[18,0],  [22,0],  ["asia","eu","na"]]
-        ],
+            [[11,30], [15,30], ["asia","eu","na","cn"], 1],
+            [[18,0],  [22,0],  ["asia","eu","na"], 2]
+        ],  # 周三
         [
-            [[0,30],  [4,30],  ["asia","eu","na"]],
-            [[11,30], [15,30], ["asia","eu","na","cn"]],
-            [[18,0],  [22,0],  ["asia","eu","na"]]
-        ],
+            [[0,30],  [4,30],  ["asia","eu","na"], 3],
+            [[11,30], [15,30], ["asia","eu","na","cn"], 1],
+            [[18,0],  [22,0],  ["asia","eu","na"], 2]
+        ],  # 周四
         [
-            [[0,30],  [4,30],  ["asia","eu","na"]]
-        ],
+            [[0,30],  [4,30],  ["asia","eu","na"], 3]
+        ],  # 周五
         [
-            [[11,30], [15,30], ["asia","eu","na","cn"]],
-            [[18,0],  [22,0],  ["asia","eu","na"]]
-        ],
+            [[11,30], [15,30], ["asia","eu","na","cn"], 1],
+            [[18,0],  [22,0],  ["asia","eu","na"], 2]
+        ],  # 周六
         [
-            [[0,30],  [4,30],  ["asia","eu","na"]],
-            [[11,30], [15,30], ["asia","eu","na","cn"]],
-            [[18,0],  [22,0],  ["asia","eu","na"]]
-        ]
+            [[0,30],  [4,30],  ["asia","eu","na"], 3],
+            [[11,30], [15,30], ["asia","eu","na","cn"], 1],
+            [[18,0],  [22,0],  ["asia","eu","na"],2 ]
+        ]   # 周末
     ]
+
+    @staticmethod
+    def get_window_index(
+        region: str, timestamp: int
+    ) -> Optional[int]:
+        """返回指定时间戳落在哪个公会战时间区间
+
+        区间索引由 CLAN_BATTLE_WINDOWS 人为定义；不在任何区间内时返回 None
+        """
+        moment = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        current_time = moment.time()
+
+        windows = GameUtils.CLAN_BATTLE_WINDOWS[moment.weekday()]
+        for start, end, regions, index in windows:
+            if time(start[0], start[1]) <= current_time < time(end[0], end[1] + 29):
+                if region in regions:
+                    return index
+
+        return None
 
     @staticmethod
     def is_cb_active(
@@ -93,6 +114,7 @@ class GameUtils:
     ) -> bool:
         """用于 Season 服务判断当前时间是否处于指定服务器的公会战活跃窗口内"""
         now_ts = TimeUtils.timestamp()
+        # 如未配置 start 和 finish 字段则直接默认更新，避免数据丢失
         if (
             season_start and season_finish and
             not (season_start <= now_ts <= season_finish)
@@ -100,12 +122,5 @@ class GameUtils:
             # 当前时间不在赛季时间范围内
             return False
 
-        now = datetime.fromtimestamp(now_ts, tz=timezone.utc)
-        current_time = now.time()
-
-        for start, end, regions in GameUtils.CLAN_BATTLE_WINDOWS[now.weekday()]:
-            if time(start[0], start[1]) <= current_time < time(end[0], end[1] + 29):
-                if region in regions:
-                    return True
-
-        return False
+        window_index = GameUtils.get_window_index(region, now_ts)
+        return window_index is not None

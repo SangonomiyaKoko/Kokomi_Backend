@@ -1,6 +1,7 @@
 import traceback
+from typing import Optional
 
-from shard import RedisKeys
+from shard import GameUtils, RedisKeys
 
 from ..core import RunContext, UpdateContext
 from ..models import TeamStats, BattleRecord, DEMOTION, PROMOTION
@@ -15,6 +16,7 @@ from ..repository import (
 )
 from ..clients import APIRequester
 from ..logger import logger, write_exception
+from ..settings import REGION
 
 from .parser import ClanStatsParser
 
@@ -142,12 +144,19 @@ class ClanSeasonUpdater:
             if team_num == 1
             else (ctx.stats.team_bravo, ctx.cache.team_bravo)
         )
+        # 由战斗发生时间反推所处的时间区间，而非取当前时间
+        # 保底刷新等场景下轮次可能已在窗口之外，取当前时间会得到错误的区间
+        time_window = GameUtils.get_window_index(
+            region=REGION,
+            timestamp=ctx.stats.last_battle_time
+        )
         ctx.record = cls._plan_team(
             clan_id=ctx.clan_id,
             team_num=team_num,
             new_data=new_team,
             old_data=old_team,
-            last_battle_time=ctx.stats.last_battle_time
+            last_battle_time=ctx.stats.last_battle_time,
+            time_window=time_window
         )
 
         return 1, 0
@@ -158,7 +167,8 @@ class ClanSeasonUpdater:
         team_num: int,
         new_data: TeamStats,
         old_data: TeamStats,
-        last_battle_time: int
+        last_battle_time: int,
+        time_window: Optional[int]
     ) -> BattleRecord:
         """生成单个队伍的对战明细"""
         wins_diff = new_data.wins_count - old_data.wins_count
@@ -184,7 +194,6 @@ class ClanSeasonUpdater:
             result = '—'
 
         return BattleRecord(
-            battle_time=last_battle_time,
             clan_id=clan_id,
             team_number=team_num,
             victory=wins_diff,
@@ -194,7 +203,9 @@ class ClanSeasonUpdater:
             division=new_data.division,
             division_rating=new_data.division_rating,
             stage_type=new_data.stage_type,
-            stage_progress=new_data.stage_progress
+            stage_progress=new_data.stage_progress,
+            time_window=time_window,
+            battle_time=last_battle_time
         )
 
     @staticmethod

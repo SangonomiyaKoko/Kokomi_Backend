@@ -126,7 +126,6 @@ class ClanTeamCache:
 @dataclass(frozen=True, slots=True)
 class BattleRecord:
     """一条对战明细，字段顺序与 clan_battle 表一致"""
-    battle_time: int
     clan_id: int
     team_number: int
     victory: int
@@ -137,6 +136,8 @@ class BattleRecord:
     division_rating: int
     stage_type: Optional[int]
     stage_progress: Optional[str]
+    time_window: Optional[int]
+    battle_time: int
 
     def to_list(self) -> List:
         """转换为插入 clan_battle 所需的参数列表"""

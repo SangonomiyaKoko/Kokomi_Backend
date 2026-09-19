@@ -12,7 +12,6 @@ class ClanBattleRepository:
         """批量插入对战明细"""
         sql = """
             INSERT INTO clan_battle (
-                battle_time,
                 clan_id,
                 team_number,
                 victory,
@@ -22,10 +21,12 @@ class ClanBattleRepository:
                 division,
                 division_rating,
                 stage_type,
-                stage_progress
+                stage_progress,
+                time_window,
+                battle_time
             )
             VALUES (
-                ?,?,?,?,?,?,?,?,?,?,?
+                ?,?,?,?,?,?,?,?,?,?,?,?
             );
         """
         cursor.execute(sql, record.to_list())

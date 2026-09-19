@@ -18,6 +18,7 @@ CREATE TABLE clan_battle (
     stage_type       INTEGER      DEFAULT NULL,    -- 晋级赛类型（1=晋级 2=保级，非晋级赛为 NULL）
     stage_progress   TEXT         DEFAULT NULL,    -- 晋级赛进度（★☆ 串）
 
+    time_window      INTEGER      DEFAULT NULL,    -- 战斗所处时间区间索引（1/2/3，窗口外为 NULL）
     battle_time      INTEGER      NOT NULL,        -- 战斗时间戳（Unix 秒）
 
     created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP

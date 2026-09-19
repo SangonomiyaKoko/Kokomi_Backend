@@ -242,8 +242,9 @@ division_rating, stage_type, stage_progress
 字段顺序**与 SQLite `clan_battle` 表列序严格一致**（除自增主键与 `created_at`），`to_list()` 的结果可直接作为 `execute` 的参数：
 
 ```python
-battle_time, clan_id, team_number, victory, result, rating,
-league, division, division_rating, stage_type, stage_progress
+clan_id, team_number, victory, result, rating,
+league, division, division_rating, stage_type, stage_progress,
+time_window, battle_time
 ```
 
 其中展示型字段 `result` 由 `_plan_team` 按**优先级链**格式化：
@@ -257,7 +258,9 @@ league, division, division_rating, stage_type, stage_progress
 
 `victory` 为胜场差，`rating` 为该队伍当前的公开评分。
 
-> **联赛编号方向**：`0=紫金 1=白金 2=黄金 3=白银 4=青铜 5=无`，**数字越小段位越高**（见 `app/constants/clan.py` 的颜色映射与两张表的列注释）。当前 `_plan_team` 中写的是 `new.league > old.league → PROMOTION`，与上述约定相反，**待确认**。
+`time_window` 是该场战斗所处的**时间区间索引**（详见 5.2 与 6.1）：由 `_plan_record` 用**战斗时间**（`ctx.stats.last_battle_time`）反查 `GameUtils.get_window_index` 得到，而不是取当前时间——保底刷新等场景下轮次可能已在窗口之外，取当前时间会得到错误的区间。战斗时间落在任何区间之外时为 `None`。
+
+> **联赛编号方向**：`0=紫金 1=白金 2=黄金 3=白银 4=青铜 5=无`，**数字越小段位越高**（见 `app/constants/clan.py` 的颜色映射与两张表的列注释）。因此 `_plan_team` 中 `new.league > old.league` 判为 `▼` 降级、否则为 `▲` 晋级。
 
 ### 4.4 其余模型
 
@@ -363,9 +366,20 @@ division         INTEGER  NOT NULL   -- 分段
 division_rating  INTEGER  NOT NULL   -- 分段评分
 stage_type       INTEGER  DEFAULT NULL  -- 1=晋级 2=保级
 stage_progress   TEXT     DEFAULT NULL  -- 晋级赛进度（★☆ 串）
+time_window      INTEGER  DEFAULT NULL  -- 战斗所处时间区间索引（1/2/3，窗口外为 NULL）
 battle_time      INTEGER  NOT NULL   -- INDEX
 created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
 ```
+
+`time_window` 的取值来自 `CLAN_BATTLE_WINDOWS` 中人为定义的区间索引：
+
+| 索引 | UTC 窗口 | 参与服务器 |
+| --- | --- | --- |
+| `1` | `11:30 - 15:30` | `asia` / `eu` / `na` / `cn` |
+| `2` | `18:00 - 22:00` | `asia` / `eu` / `na` |
+| `3` | `00:30 - 04:30` | `asia` / `eu` / `na` |
+
+各星期开放的区间不同（周二无窗口，周三 / 周六只有 `1`、`2`，周一 / 周五只有 `3`）。该列用于区分**不同时段的排队行为**——例如 SG 服务器开窗口时会有少部分 EU 公会加入队列。
 
 #### `database_meta` — 数据质量指标
 
@@ -400,12 +414,22 @@ metric_value INTEGER DEFAULT 0
 
 闸门 ② 与 ③ 是**或**的关系：`is_need_update` 表示"距上次成功更新已超过 `FALLBACK_REFRESH_SECONDS`"，一旦成立就**绕过**窗口判断强制刷新，保证哪怕活跃窗口配置有误、或长期无战斗，数据也能每天至少同步一次。
 
-`is_cb_active` 的判定逻辑（`shard/game_utils.py`）：
+`is_cb_active` 是纯粹的**布尔判定**，只回答"此刻该不该更新"：
 
-1. 若 `season_start` 与 `season_finish` **都已填写**，且当前时间不在 `[start, finish]` 内 → 直接返回 `False`；
-   （两者任一为空时跳过此检查——新赛季起止时间未知，需人工补录，期间退化为纯窗口判断）
-2. 取当前 UTC 时间的**星期**，查 `CLAN_BATTLE_WINDOWS[weekday]` 的各时间窗口；
-3. 窗口需同时满足：当前时间落在 `[start, end + 29min)` 内，且窗口的 `regions` 列表包含当前 `REGION`。
+1. 若 `season_start` 与 `season_finish` **都已填写**，且当前时间不在 `[start, finish]` 内 → 返回 `False`；
+   （两者任一为空时跳过此检查——新赛季起止时间未知，需人工补录，期间退化为纯窗口判断，避免因配置缺失而停止更新）
+2. 否则转调 `get_window_index(region, now)`，命中任一窗口返回 `True`，否则 `False`。
+
+**`get_window_index(region, timestamp)`** 承担另一件事：给定一个时间戳，返回它落在哪个**时间区间**（`1`/`2`/`3`），不在任何区间时返回 `None`。它是纯窗口匹配、**不含赛季起止校验**，且正是 `time_window` 列的来源——`_plan_record` 传入**战斗发生时间**（而非当前时间）来反查该场战斗属于哪个区间。
+
+> 两个函数刻意分开，因为问的是两个不同的问题：
+>
+> | | 问什么 | 时间源 | 赛季校验 |
+> | --- | --- | --- | --- |
+> | `is_cb_active` | **此刻**该不该更新 | 当前时间 | 需要 |
+> | `get_window_index` | **这场战斗**属于哪个区间 | 战斗时间（LBT） | 不需要 |
+>
+> 区间统计一律以 LBT 为准，所以闸门 ③ 并不需要区间索引，只要一个布尔值；反过来，`_plan_record` 也不该被赛季配置影响——明细**已经采到了**，不该因为赛季起止时间没配好就丢掉它的区间。
 
 窗口的结束时刻按 `end[1] + 29` 放宽（如 `04:30 → 04:59`、`22:00 → 22:29`），用于覆盖"窗口关闭瞬间开打、结果稍后才结算"的战斗。
 
@@ -578,6 +602,7 @@ start_scheduler
 | **阶段二异常只记日志** | 由 `main` 捕获后按 `(0, 0)` 继续 | 统计已解析成功，不应因为算不出明细而丢弃 |
 | **阶段三异常向上抛** | `_commit` / `ZADD` 不捕获 | 能失败通常意味着数据库或 Redis 整体不可用；若逐个吞掉会产生数千条重复异常日志（fail-fast） |
 | **跨赛季双层防护** | 收集阶段发现新赛季→放弃本轮并重置配置；单公会 `season` 不符→全场次计入 `discard` | 避免用上赛季基线差分出错误明细 |
+| **区间由战斗时间推导** | `time_window` 用 `last_battle_time` 反查，不用当前时间 | 保底刷新等轮次可能已在窗口之外，取当前时间会错记区间 |
 | **新赛季起止时间未知** | `refresh_season_data` 把 `start`/`finish` 置 `None` | 退化为纯窗口判断，服务不中断，等待人工补录 |
 | **新公会建档** | `T_clan_base` + 三张子表同时插入占位行 | 保证后续所有 `UPDATE` 都有命中行 |
 | **未参战公会不写冗余** | `is_baseline` 时 `T_clan_team` 写 `NULL` | 绝大多数公会未参战，避免 JSON 冗余 |
@@ -670,7 +695,6 @@ start_scheduler
 | `season` 列为 `TINYINT` | `T_clan_stats.season` | 赛季 ID 上限 127 |
 | 每赛季一个 SQLite 文件 | `sqlite_ops` | 明细不与汇总同库，避免主库随赛季膨胀 |
 | 明细增量 > 1 时丢弃 | `updater._plan_record` | LBT 只有一个时间戳，无法还原每场 |
-| 联赛升降级方向待确认 | `updater._plan_team` | 见 4.3 末尾的说明 |
 
 ---
 
@@ -681,7 +705,7 @@ start_scheduler
 | `init/mysql/01-schemas/03-clan.sql` | MySQL 侧表结构（本服务涉及的 4 张表） |
 | `init/mysql/02-data/01-base.sql` | `T_tracking_meta` 种子行 |
 | `init/sqlite/clan_battle.sql` | SQLite 侧表结构与统计表种子数据 |
-| `shard/game_utils.py` | `CLAN_BATTLE_WINDOWS`、`is_cb_active`、`CLAN_REALM_MAP` |
+| `shard/game_utils.py` | `CLAN_BATTLE_WINDOWS`、`is_cb_active`、`get_window_index`、`CLAN_REALM_MAP` |
 | `shard/constants.py` | `LEAGUE_LIST`、`CLAN_INIT_TABLE_LIST` |
 | `shard/endpoints.py` | 各服 Clan API 域名 |
 | `shard/redis_keys.py` | Redis 键名生成 |
