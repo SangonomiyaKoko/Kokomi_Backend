@@ -1,11 +1,10 @@
-from .endpoints import EndpointRegistry, RequestTarget
-from .requester import ApiRequester, FetchResult
-from .parser import ResponseParser
+from .requester import APIRequester, FetchResult
+from .endpoints import EndpointRegistry
+
 
 __all__ = [
+    'ProxyStrategy',
     'EndpointRegistry',
-    'RequestTarget',
-    'ApiRequester',
-    'FetchResult',
-    'ResponseParser',
+    'APIRequester',
+    'FetchResult'
 ]

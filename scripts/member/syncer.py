@@ -1,115 +1,23 @@
 import json
-import time
-from redis import Redis
+import traceback
+
+from pymysql import Connection
 from pymysql.cursors import Cursor
 
-from logger import logger
-from settings import (
-    USER_INIT_TABLE_LIST,
-    CLAN_ACTIVITY_STRATEGY,
-    CLAN_ACTIVITY_THRESHOLDS
-)
+from shard import PolicyUtils
 
+from .db_ops import mysql_transaction
+from .logger import logger, write_exception
 
-def acquire_lock(
-    redis_client: Redis,
-    lock_key: str,
-    expire_seconds: int = 5,
-    max_retries: int = 5,
-    retry_interval: float = 0.2
-) -> bool:
-    """获取 Redis 分布式锁
-
-    Args:
-        redis_client: Redis 客户端
-        lock_key: 锁的键名
-        expire_seconds: 锁的过期时间，防止死锁
-        max_retries: 最大重试次数
-        retry_interval: 重试间隔
-    """
-    try:
-        for _ in range(1, max_retries + 1):
-            acquired = redis_client.set(
-                lock_key, 1, nx=True, ex=expire_seconds
-            )
-
-            if acquired:
-                return True
-
-            time.sleep(retry_interval)
-    except Exception:
-        logger.warning('Failed to set the distributed lock')
-
-    return False
-
-def release_lock(
-    redis_client: Redis,
-    lock_key: str
-) -> None:
-    """释放 Redis 分布式锁
-
-    Args:
-        redis_client: Redis 客户端
-        lock_key: 锁的键名
-    """
-    try:
-        redis_client.delete(lock_key)
-    except Exception:
-        logger.warning('Failed to release the distributed lock')
 
 class ClanUsersSyncer:
+    """工会基础信息同步器"""
     @staticmethod
-    def _get_activity_level(members: int | None) -> int:
-        """根据工会返回活跃等级（0-3）"""
-        for threshold, level in CLAN_ACTIVITY_THRESHOLDS:
-            if members <= threshold:
-                return level
-
-        return 0
-    
-    @staticmethod
-    def _get_existing_members(cursor: Cursor, clan_id: int) -> tuple:
-        """获取公会当前的成员列表和更新时间
-
-        Args:
-            cursor: 数据库游标
-            clan_id: 公会 ID
-        """
-        sql = """
-            SELECT 
-                member_ids, 
-                UNIX_TIMESTAMP(updated_at) 
-            FROM T_clan_users 
-            WHERE clan_id = %s;
-        """
-        cursor.execute(sql, [clan_id])
-        return cursor.fetchone()
-    
-    @staticmethod
-    def _get_existing_users(cursor: Cursor, user_ids: list[int]) -> set:
-        """获取公会当前的成员列表和更新时间
-
-        Args:
-            cursor: 数据库游标
-            clan_id: 公会 ID
-        """
-        placeholders = ",".join(["%s"] * len(user_ids))
-        sql = f"""
-            SELECT account_id 
-            FROM T_user_base 
-            WHERE account_id IN ({placeholders});
-        """
-        cursor.execute(sql, user_ids)
-        return {row[0] for row in cursor.fetchall()}
-
-    @staticmethod
-    def _disable_empty_clan(cursor: Cursor, clan_id: int) -> None:
-        """将无成员的公会标记为不可用并清理成员关系
-
-        Args:
-            cursor: 数据库游标
-            clan_id: 公会 ID
-        """
+    def _disable_empty_clan(
+        cursor: Cursor, 
+        clan_id: int
+    ) -> None:
+        """将无成员的公会标记为不可用并清理成员关系"""
         sql = """
             UPDATE T_clan_users 
             SET 
@@ -150,41 +58,7 @@ class ClanUsersSyncer:
                 );
             """
             cursor.execute(sql, [clan_id, row[0], 2])
-
-    @staticmethod
-    def _init_new_users(cursor: Cursor, account_ids: list, users: dict) -> None:
-        """为新用户创建基础表记录"""
-        
-        if not account_ids:
-            return
-
-        # 1. 批量插入 T_user_base
-        values_list = []
-        params = []
-        for account_id in account_ids:
-            values_list.append("(%s, %s)")
-            params.extend([account_id, users[account_id]])
-        
-        sql = f"""
-            INSERT INTO T_user_base (account_id, username) 
-            VALUES {','.join(values_list)};
-        """
-        cursor.execute(sql, params)
-
-        # 2. 批量插入所有子表
-        for table_name in USER_INIT_TABLE_LIST:
-            values_list = []
-            params = []
-            for account_id in account_ids:
-                values_list.append("(%s)")
-                params.append(account_id)
-            
-            sql = f"""
-                INSERT INTO {table_name} (account_id) 
-                VALUES {','.join(values_list)};
-            """
-            cursor.execute(sql, params)
-
+    
     @staticmethod
     def _remove_left_members(cursor: Cursor, clan_id: int, current_ids: set) -> None:
         """清理已退出公会的成员关系
@@ -232,7 +106,7 @@ class ClanUsersSyncer:
         cursor.execute(sql, [clan_id] + user_ids)
 
     @staticmethod
-    def _update_clan_users(cursor: Cursor, clan_id: int, activity_level: int, user_ids: list) -> None:
+    def _update_clan_users(cursor: Cursor, clan_id: int,  user_ids: list) -> None:
         """更新公会成员统计信息
 
         Args:
@@ -251,7 +125,8 @@ class ClanUsersSyncer:
                 updated_at = NOW()
             WHERE clan_id = %s;
         """
-        interval_seconds = CLAN_ACTIVITY_STRATEGY.get(f"0-{activity_level}", 30*86400)
+        activity_level = PolicyUtils.clan_activity_level(len(user_ids))
+        interval_seconds = PolicyUtils.clan_refresh_interval(activity_level)
         cursor.execute(sql, [activity_level, len(user_ids), json.dumps(user_ids), interval_seconds, clan_id])
 
     @staticmethod
@@ -296,41 +171,30 @@ class ClanUsersSyncer:
             cursor.execute(sql, [clan_id, removed_id, 2])
 
     @classmethod
-    def refresh(cls, redis_client: Redis, cursor: Cursor, clan_id: int, users: dict) -> int:
-        """基于公会成员接口数据刷新数据库中的公会成员信息
-
-        Args:
-            conn: 数据库连接
-            clan_id: 公会 ID
-            result: API 返回的公会成员数据
-        """
-        # 提取公会成员映射
+    def refresh(
+        cls, 
+        conn: Connection, 
+        clan_id: int, 
+        users: dict,
+        old_data: tuple
+    ) -> int:
+        """基于公会成员接口数据刷新数据库中的公会成员信息"""
         user_ids = list(users.keys())
 
-        if len(user_ids) == 0:
-            cls._disable_empty_clan(cursor, clan_id)
-            return 0
-        
-        activity_level = cls._get_activity_level(len(user_ids))
-            
-        old_data = cls._get_existing_members(cursor, clan_id)
-        existing_ids = cls._get_existing_users(cursor, user_ids)
-        missing_ids = [uid for uid in user_ids if uid not in existing_ids]
-
-        if missing_ids:
-            # 尽量避免并发写可能存在的问题，先获取锁再写
-            lock_key = 'refresh_lock:user_insert'
-            lock = acquire_lock(redis_client, lock_key)
-            if not lock:
-                logger.warning('Acquire distributed lock failed')
-                return 0
-            cls._init_new_users(cursor, missing_ids, users)
-            # 写入完成释放lock
-            release_lock(redis_client, lock_key)
-
-        cls._remove_left_members(cursor, clan_id, set(user_ids))
-        cls._update_member_relations(cursor, clan_id, user_ids)
-        cls._update_clan_users(cursor, clan_id, activity_level, user_ids)
-        cls._record_member_changes(cursor, clan_id, old_data, user_ids)
-
-        return len(missing_ids)
+        try:
+            with mysql_transaction(conn, clan_id) as cursor:
+                if len(user_ids) == 0:
+                    cls._disable_empty_clan(cursor, clan_id)
+                else:
+                    cls._remove_left_members(cursor, clan_id, set(user_ids))
+                    cls._update_member_relations(cursor, clan_id, user_ids)
+                    cls._update_clan_users(cursor, clan_id, user_ids)
+                    cls._record_member_changes(cursor, clan_id, old_data, user_ids)
+        except Exception as e:
+            error_name = type(e).__name__
+            error_id = write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+            logger.error(f'{clan_id} | ERROR - {error_name} - {error_id}')

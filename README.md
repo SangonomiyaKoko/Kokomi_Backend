@@ -35,9 +35,9 @@ task/:            Celery 消费者，消费 MQ 中待更新的用户
 scripts/account/: 读取需要更新的用户 ID，发送到 MQ
 scripts/cache/:   更新用户随机缓存数据，实现船只排行榜
 scripts/member/:  更新工会内的用户列表
-scripts/recent/:  记录用户近期数据
-scripts/season/:  记录工会赛季信息，实现工会排行榜
 scripts/stats/:   遍历所有缓存数据，统计服务器数据
+recent/:          记录用户近期数据
+season/:          记录工会赛季信息，实现工会排行榜
 ```
 
 ## 项目依赖

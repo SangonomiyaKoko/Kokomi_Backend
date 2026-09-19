@@ -4,6 +4,8 @@ from typing import Optional
 import redis.asyncio as redis
 from redis.asyncio.client import Redis
 
+from shard import RedisKeys
+
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
 from app.core import EnvConfig, api_logger
@@ -108,9 +110,9 @@ class ServiceMetrics:
             return
         
         keys = [
-            f"metrics:api:annual:{date[:4]}",
-            f"metrics:api:monthly:{date[:7]}",
-            f"metrics:api:daily:{date}"
+            RedisKeys.metrics('api', 'annual', date[:4]),
+            RedisKeys.metrics('api', 'monthly', date[:7]),
+            RedisKeys.metrics('api', 'daily', date)
         ]
         conn = RedisConnection.acquire_conn()
         for key in keys:
@@ -122,9 +124,9 @@ class ServiceMetrics:
             return
         
         keys = [
-            f"metrics:http:annual:{date[:4]}",
-            f"metrics:http:monthly:{date[:7]}",
-            f"metrics:http:daily:total:{date}"
+            RedisKeys.metrics('http', 'annual', date[:4]),
+            RedisKeys.metrics('http', 'monthly', date[:7]),
+            RedisKeys.metrics('http', 'daily:total', date)
         ]
         conn = RedisConnection.acquire_conn()
         for key in keys:
@@ -134,7 +136,7 @@ class ServiceMetrics:
     async def http_error_incrby(date: str, amount: int):
         if EnvConfig.DEV_MODE:
             return
-        key = f"metrics:http:daily:error:{date}"
+        key = RedisKeys.metrics('http', 'daily:error', date)
         conn = RedisConnection.acquire_conn()
         await conn.incrby(key, amount)
 

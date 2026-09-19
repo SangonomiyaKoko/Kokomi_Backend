@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Any, Optional
 
-from utils import StringUtils
-from models import BattleMode, ShipDataEntry
+from shard import StringUtils
+
+from ..models import BattleMode, ShipDataEntry
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,18 +19,18 @@ class ShipDataUpdateEntry:
         """转换为数据库插入参数"""
         return (
             self.ship_id, self.ship_mode, self.ship_index,
-            StringUtils.stats_encode(self.data_type_1),
-            StringUtils.stats_encode(self.data_type_2),
-            StringUtils.stats_encode(self.data_type_3)
+            StringUtils.index_data_encode(self.data_type_1),
+            StringUtils.index_data_encode(self.data_type_2),
+            StringUtils.index_data_encode(self.data_type_3)
         )
 
 
     def as_update_params(self) -> tuple:
         """转换为数据库更新参数"""
         return (
-            StringUtils.stats_encode(self.data_type_1),
-            StringUtils.stats_encode(self.data_type_2),
-            StringUtils.stats_encode(self.data_type_3),
+            StringUtils.index_data_encode(self.data_type_1),
+            StringUtils.index_data_encode(self.data_type_2),
+            StringUtils.index_data_encode(self.data_type_3),
             self.ship_id, self.ship_mode, self.ship_index
         )
 

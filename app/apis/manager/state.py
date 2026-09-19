@@ -1,3 +1,5 @@
+from shard import RedisKeys, ServicesName
+
 from app.core import EnvConfig, AppState
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
@@ -22,15 +24,14 @@ class StateAPI:
         
         result['name_hash'] = StringUtils.generate_ship_hash(hash_data)
         
-        constant = EnvConfig.get_constants()
-        services = constant.SERVICE_LIST
+        services = ServicesName.to_list()
         if EnvConfig.DEV_MODE or not AppState.is_available():
             for service in services:
                 result['services'][service] = 0
         else:
             result['available'] = True
             for service in services:
-                key = f'status:{service}'
+                key = RedisKeys.services(service)
                 error, data = JSONResponse.extract_data(
                     response=await RedisClient.exists(key)
                 )

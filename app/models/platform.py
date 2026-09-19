@@ -73,7 +73,7 @@ class PlatformModel:
             success → {code: 1000, data: [(stat_date, total_count), ...]}
         """
         async with MySQLManager.read_only_cursor() as cur:
-            sql = """
+            sql = """   
                 SELECT
                     stat_date,
                     total_count

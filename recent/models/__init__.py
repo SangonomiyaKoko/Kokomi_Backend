@@ -1,11 +1,17 @@
 from dataclasses import dataclass
 
 from .user import UserStats, UserRecord
-from .mode import BattleMode, DataType, UpdateStrategy
+from .mode import (
+    DataType, 
+    BattleMode, 
+    UpdateStrategy,
+    RunnerResult
+)
 from .reason import (
-    SkipReason,
-    UpdateReason,
-    DisableReason,
+    FailedReason,
+    SkippedReason,
+    UpdatedReason,
+    DisabledReason,
     UpdateResult,
     ValidationResult
 )
@@ -39,9 +45,11 @@ __all__ = [
     'DataType',
     'BattleMode',
     'UpdateStrategy',
-    'SkipReason',
-    'UpdateReason',
-    'DisableReason',
+    'RunnerResult',
+    'FailedReason',
+    'SkippedReason',
+    'UpdatedReason',
+    'DisabledReason',
     'UpdateResult',
     'ValidationResult',
     'LatestDataEntry',

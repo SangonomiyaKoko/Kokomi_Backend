@@ -1,43 +1,41 @@
+from shard import PolicyUtils
 
-from context import UpdateContext
-from clients import FetchResult
-from models import (
-    SkipReason,
-    DisableReason,
-    ValidationResult,
+from ..core import UpdateContext
+from ..clients import FetchResult
+from ..models import (
+    BattleMode,
     UpdateStrategy,
-    BattleMode
+    FailedReason,
+    SkippedReason,
+    DisabledReason,
+    ValidationResult
 
 )
-from settings import (
-    REGION,
-    USER_INACTIVE_DAYS,
-    USER_NO_BATTLE_DAYS,
-    USER_HIDDEN_PROFILE_DAYS,
-)
+from ..settings import REGION
 
 class ValidationPolicy:
     """用户数据与响应的校验策略合集"""
 
     @staticmethod
     def validate_database_pre(ctx: UpdateContext) -> ValidationResult:
-        """校验用户数据库状态"""
+        """校验从 MySQL 中读取到的用户数据库状态是否有效"""
         if ctx.user_stats is None:
-            return ValidationResult.skip(SkipReason.NO_LOCAL_DATA)
-
-        # 用户在本地库中已被停用
-        if not ctx.user_stats.is_valid:
-            return ValidationResult.disabled(DisableReason.USER_DISABLED)
-
-        # 用户从未有过战斗记录
-        if ctx.user_stats.last_battle_at is None:
-            return ValidationResult.disabled(DisableReason.USER_NO_BATTLE_RECORD)
+            return ValidationResult.skipped(SkippedReason.NOT_CONFIGURED)
 
         if ctx.user_record is None:
-            return ValidationResult.skip(SkipReason.NO_LOCAL_DATA)
+            return ValidationResult.skipped(SkippedReason.NOT_CONFIGURED)
 
         if not ctx.user_record.is_configured:
-            return ValidationResult.skip(SkipReason.NOT_CONFIGURED)
+            # 用户未配置本功能
+            return ValidationResult.skipped(SkippedReason.NOT_CONFIGURED)
+
+        if not ctx.user_stats.is_valid:
+            # 用户在本地库中已被停用
+            return ValidationResult.disabled(DisabledReason.ACCOUNT_INVALID)
+
+        if ctx.user_stats.last_battle_at is None:
+            # 用户从未有过战斗记录
+            return ValidationResult.disabled(DisabledReason.ACCOUNT_NO_STATS)
 
         return ValidationResult.other()
 
@@ -47,29 +45,29 @@ class ValidationPolicy:
         basic_data = fr.account.get(str(ctx.account_id))
         # API 响应中无此账号
         if basic_data is None:
-            return ValidationResult.disabled(DisableReason.ACCOUNT_NOT_FOUND)
+            return ValidationResult.disabled(DisabledReason.ACCOUNT_INVALID)
 
         if 'hidden_profile' in basic_data:
             if ctx.update_strategy == UpdateStrategy.NEW_USER:
-                return ValidationResult.disabled(DisableReason.USER_HIDDEN)
+                return ValidationResult.disabled(DisabledReason.USER_HIDDEN)
             return ValidationResult.other()
 
         # 账号存在但缺少统计数据字段
         if 'statistics' not in basic_data:
-            return ValidationResult.disabled(DisableReason.ACCOUNT_NO_STATS)
+            return ValidationResult.disabled(DisabledReason.ACCOUNT_NO_STATS)
 
         for mode, types in fr.ships.items():
             for response in types.values():
                 api_data = response.get(str(ctx.account_id))
                 # 正常情况下先通过 Basic 接口校验，后续 mode 下的数据不应出现以下情况，因此判断为网络请求异常
                 if api_data is None:
-                    return ValidationResult.skip(SkipReason.OBTAIN_DATA_FAILED)
+                    return ValidationResult.failed(FailedReason.OBTAIN_DATA_FAILED)
                 if 'hidden_profile' in api_data:
-                    return ValidationResult.skip(SkipReason.OBTAIN_DATA_FAILED)
+                    return ValidationResult.failed(FailedReason.OBTAIN_DATA_FAILED)
                 if mode == BattleMode.CLAN and REGION != 'ru':
                     continue
                 if 'statistics' not in api_data:
-                    return ValidationResult.skip(SkipReason.OBTAIN_DATA_FAILED)
+                    return ValidationResult.failed(FailedReason.OBTAIN_DATA_FAILED)
 
         return ValidationResult.other()
 
@@ -78,15 +76,15 @@ class ValidationPolicy:
         """校验用户是否满足保留条件"""
         # last_query_at 超过 USER_INACTIVE_DAYS 天
         if cls._is_inactive(ctx):
-            return ValidationResult.disabled(DisableReason.USER_INACTIVE)
+            return ValidationResult.disabled(DisabledReason.USER_INACTIVE_TOO_LONG)
 
         # 连续隐藏战绩天数 ≥ USER_HIDDEN_PROFILE_DAYS
         if cls._is_hidden_too_long(ctx):
-            return ValidationResult.disabled(DisableReason.USER_HIDDEN_TOO_LONG)
+            return ValidationResult.disabled(DisabledReason.ACCOUNT_HIDDEN_TOO_LONG)
 
         # last_battle_at 超过 USER_NO_BATTLE_DAYS 天
         if cls._is_battle_inactive(ctx):
-            return ValidationResult.disabled(DisableReason.USER_NO_BATTLE)
+            return ValidationResult.disabled(DisabledReason.ACCOUNT_INACTIVE_TOO_LONG)
 
         return ValidationResult.other()
 
@@ -95,14 +93,14 @@ class ValidationPolicy:
         """校验解析后的响应数据"""
         # 解析后用户状态仍无效，防御性兜底
         if not ctx.user_stats.is_valid:
-            return ValidationResult.disabled(DisableReason.USER_INVALID)
+            return ValidationResult.disabled(DisabledReason.ACCOUNT_INVALID)
 
         # 不应该出现新用户但是当前隐藏战绩的情况，直接丢弃
         if (
             ctx.update_strategy == UpdateStrategy.NEW_USER and 
             ctx.user_stats.is_hidden
         ):
-            return ValidationResult.disabled(DisableReason.USER_HIDDEN)
+            return ValidationResult.disabled(DisabledReason.USER_HIDDEN)
 
         # 隐藏战绩没有数据，提前直接跳过
         if ctx.user_stats.is_hidden:
@@ -116,11 +114,11 @@ class ValidationPolicy:
             if mode_stats.battles == 0:
                 if collection.count == 0:
                     continue
-                return ValidationResult.skip(SkipReason.OBTAIN_DATA_FAILED)
+                return ValidationResult.failed(FailedReason.OBTAIN_DATA_FAILED)
             if collection.count == 0:
                 if mode_stats.battles == 0:
                     continue
-                return ValidationResult.skip(SkipReason.OBTAIN_DATA_FAILED)
+                return ValidationResult.failed(FailedReason.OBTAIN_DATA_FAILED)
             
         return ValidationResult.other()
 
@@ -131,7 +129,9 @@ class ValidationPolicy:
         if query_interval is None:
             return True
 
-        return query_interval >= USER_INACTIVE_DAYS * 86400
+        max_interval = PolicyUtils.max_user_inactive_interval()
+
+        return query_interval >= max_interval
 
     @staticmethod
     def _is_battle_inactive(ctx: UpdateContext) -> bool:
@@ -143,8 +143,10 @@ class ValidationPolicy:
         battle_interval = ctx.battle_interval
         if battle_interval is None:
             return True
+        
+        max_interval = PolicyUtils.max_battle_inactive_interval()
 
-        return battle_interval >= USER_NO_BATTLE_DAYS * 86400
+        return battle_interval >= max_interval
 
     @staticmethod
     def _is_hidden_too_long(ctx: UpdateContext) -> bool:
@@ -161,4 +163,6 @@ class ValidationPolicy:
             else:
                 break
 
-        return hidden_streak >= USER_HIDDEN_PROFILE_DAYS
+        max_days = PolicyUtils.max_hidden_days()
+
+        return hidden_streak >= max_days

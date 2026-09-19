@@ -61,14 +61,14 @@ class RecentAPI:
     @ExceptionLogger.handle_program_exception_async
     async def enable(account_id: int):
         # 从 Redis 中获取用户的 access_token
-        redis_key = f"token:ac:{account_id}"
-        response = await RedisClient.get_token(redis_key)
-        error, access_token = JSONResponse.extract_data(response)
-        if error:
-            return access_token
+        # redis_key = f"token:ac:{account_id}"
+        # response = await RedisClient.get_token(redis_key)
+        # error, access_token = JSONResponse.extract_data(response)
+        # if error:
+        #     return access_token
         
         error, response = JSONResponse.extract_data(
-            response=await ExternalAPI.get_user_basic(account_id, access_token)
+            response=await ExternalAPI.get_user_basic(account_id, None)
         )
         if error:
             return response
@@ -119,7 +119,7 @@ class RecentAPI:
         last_battle_time = basic_data.get('last_battle_time')
         current_timestamp = TimeUtils.timestamp()
 
-        if last_battle_time and current_timestamp - last_battle_time <= 180 * 68400:
+        if last_battle_time and current_timestamp - last_battle_time <= 180 * 86400:
             pass
         else:
             # 返回超过 180 天未活跃策略
@@ -144,7 +144,7 @@ class RecentAPI:
             if error:
                 return record
         else:
-            return JSONResponse.API_RecentNotEnable
+            return JSONResponse.API_RecentNotEnabled
         
         user_basic = user['basic']
 
@@ -156,7 +156,7 @@ class RecentAPI:
         user_level = {1: "Standard",2: "Plus"}.get(user_config[0])
         storage_limit = user_config[1]
         if user_level is None:
-            return JSONResponse.API_RecentNotEnable
+            return JSONResponse.API_RecentNotEnabled
         
         total_dates = 0
         total_rows = 0
@@ -239,7 +239,7 @@ class RecentAPI:
             if error:
                 return record
         else:
-            return JSONResponse.API_RecentNotEnable
+            return JSONResponse.API_RecentNotEnabled
         
         user_basic = user['basic']
 
@@ -255,7 +255,7 @@ class RecentAPI:
         
         # 未启用记录 Recent 数据功能
         if not (user_config and user_config[0] == 2):
-            return JSONResponse.API_RecentNotEnable
+            return JSONResponse.API_RecentNotEnabled
 
         # 从 Redis 中获取用户的 access_token
         redis_key = f"token:ac:{account_id}"
@@ -367,7 +367,7 @@ class RecentAPI:
             if error:
                 return record
         else:
-            return JSONResponse.API_RecentNotEnable
+            return JSONResponse.API_RecentNotEnabled
         
         user_basic = user['basic']
 
@@ -383,7 +383,7 @@ class RecentAPI:
         
         # 未启用记录 Recent 数据功能
         if not (user_config and user_config[0] == 2):
-            return JSONResponse.API_RecentNotEnable
+            return JSONResponse.API_RecentNotEnabled
 
         # 从 Redis 中获取用户的 access_token
         redis_key = f"token:ac:{account_id}"

@@ -13,8 +13,11 @@ redis.conf
 /temp/
 /data/db/*
 /data/local/*
+!/data/local/.gitkeep
 /data/json/*
+!/data/json/.gitkeep
 /data/trash/*
+!/data/trash/.gitkeep
 /logs/error/*
 /logs/exception/*
 /logs/metrics/*

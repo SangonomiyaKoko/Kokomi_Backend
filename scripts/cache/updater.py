@@ -7,39 +7,35 @@ from pymysql import Connection
 from pymysql.cursors import Cursor
 from typing import Optional
 
-from logger import logger
-from exception import write_exception
-from api import fetch_user_pvp_data
-from utils import calc_ship_rating
+from shard import RatingUtils
+
+from .logger import logger, write_exception
+from .api import fetch_user_pvp_data
 
 
 class UserCacheUpdater:
     """用户 PvP 缓存数据更新器
 
     负责从 API 获取用户数据，提取并计算各项统计指标，
-    更新 MySQL 中的用户 PvP 缓存、最高记录、船只极值记录和排行榜，
+    更新 MySQL 中的用户 PvP 缓存和船只排行榜，
     同时将近期增量数据写入暂存表并同步 Redis 排行榜
 
     Attributes:
-        ship_record: 船只极值记录缓存，来自 read_ship_record()
         ship_info: 船只排行榜基准数据，来自 read_ship_data()
     """
     def __init__(
-        self, 
+        self,
         enabled_ship_ids: list,
-        ship_record: dict, 
-        ship_info: dict, 
-        game_version: Optional[str], 
+        ship_info: dict,
+        game_version: Optional[str],
         version_start: Optional[str]
     ):
         """初始化更新器
 
         Args:
-            ship_record: 船只极值记录数据
             ship_info: 船只排行榜基准数据
         """
         self.enabled_ship_ids = enabled_ship_ids
-        self.ship_record = ship_record
         self.ship_info = ship_info
         self.game_version = game_version
         self.version_start = version_start
@@ -75,36 +71,6 @@ class UserCacheUpdater:
             ]
         return ship_pvp_cache
     
-    @staticmethod
-    def _build_ship_pvp_record(pvp_data: dict) -> dict:
-        """构建船只 PvP 极值缓存数据
-
-        将 API 返回的按船只分组的 PvP 数据提取出所需字段，
-        按固定顺序组装为列表，供后续与记录比较使用
-
-        Args:
-            pvp_data: API 返回的船只 PvP 数据
-
-        Returns:
-            ship_id -> [max_exp, max_frags, max_planes_killed, max_damage_dealt,
-            max_scouting_damage, max_total_agro]
-        """
-        ship_pvp_record = {}
-        for ship_id, ship_data in pvp_data.items():
-            pvp = ship_data.get('pvp', {})
-            if not pvp:
-                continue
-            
-            ship_pvp_record[ship_id] = [
-                pvp.get('max_exp', 0),
-                pvp.get('max_frags', 0),
-                pvp.get('max_planes_killed', 0),
-                pvp.get('max_damage_dealt', 0),
-                pvp.get('max_scouting_damage', 0),
-                pvp.get('max_total_agro', 0)
-            ]
-        return ship_pvp_record
-
     def _calc_recent_diff(self, old_cache: dict, latest_data: dict):
         """计算每艘船的近期数据增量
 
@@ -166,40 +132,6 @@ class UserCacheUpdater:
             
         return None
 
-    def _update_ship_records(self, ship_pvp_record: dict, account_id: int) -> None:
-        """更新船只极值记录
-
-        遍历用户各船只的数据列表，与当前服务器最高记录比较：
-        - 超过：设为新记录，用户集合仅含当前用户
-        - 平记录：若用户尚未在集合中，则加入集合并增加计数
-        - 相同用户重复平记录：忽略
-
-        Args:
-            ship_pvp_record: {ship_id: [exp, planes, damage, scouting, potential]}
-            account_id: 当前用户 ID
-        """
-        for ship_id, user_values_list in ship_pvp_record.items():
-            if ship_id not in self.ship_record:
-                continue
-
-            # ship_record[ship_id] 是按 METRIC_ID_TO_INDEX 顺序的列表
-            # 每个元素为 [metric_value, users_count, top_user_ids_set]
-            for idx, user_value in enumerate(user_values_list):
-                current_value, _, current_set = self.ship_record[ship_id][idx]
-
-                # 超过当前最高值 → 新记录
-                if user_value > current_value:
-                    new_set = {account_id}
-                    self.ship_record[ship_id][idx] = [user_value, 1, new_set]
-
-                # 平记录且数值大于0，且用户尚未在集合中 → 增加达成者
-                elif user_value == current_value and user_value > 0 and account_id not in current_set:
-                    current_set.add(account_id)
-                    new_count = len(current_set)
-                    self.ship_record[ship_id][idx] = [user_value, new_count, current_set]
-
-                # 用户已在集合中或数值为0 → 无变化，跳过
-
     def _build_ranking_cache(
         self,
         pvp_data: dict
@@ -236,7 +168,7 @@ class UserCacheUpdater:
             hit_ratio = round(hits / shots * 100, 2) if shots != 0 else 0
             
             # 计算评分
-            personal_rating, damage_rating, frags_rating = calc_ship_rating(
+            personal_rating, damage_rating, frags_rating = RatingUtils.calc_ship_rating(
                 ship_data=[
                     round(pvp['wins'] / pvp['battles_count'] * 100, 4),
                     int(pvp['damage_dealt'] / pvp['battles_count']),
@@ -389,8 +321,8 @@ class UserCacheUpdater:
             1. 调用 API 获取用户 PvP 数据
             2. 刷新用户基础信息
             3. 处理隐藏战绩 / 无效用户
-            4. 提取总体统计、最高记录和船只缓存
-            5. 更新船只极值记录和排行榜缓存
+            4. 提取总体统计和船只缓存
+            5. 更新排行榜缓存
             6. 写入 MySQL 各表
             7. 计算近期增量并写入暂存表
             8. 同步 Redis 排行榜
@@ -435,11 +367,7 @@ class UserCacheUpdater:
 
             if pvp_data:
                 ship_pvp_cache = self._build_ship_pvp_cache(pvp_data)
-                ship_pvp_record = self._build_ship_pvp_record(pvp_data)
-                
-                # 更新船只记录
-                self._update_ship_records(ship_pvp_record, account_id)
-                
+
                 # 构建排行榜缓存
                 ship_ranking_cache = self._build_ranking_cache(pvp_data)
         except Exception as e:

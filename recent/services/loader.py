@@ -1,46 +1,48 @@
+import traceback
 from dataclasses import replace
-from sqlite3 import Cursor
 
-from loggers import logger
-from settings import REGION
-from context import UpdateContext
-from utils import TimeUtils
-from params import LocalDataEntry
-from db import sqlite_transaction, ensure_database
-from models import (
-    BattleMode,
-    SkipReason,
-    UpdateReason,
-    DisableReason,
-    UpdateResult,
-    UpdateStrategy,
-    FULL_UPDATE_MODES
-)
-from repository import (
+from sqlite3 import Cursor
+from shard import TimeUtils
+
+from ..core import UpdateContext
+from ..db_ops import sqlite_transaction, ensure_database
+from ..params import LocalDataEntry
+from ..repository import (
     ShipLatestRepository,
     ModeLatestRepository,
     UserSummaryRepository
 )
+from ..models import (
+    BattleMode,
+    FailedReason,
+    UpdatedReason,
+    DisabledReason,
+    UpdateResult,
+    UpdateStrategy,
+    FULL_UPDATE_MODES
+)
+from ..logger import logger, write_exception
+from ..settings import REGION, TIMEZONE
 
 from .policy import ValidationPolicy
 
 
 class UserDataLoader:
-    """加载用户 SQLite 数据库的数据"""
+    """用户本地数据库加载器"""
 
     @classmethod
     def main(cls, ctx: UpdateContext) -> UpdateResult:
-        """检测用户是否需要触发数据刷新，同时处理用户校验与停用"""
+        """读取用户本地数据库数据并检测数据库数据完整性"""
         # 先校验 user_stats 和 user_record 数据有效
         pre = ValidationPolicy.validate_database_pre(ctx)
-        if pre.is_skip:
-            return UpdateResult.skip(pre.reason)
+        if pre.is_skipped:
+            return UpdateResult.skipped(pre.reason)
         if pre.is_disabled:
             return UpdateResult.disabled(pre.reason)
 
         # 确保 SQLite 数据库文件存在并已初始化
         if not ensure_database(ctx.account_id):
-            return UpdateResult.skip(SkipReason.DB_OPERATION_FAILED)
+            return UpdateResult.failed(FailedReason.DB_OPERATION_FAILED)
 
         # 从本地数据库中加载用户缓存数据
         try:
@@ -48,19 +50,26 @@ class UserDataLoader:
                 # 加载更新所必要的数据
                 load_result = cls._load_data(cursor, ctx)
                 if not load_result:
-                    return UpdateResult.disabled(DisableReason.DATA_INTEGRITY_ERROR)
-
+                    return UpdateResult.disabled(DisabledReason.DATA_INTEGRITY_ERROR)
+                
                 # 补全缺失的 daily_summary 日期
                 cls._repair(cursor, ctx)
-        except Exception:
-            return UpdateResult.skip(SkipReason.DB_OPERATION_FAILED)
+        except Exception as e:
+            error_name = type(e).__name__
+            error_id = write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+            logger.error(f'{ctx.account_id} | ERROR - {error_name} - {error_id}')
+            return UpdateResult.failed(FailedReason.DB_OPERATION_FAILED)
 
         # 检测账号是否符合保留条件
         post = ValidationPolicy.validate_database_post(ctx)
         if post.is_disabled:
             return UpdateResult.disabled(post.reason)
 
-        return UpdateResult.need_update(UpdateReason.CONTINUE)
+        return UpdateResult.other(UpdatedReason.CONTINUE)
 
     @staticmethod
     def _load_data(cursor: Cursor, ctx: UpdateContext) -> bool:
@@ -101,9 +110,10 @@ class UserDataLoader:
         ctx.local_data = local_data
 
         # 生成从最早日期开始的完整连续的日期列表
-        ctx.date_list = TimeUtils.get_reset_date_list(
-            current_timestamp=ctx.current_timestamp,
-            start_date=min(daily_summary_dict.keys()),
+        ctx.date_list = TimeUtils.reset_date_list(
+            tz=TIMEZONE,
+            timestamp=ctx.current_timestamp,
+            start_date=min(daily_summary_dict.keys())
         )
 
         # 生成完整且连续的 summary 数据，后续通过值是否为 None 来查找缺失列
@@ -171,13 +181,15 @@ class UserDataLoader:
             not ctx.daily_summary[ctx.yesterday_date].is_public
         ):
             # 近期连续隐藏战绩策略：需要 UPDATE 两条 summary 记录
-            # 与 MISSING_SUMMARY 处理方式一致，同时写昨日和今日
             ctx.update_strategy = UpdateStrategy.MISSING_SUMMARY
             return
 
-        if ctx.current_timestamp - ctx.latest_summary.updated_at > 2*86400:
+        last_update_date = TimeUtils.reset_date(
+            tz=TIMEZONE, 
+            timestamp=ctx.latest_summary.updated_at
+        )
+        if last_update_date not in [ctx.now_date, ctx.yesterday_date]:
             # 最新快照的最后一次更新时间超过 48 小时，该异常仅出现于本地测试和服务长时间离线情况
-            # 与 MISSING_SUMMARY 处理方式一致，同时写昨日和今日
             ctx.update_strategy = UpdateStrategy.MISSING_SUMMARY
             return
 

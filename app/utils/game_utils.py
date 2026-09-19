@@ -1,16 +1,16 @@
-from typing import Optional
+from shard import Endpoints
 
 from app.core import EnvConfig
 
 
 class GameUtils:
     """存放和游戏相关的工具函数"""
-    
+
     @staticmethod
     def get_user_default_name(account_id: int) -> str:
         """根据账号 ID 生成用户的默认名称"""
         return f'User_{account_id}'
-    
+
     @staticmethod
     def get_clan_default_name() -> str:
         """获取公会的默认名称"""
@@ -19,7 +19,7 @@ class GameUtils:
     @staticmethod
     def check_uid(uid: int) -> bool:
         """检查 UID 是否在合法的 UID 范围内"""
-        uid_rule = EnvConfig.UID_RULE
+        uid_rule = Endpoints.uid_rule(EnvConfig.REGION)
         if uid_rule[0] <= uid <= uid_rule[1]:
             return True
         return False

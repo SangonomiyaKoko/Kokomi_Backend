@@ -1,15 +1,10 @@
-import random
-from dataclasses import dataclass
 from typing import Optional
+from dataclasses import dataclass
 
-from context import UpdateContext
-from models import BattleMode, DataType
-from settings import (
-    REGION, 
-    TOKEN, 
-    VORTEX_API, 
-    OFFICIAL_API
-)
+from ..models import BattleMode, DataType
+from ..settings import TOKEN, REGION, PROXY_CONFIG
+
+from shard import Endpoints
 
 
 @dataclass(frozen=True)
@@ -40,7 +35,9 @@ class EndpointRegistry:
     }
 
     @classmethod
-    def mode_key(cls, mode: BattleMode, data_type: DataType) -> str:
+    def mode_key(
+        cls, mode: BattleMode, data_type: DataType
+    ) -> str:
         """获取 (mode, data_type) 对应的接口路径段，用于解析响应"""
         for dtype, path in cls.MODE_PATHS[mode]:
             if dtype == data_type:
@@ -48,21 +45,27 @@ class EndpointRegistry:
         raise ValueError(f'Unknown path for {mode} {data_type}')
 
     @classmethod
-    def build_targets(cls, ctx: UpdateContext) -> list[RequestTarget]:
+    def build_targets(
+        cls, 
+        account_id: int, 
+        access_token: str, 
+        fetch_modes: set
+    ) -> list[RequestTarget]:
         """构建请求目标：恒有 account 端点 + 各变更模式的 data_type 端点"""
-        base_url = random.choice(VORTEX_API)
-        query = f'?ac={ctx.access_token}' if ctx.access_token else ''
+        base_url = Endpoints.vortex_api(REGION, PROXY_CONFIG)
+        query = f'?ac={access_token}' if access_token else ''
 
         targets = [
-            RequestTarget(url=f'{base_url}/api/accounts/{ctx.account_id}/{query}')
+            RequestTarget(url=f'{base_url}/api/accounts/{account_id}/{query}')
         ]
-        for mode in ctx.fetch_modes:
+        for mode in fetch_modes:
             if mode == BattleMode.CLAN and REGION != 'ru':
+                official_url = Endpoints.official_api(REGION)
                 # 只有直营服的 CLAN 模式数据需要通过 OFFICAL_API 接口获取
                 targets.append(RequestTarget(
                     url=(
-                        f'{OFFICIAL_API}/ships/stats/?application_id={TOKEN}'
-                        f'&account_id={ctx.account_id}&extra=clan'
+                        f'{official_url}/ships/stats/?application_id={TOKEN}'
+                        f'&account_id={account_id}&extra=clan'
                     ),
                     mode=BattleMode.CLAN,
                     data_type=DataType.DIV2
@@ -72,7 +75,7 @@ class EndpointRegistry:
                 for data_type, path in cls.MODE_PATHS[mode]:
                     targets.append(RequestTarget(
                         url=(
-                            f'{base_url}/api/accounts/{ctx.account_id}/ships/'
+                            f'{base_url}/api/accounts/{account_id}/ships/'
                             f'{path}/{query}'
                         ),
                         mode=mode,

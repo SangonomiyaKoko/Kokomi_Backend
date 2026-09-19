@@ -34,6 +34,8 @@ class UpdatePlan:
     user_recent: UserRecentUpdateParams
     user_summary: UserSummaryUpdateParams
 
+    exception_raised: bool  # 表示流程中是否发生异常
+
     def __init__(self) -> None:
         self.ship_map = ShipMapUpdateParams()
         self.ship_data = ShipDataUpdateParams()
@@ -41,6 +43,8 @@ class UpdatePlan:
         self.ship_latest = ShipLatestUpdateParams()
         self.user_recent = UserRecentUpdateParams()
         self.user_summary = UserSummaryUpdateParams()
+
+        self.exception_raised = False
 
     @property
     def planned_count(self) -> int:
@@ -53,6 +57,14 @@ class UpdatePlan:
             self.ship_data.count,
             self.user_recent.count
         ))
+
+    @property
+    def can_execute(self) -> bool:
+        """检查是否可以执行写入操作"""
+        return (
+            not self.exception_raised and 
+            self.planned_count > 0
+        )
 
 
 __all__ = [

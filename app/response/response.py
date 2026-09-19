@@ -50,10 +50,12 @@ class JSONResponse:
     API_UserHiddenProfile = {'status': 'ok', 'code': 1009, 'message': 'UserHiddenProfile'}
     API_AcqurieLockFailed = {'status': 'ok', 'code': 1010, 'message': 'AcqurieLockFailed'}
     API_NoStatisticsData = {'status': 'ok', 'code': 1011, 'message': 'NoStatisticsData'}
-    API_RecentNotEnable = {'status': 'ok', 'code': 1012, 'message': 'RecentNotEnable'}
-    API_UserNotActive = {'status': 'ok', 'code': 1013, 'message': 'UserNotActive'}
-    API_InvalidAccessToken = {'status': 'ok', 'code': 1014, 'message': 'InvalidAccessToken'}
-    API_InvalidAuthToken = {'status': 'ok', 'code': 1015, 'message': 'InvalidAuthToken'}
+    API_UserNotActive = {'status': 'ok', 'code': 1012, 'message': 'UserNotActive'}
+    API_InvalidAccessToken = {'status': 'ok', 'code': 1013, 'message': 'InvalidAccessToken'}
+    API_InvalidAuthToken = {'status': 'ok', 'code': 1014, 'message': 'InvalidAuthToken'}
+
+    API_RecentNotEnabled = {'status': 'ok', 'code': 1015, 'message': 'RecentNotEnabled'}
+    API_RecentNotInitialized = {'status': 'ok', 'code': 1016, 'message': 'RecentNotInitialized'}
 
     @staticmethod
     def success(

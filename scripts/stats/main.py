@@ -8,18 +8,21 @@ import redis
 import pymysql
 import requests
 import traceback
-from tqdm import tqdm
 from redis import Redis
 from requests import Session
 from pymysql import Connection
-from typing import Any, Iterator
 from pathlib import Path
 
-from logger import TqdmAwareLogger, get_formatted_date, logger
-from analytics import ShipStatsAggregator
-from api import fetch_latest_version
-from exception import write_exception
-from db_ops import (
+from shard import (
+    RedisKeys,
+    ServicesName,
+    progress_iterable
+)
+
+from .logger import logger, write_exception
+from .analytics import ShipStatsAggregator
+from .api import fetch_latest_version
+from .db_ops import (
     get_max_id,
     get_version,
     read_ship_ids,
@@ -30,7 +33,7 @@ from db_ops import (
     archive_base_table,
     anaylyze_mysql_tables
 )
-from recent import (
+from .recent import (
     ShipRecentAggregator,
     get_agg_rows,
     read_recent_data,
@@ -40,7 +43,7 @@ from recent import (
     update_status,
     insert_error
 )
-from updater import (
+from .updater import (
     get_pvp_cache,
     refresh_table_meta,
     update_ship_pvp_stats,
@@ -48,47 +51,16 @@ from updater import (
     update_battles_stats_table,
     update_rating_distribution_table
 )
-from settings import (
-    REGION, 
-    USE_TQDM,
-    CLIENT_NAME, 
+from .settings import (
+    REGION,
     SSL_CA_BUNDLE,
-    REFRESH_INTERVAL, 
+    REFRESH_INTERVAL,
     MYSQL_CONFIG,
     REDIS_CONFIG,
     BATCH_SIZE,
     SQLITE_DIR
 )
 
-
-def progress_iterable(
-    items: list[Any], desc: str, logger_obj: TqdmAwareLogger
-) -> Iterator[Any]:
-    """遍历列表，根据配置选择进度展示方式
-
-    当 USE_TQDM 为 True 时，使用 tqdm 进度条显示实时进度
-
-    Args:
-        items: 待遍历的列表
-        desc: 进度描述文本
-        logger_obj: TqdmAwareLogger 实例
-
-    Yields:
-        列表中的每个元素
-    """
-    if USE_TQDM:
-        # tqdm 模式：显示实时进度条
-        tqdm_desc = f'{get_formatted_date()} [INFO] {desc}'
-        with tqdm(items, desc=tqdm_desc, total=len(items)) as pbar:
-            for item in pbar:
-                pbar.set_postfix_str(str(item))
-                yield item
-    else:
-        # 日志模式：定期输出当前进度
-        total = len(items)
-        for idx, item in enumerate(items, 1):
-            logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
-            yield item
 
 def worker(mysql_connection: Connection, redis_client: Redis, session: Session) -> None:
     """执行统计聚合和排行榜刷新
@@ -166,8 +138,8 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
                 logger.enable_tqdm()
                 for _ in progress_iterable(
                     items=range(total_batches),
-                    desc="Processing cache",
-                    logger_obj=logger
+                    entry='cache',
+                    logger=logger
                 ):
                     # 从数据库获取一批原始缓存数据
                     rows = read_recent_data(cursor, last_uuid, BATCH_SIZE)
@@ -215,8 +187,8 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             logger.enable_tqdm()
             for batch_offset in progress_iterable(
                 items=range(0, max_id, BATCH_SIZE),
-                desc="Processing cache",
-                logger_obj=logger
+                entry='cache',
+                logger=logger
             ):
                 # 从数据库获取一批原始缓存数据
                 rows = get_pvp_cache(cursor, batch_offset, BATCH_SIZE)
@@ -245,8 +217,8 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
         logger.enable_tqdm()
         for file in progress_iterable(
             items=file_names,
-            desc="Processing file",
-            logger_obj=logger
+            entry='file',
+            logger=logger
         ):
             try:
                 file_path = Path(SQLITE_DIR / file)
@@ -325,13 +297,15 @@ def main():
     mysql_connection = None
     session = None
 
+    status_key = RedisKeys.services(ServicesName.STATS)
+
     while True:
         start = time.monotonic()
 
         try:
             redis_client = redis.Redis(**REDIS_CONFIG)
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
-            redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
+            redis_client.set(status_key, 1, ex=int(REFRESH_INTERVAL*1.5))
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
             session = requests.Session()
             if SSL_CA_BUNDLE:
@@ -357,7 +331,7 @@ def main():
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
                 if redis_client:
-                    redis_client.delete(f'status:{CLIENT_NAME}')
+                    redis_client.delete(status_key)
             except Exception as e:
                 error_name = type(e).__name__
                 logger.error(f'Failed to delete status key: {error_name}')
@@ -395,7 +369,7 @@ def handler(*_):
     os._exit(0)
 
 if __name__ == '__main__':
-    logger.info('Start running service: %s', CLIENT_NAME)
+    logger.info('Start running service: %s', ServicesName.STATS)
     logger.info('Service refresh interval: %s seconds', REFRESH_INTERVAL)
     logger.info('Current node region: %s', REGION.upper())
 

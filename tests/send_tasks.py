@@ -30,9 +30,14 @@ RABBITMQ_CONFIG = {
 }
 
 def main(task_id: int):
+    _broker = (
+        f"pyamqp://{RABBITMQ_CONFIG['user']}"
+        f":{RABBITMQ_CONFIG['password']}"
+        f"@{RABBITMQ_CONFIG['host']}/"
+    )
     celery_app = Celery(
         'producer',
-        broker=f"pyamqp://{RABBITMQ_CONFIG['user']}:{RABBITMQ_CONFIG['password']}@{RABBITMQ_CONFIG['host']}//",
+        broker=_broker,
         broker_connection_retry_on_startup=True
     )
     task_tag = 'user_refresh'

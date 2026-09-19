@@ -9,9 +9,6 @@ CREATE TABLE IF NOT EXISTS T_ship_base (
     tier             TINYINT      DEFAULT 1,        -- 船只等级 1-11
     type_id          TINYINT      DEFAULT 1,        -- 船只类型 ID
     nation_id        TINYINT      DEFAULT 1,        -- 国家 ID
-    rarity_id        TINYINT      DEFAULT NULL,     -- 稀有度 ID
-    premium          BOOLEAN      DEFAULT FALSE,    -- 是否为金币船
-    special          BOOLEAN      DEFAULT FALSE,    -- 是否为特种船
     index_code       VARCHAR(10)  DEFAULT NULL,     -- 索引代码
     ship_name        VARCHAR(50)  DEFAULT NULL,     -- 船只名称
 

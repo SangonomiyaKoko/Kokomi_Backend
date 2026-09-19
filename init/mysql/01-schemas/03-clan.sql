@@ -25,16 +25,13 @@ CREATE TABLE IF NOT EXISTS T_clan_stats (
     leading_team     TINYINT      DEFAULT NULL,    -- 主力队伍编号
     battles          INT          DEFAULT 0,       -- 战斗总数
     win_rate         FLOAT        DEFAULT 0,       -- 胜率
-    public_rating    INT          DEFAULT 1100,    -- 公开评分
+    public_rating    FLOAT        DEFAULT 1100,    -- 公开评分
     league           TINYINT      DEFAULT 4,       -- 段位 0紫金 1白金 2黄金 3白银 4青铜
     division         TINYINT      DEFAULT 2,       -- 分段 1/2/3
     division_rating  INT          DEFAULT 0,       -- 分段评分
     max_streak       INT          DEFAULT 0,       -- 最长连胜
     stage_type       TINYINT      DEFAULT NULL,    -- 晋级赛类型
-    stage_battles    TINYINT      DEFAULT 0,       -- 晋级赛场次
-    stage_victories  TINYINT      DEFAULT 0,       -- 晋级赛胜场
     stage_progress   VARCHAR(5)   DEFAULT NULL,    -- 晋级赛进度
-    team_data        JSON         DEFAULT NULL,    -- 队伍数据 JSON
     last_battle_at   TIMESTAMP    DEFAULT NULL,    -- 最后战斗时间
 
     created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -45,6 +42,24 @@ CREATE TABLE IF NOT EXISTS T_clan_stats (
     UNIQUE KEY uk_cid (clan_id),
 
     INDEX idx_last_battle (last_battle_at)
+);
+
+-- 公会队伍表
+-- 存储公会当前赛季的两支队伍数据，与 T_clan_base 按 clan_id 一一对应
+CREATE TABLE IF NOT EXISTS T_clan_team (
+    id               INT          AUTO_INCREMENT,
+
+    clan_id          BIGINT       NOT NULL,        -- 10位的非连续数字
+    season           TINYINT      DEFAULT 0,       -- 赛季 ID
+    team_alpha       JSON         DEFAULT NULL,    -- 队伍数据 JSON
+    team_bravo       JSON         DEFAULT NULL,    -- 队伍数据 JSON
+
+    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_cid (clan_id)
 );
 
 -- 公会成员表

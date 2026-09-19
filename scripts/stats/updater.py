@@ -1,6 +1,6 @@
 from pymysql.cursors import Cursor
 
-from logger import logger
+from .logger import logger
 
 
 def get_pvp_cache(cursor: Cursor, offset: int, batch_size: int):

@@ -1,7 +1,9 @@
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
-from app.utils import RatingUtils, GameUtils, StringUtils
+from app.utils import GameUtils
+
+from shard import RatingUtils, StringUtils
 
 class RankingModel:
     @ExceptionLogger.handle_database_exception_async
@@ -48,7 +50,7 @@ class RankingModel:
                     'battles': row[6],
                     'rating': row[7],
                     'win_rate': row[8],
-                    'win_rate_level': RatingUtils.get_metric_level(0, row[8]),
+                    'win_rate_level': RatingUtils.get_metric_level(row[8], 'win_rate'),
                     'avg_damage': row[9],
                     'avg_damage_level': row[10],
                     'avg_frags': row[11],
@@ -59,7 +61,7 @@ class RankingModel:
                     'max_damage': row[16]
                 }
                 if dogtag:
-                    result[account_id]['dogtag'] = StringUtils.parse_insignias(row[5])
+                    result[account_id]['dogtag'] = StringUtils.insignias_decode(row[5])
             
             return JSONResponse.success(result)
 

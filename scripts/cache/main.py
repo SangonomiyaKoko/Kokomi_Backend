@@ -9,61 +9,35 @@ import msgpack
 import pymysql
 import requests
 import traceback
-from tqdm import tqdm
 from redis import Redis
 from requests import Session
 from pymysql import Connection
-from typing import Any, Iterator
 
-from logger import TqdmAwareLogger, logger
-from updater import UserCacheUpdater
-from exception import write_exception
-from utils import get_formatted_date, get_current_timestamp
-from db_ops import (
+from shard import (
+    RedisKeys,
+    ServicesName,
+    TimeUtils,
+    progress_iterable
+)
+
+from .logger import logger, write_exception
+from .updater import UserCacheUpdater
+from .db_ops import (
     get_update_ids,
     read_ship_data,
-    read_ship_record,
     read_game_version,
-    update_ship_record,
     get_ship_leaderboard,
     read_enabled_ship_ids
 )
-from settings import (
-    REGION, 
-    USE_TQDM,
-    CLIENT_NAME, 
+from .settings import (
+    REGION,
     SSL_CA_BUNDLE,
     REFRESH_INTERVAL,
-    MYSQL_CONFIG, 
+    MYSQL_CONFIG,
     REDIS_CONFIG,
     DATA_DIR
 )
 
-
-def progress_iterable(
-    items: list[Any], desc: str, logger_obj: TqdmAwareLogger
-) -> Iterator[Any]:
-    """遍历列表，tqdm 模式下用进度条，否则日志输出进度。
-
-    Args:
-        items: 待遍历的列表。
-        desc: 进度描述文本。
-        logger_obj: TqdmAwareLogger 实例。
-
-    Yields:
-        列表中的每个元素。
-    """
-    if USE_TQDM:
-        tqdm_desc = f'{get_formatted_date()} [INFO] {desc}'
-        with tqdm(items, desc=tqdm_desc, total=len(items)) as pbar:
-            for item in pbar:
-                pbar.set_postfix_str(str(item))
-                yield item
-    else:
-        total = len(items)
-        for idx, item in enumerate(items, 1):
-            logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
-            yield item
 
 def worker(mysql_connection: Connection, redis_client: Redis, session: Session) -> None:
     """单轮缓存更新执行体
@@ -75,7 +49,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
         redis_client: Redis 客户端
     """
 
-    # 加载待更新用户列表、船只基准数据和极值记录
+    # 加载待更新用户列表和船只基准数据
     try:
         with mysql_connection.cursor() as cursor:
             # 读取需要更新的用户id列表
@@ -89,9 +63,6 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
 
             # 加载符合排行榜统计船只的数据
             ship_data = read_ship_data(cursor)
-
-            # 读取船只相关字段的最高记录信息
-            ship_record = read_ship_record(cursor)
 
             # 读取最新版本信息
             game_version, version_start = read_game_version(cursor)
@@ -108,12 +79,12 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     
     if len_update_ids > 0:
         # 主更新循环
-        updater = UserCacheUpdater(enabled_ship_ids, ship_record, ship_data, game_version, version_start)
+        updater = UserCacheUpdater(enabled_ship_ids, ship_data, game_version, version_start)
         logger.enable_tqdm()
         for update_data in progress_iterable(
-            items=update_ids, 
-            desc="Processing cache",
-            logger_obj=logger
+            items=update_ids,
+            entry='cache',
+            logger=logger
         ):
             updater.main(
                 mysql_connection,
@@ -123,25 +94,9 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             )
         logger.disable_tqdm()
 
-        try:
-            with mysql_connection.cursor() as cursor:
-                row_count = update_ship_record(cursor, updater.ship_record)
-                logger.info(f"Highest record of ships refreshed: {row_count}")
-                
-            mysql_connection.commit()
-        except Exception as e:
-            mysql_connection.rollback()
-            error_name = type(e).__name__
-            logger.error(f"Database operation exception: {error_name}")
-            write_exception(
-                error_type="DatabaseError",
-                error_name=error_name,
-                error_info=traceback.format_exc()
-            )
-    
     total_top50_users = 0
     payload = {
-        'time': get_current_timestamp(),
+        'time': TimeUtils.timestamp(),
         'data': {}
     }
     try:
@@ -183,7 +138,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     logger.info(f'Cached top50 users: {total_top50_users}')
     
     packed_bytes = msgpack.packb(payload, use_bin_type=True)
-    with open(DATA_DIR / 'trash/ship_ranking.msgpack', "wb") as f:
+    with open(DATA_DIR / 'local/ship_ranking.msgpack', "wb") as f:
         f.write(packed_bytes)
 
 
@@ -198,13 +153,15 @@ def main():
     mysql_connection = None
     session = None
 
+    status_key = RedisKeys.services(ServicesName.CACHE)
+
     while True:
         start = time.monotonic()
-        
+
         try:
             redis_client = redis.Redis(**REDIS_CONFIG)
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
-            redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
+            redis_client.set(status_key, 1, ex=int(REFRESH_INTERVAL*1.5))
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
             session = requests.Session()
             if SSL_CA_BUNDLE:
@@ -229,7 +186,7 @@ def main():
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
                 if redis_client:
-                    redis_client.delete(f'status:{CLIENT_NAME}')
+                    redis_client.delete(status_key)
             except Exception as e:
                 error_name = type(e).__name__
                 logger.error(f'Failed to delete status key: {error_name}')
@@ -268,7 +225,7 @@ def handler(*_):
     os._exit(0)
 
 if __name__ == '__main__':
-    logger.info('Start running service: %s', CLIENT_NAME)
+    logger.info('Start running service: %s', ServicesName.CACHE)
     logger.info('Service refresh interval: %s seconds', REFRESH_INTERVAL)
     logger.info('Current node region: %s', REGION.upper())
 

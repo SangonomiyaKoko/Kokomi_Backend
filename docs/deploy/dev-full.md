@@ -81,22 +81,22 @@ python init/scripts/insert_ship.py
 # 建议每步执行完成再执行下一个
 
 # 通过读取当前赛季工会战排名，获取到数百个工会ID
-python scripts/season/main.py
+python -m season.main
 
 # 加载用户集（通过读取工会ID下的用户列表）
-python scripts/member/main.py 
+python -m scripts.member.main
 
 # 将需要更新的用户 id 发送至 MQ
-python scripts/account/main.py 
+python -m scripts.account.main
 
 # 启动 Celery 消费者
 celery --app tasks.main:celery_app worker -Q refresh_queue -P solo --loglevel=info --concurrency=1
 
 # 读取用户的缓存数据
-python scripts/cache/main.py 
+python -m scripts.cache.main
 
 # 统计船只的服务器玩家数据
-python scripts/stats/main.py 
+python -m scripts.stats.main
 
 # 运行 API 服务
 uvicorn app.main:app --host 0.0.0.0 --port 8000

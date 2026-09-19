@@ -1,13 +1,13 @@
 from sqlite3 import Cursor
+from shard import StringUtils
 
-from params import ShipDataUpdateParams
-from models import (
+from ..models import (
     DataType,
     BattleMode,
     ShipDataEntry,
     ShipBattleStats
 )
-from utils import StringUtils
+from ..params import ShipDataUpdateParams
 
 
 class ShipDataRepository:
@@ -37,17 +37,17 @@ class ShipDataRepository:
         if result[0]:
             data.set_type_stats(
                 DataType.SOLO,
-                ShipBattleStats.from_row(StringUtils.stats_decode(result[0]))
+                ShipBattleStats.from_row(StringUtils.index_data_decode(result[0]))
             )
         if result[1]:
             data.set_type_stats(
                 DataType.DIV2,
-                ShipBattleStats.from_row(StringUtils.stats_decode(result[1]))
+                ShipBattleStats.from_row(StringUtils.index_data_decode(result[1]))
             )
         if result[2]:
             data.set_type_stats(
                 DataType.DIV3,
-                ShipBattleStats.from_row(StringUtils.stats_decode(result[2]))
+                ShipBattleStats.from_row(StringUtils.index_data_decode(result[2]))
             )
         return data
 

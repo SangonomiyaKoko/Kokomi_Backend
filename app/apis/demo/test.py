@@ -1,3 +1,5 @@
+from shard import ServicesName
+
 from app.core import EnvConfig
 from app.constants import ClanColor
 from app.loggers import ExceptionLogger
@@ -34,8 +36,7 @@ class TestAPI:
     @ExceptionLogger.handle_program_exception_async
     async def clear_service_logs() -> ResponseDict:
         """清空所有服务的异常日志文件（仅清空内容，保留文件）"""
-        constant = EnvConfig.get_constants()
-        services = constant.SERVICE_LIST
+        services = ServicesName.to_list()
         clear_count = 0
 
         for service in services:

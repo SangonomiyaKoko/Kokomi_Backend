@@ -1,61 +1,75 @@
 from dataclasses import replace
 
-from context import UpdateContext, RunContext
-from models import (
+from shard import TimeUtils, PolicyUtils
+
+from ..core import UpdateContext, RunContext
+from ..models import (
     BattleMode,
-    SkipReason,
-    UpdateReason,
-    DisableReason,
+    SkippedReason,
+    UpdatedReason,
+    DisabledReason,
     UpdateResult,
     UpdateStrategy,
     FULL_UPDATE_MODES,
     BASE_UPDATE_MODES
 
 )
-from utils import TimeUtils
-from settings import REGION, USER_REFRESH_TIMEOUT
+from ..settings import (
+    TOKEN,
+    REGION, 
+    TIMEZONE
+)
 
 class UpdateEvaluate:
     """用户更新评估器，判定本次需要更新的模式"""
 
-    @staticmethod
-    def main(run_ctx: RunContext, ctx: UpdateContext) -> UpdateResult:
+    @classmethod
+    def main(
+        cls, run_ctx: RunContext, ctx: UpdateContext
+    ) -> UpdateResult:
         """基于更新策略判定是否需要触发刷新"""
         stats = ctx.user_stats
 
         # 用户当前隐藏战绩
         if stats.is_hidden:
-            # 不应该出现新用户但是当前隐藏战绩的情况，直接丢弃
+            # 不应该出现新用户但是当前隐藏战绩，直接丢弃
+            # 首次更新必须确保存在战绩数据用以写入数据库
+            # 否则写入两条hidden记录即无意义又增加后续判断分支
             if ctx.update_strategy == UpdateStrategy.NEW_USER:
-                return UpdateResult.disabled(DisableReason.USER_HIDDEN)
+                return UpdateResult.disabled(DisabledReason.USER_HIDDEN)
 
             # 按需将今日 summary 更新为隐藏状态
             if ctx.latest_summary.is_public:
                 # 当前 summary 有战绩但更新时间非今日 → 更新为隐藏
-                if TimeUtils.get_reset_date(stats.updated_at) != ctx.now_date:
-                    ctx.update_plan.user_summary.set_update_params_from_hidden(ctx.now_date, ctx.update_timestamp)
+                update_date = TimeUtils.reset_date(TIMEZONE, stats.updated_at)
+                if update_date != ctx.now_date:
+                    ctx.update_plan.user_summary.set_update_params_from_hidden(ctx.now_date, stats.updated_at)
             else:
                 # 当前 summary 已是隐藏但更新时间过旧 → 刷新时间戳
                 if stats.is_cache_outdated(ctx.latest_summary.updated_at):
-                    ctx.update_plan.user_summary.set_update_params_from_hidden(ctx.now_date, ctx.update_timestamp)
+                    ctx.update_plan.user_summary.set_update_params_from_hidden(ctx.now_date, stats.updated_at)
 
-            return UpdateResult.skip(SkipReason.USER_HIDDEN)
+            return UpdateResult.skipped(SkippedReason.USER_HIDDEN)
 
         # 新用户，首次强制全量更新，必须确保后续更新中数据库中有所有模式的完整快照数据
         if ctx.update_strategy == UpdateStrategy.NEW_USER:
-            if REGION == 'cn':
+            if REGION == 'cn' or TOKEN is None:
                 # 中国服未提供 CLAN 模式的接口
-                return UpdateResult.need_update(UpdateReason.FIRST_UPDATE, BASE_UPDATE_MODES)
+                ctx.fetch_modes = BASE_UPDATE_MODES
+                return UpdateResult.other(UpdatedReason.FIRST_UPDATE)
             elif REGION == 'ru':
                 # 俄罗斯服 CLAN 模式的接口支持通过 ac 查询数据
-                return UpdateResult.need_update(UpdateReason.FIRST_UPDATE, FULL_UPDATE_MODES)
+                ctx.fetch_modes = FULL_UPDATE_MODES
+                return UpdateResult.other(UpdatedReason.FIRST_UPDATE)
             elif ctx.access_token:
                 # 已配置 ac 的直营服用户默认当前隐藏战绩，跳过 CLAN 模式的更新
                 # 直营服获取 CLAN 模式的接口不支持通过 ac 查询数据
-                return UpdateResult.need_update(UpdateReason.FIRST_UPDATE, BASE_UPDATE_MODES)
+                ctx.fetch_modes = BASE_UPDATE_MODES
+                return UpdateResult.other(UpdatedReason.FIRST_UPDATE)
             else:
                 # 未隐藏战绩用户，正常读取所有的模式数据
-                return UpdateResult.need_update(UpdateReason.FIRST_UPDATE, FULL_UPDATE_MODES)
+                ctx.fetch_modes = FULL_UPDATE_MODES
+                return UpdateResult.other(UpdatedReason.FIRST_UPDATE)
 
         # 正常用户，检测模式变更以确定实际需要更新的模式
         fetch_modes = set()
@@ -71,40 +85,26 @@ class UpdateEvaluate:
             if stats.battles_for(BattleMode.CLAN) != ctx.local_data[BattleMode.CLAN].battles:
                 fetch_modes.add(BattleMode.CLAN)
         elif REGION != 'cn':
-            # 直营服根据时间段和用户活跃度数据触发更新
-            clan_mode = ctx.local_data[BattleMode.CLAN].mode
-            if (
-                run_ctx.period_start_ts and 
-                not ctx.access_token and 
-                (clan_mode.update_time or 0) <= run_ctx.period_start_ts
-            ):
-                # 活跃时间段内、未配置 AC 且未在活跃期间更新过的用户，才可能触发 CLAN 更新
-                if (
-                    ctx.user_stats.updated_at >= run_ctx.period_start_ts
-                    and ctx.current_timestamp - ctx.user_stats.last_battle_at >= 36000
-                ):
-                    # 活跃时间段内更新过且近 10h 无战斗，仅刷新记录的更新时间戳
-                    ctx.update_plan.mode_latest.set_special_params(ctx.current_timestamp)
-                elif run_ctx.clan_update_count < 60:
-                    # 每轮循环最多允许更新 60 个用户，避免打断其他正常用户的更新
-                    fetch_modes.add(BattleMode.CLAN)
-                    run_ctx.clan_update_count += 1
+            need_update = cls._update_direct_clan(run_ctx, ctx)
+            if need_update:
+                fetch_modes.add(BattleMode.CLAN)
+                run_ctx.clan_update_count += 1
 
         if len(fetch_modes) > 0:
-            return UpdateResult.need_update(UpdateReason.STATS_CHANGED, fetch_modes)
+            ctx.fetch_modes = fetch_modes
+            return UpdateResult.other(UpdatedReason.STATS_CHANGED)
 
         # 保底更新检查：当上游未按时触发刷新时，基于用户等级的容忍超时时间兜底触发更新
         next_refresh_at = ctx.user_record.next_refresh_at
         if next_refresh_at and not stats.is_hidden:
-            level_key = str(ctx.user_record.user_level)
-            timeout = USER_REFRESH_TIMEOUT.get(level_key, 86400)
+            timeout = PolicyUtils.recent_fallback_timeout(ctx.user_record.user_level)
             if ctx.current_timestamp > next_refresh_at + timeout:
-                # 强制更新一次基础模式数据 PVP 和 RANK
-                return UpdateResult.need_update(UpdateReason.FALLBACK_REFRESH, set())
+                # 触发强制更新策略
+                return UpdateResult.other(UpdatedReason.FALLBACK_REFRESH)
 
         # 跳过更新时间戳一致时重复更新
         if ctx.latest_summary.updated_at >= stats.updated_at:
-            return UpdateResult.skip(SkipReason.STATS_UNCHANGED)
+            return UpdateResult.skipped(SkippedReason.STATS_UNCHANGED)
 
         # 复用原本的数据索引
         indices = {
@@ -118,12 +118,48 @@ class UpdateEvaluate:
             if ctx.access_token:
                 indices[BattleMode.CLAN] = None
             else:
+                # 用 local_data 中的 CLAN battles 替换 stats 中的 rating_battles
                 new_stats = replace(
                     ctx.user_stats, 
                     rating_battles=ctx.local_data[BattleMode.CLAN].battles
                 )
                 ctx.user_stats = new_stats
 
+        # 更新 summary 数据
         ctx.update_plan.user_summary.set_update_params_from_stats(ctx.now_date, stats, indices)
 
-        return UpdateResult.skip(SkipReason.STATS_UNCHANGED)
+        return UpdateResult.skipped(SkippedReason.STATS_UNCHANGED)
+
+    @staticmethod
+    def _update_direct_clan(
+        run_ctx: RunContext,
+        ctx: UpdateContext
+    ) -> bool:
+        """处理直营服的 CLAN 模式更新"""
+        clan_mode = ctx.local_data[BattleMode.CLAN].mode
+
+        if not run_ctx.period_start_ts:
+            # 未在 CLAN 模式更新活跃期
+            return False
+
+        if not TOKEN or ctx.access_token:
+            # 未配置接口 TOKEN 或者配置了用户 AC
+            return False
+
+        if (clan_mode.update_time or 0) > run_ctx.period_start_ts:
+            # 在 CLAN 模式更新活跃期中有过更新数据
+            return False
+        
+        if (
+            ctx.user_stats.updated_at >= run_ctx.period_start_ts and 
+            ctx.current_timestamp - ctx.user_stats.last_battle_at >= 36000
+        ):
+            # 如果在 CLAN 模式更新活跃期中有过更新，且用户 lbt 说明用户没有战斗数据在此期间
+            # 则判断用户没有在本次 CLAN 模式中有过战斗记录，因此仅刷新数据的更新时间戳
+            ctx.update_plan.mode_latest.set_special_params(ctx.current_timestamp)
+            return False
+
+        if run_ctx.clan_update_count < 60:
+            return True
+
+        return False

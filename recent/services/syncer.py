@@ -1,176 +1,20 @@
 from pymysql import Connection
 from pymysql.cursors import Cursor
 
-from db import mysql_transaction
-from utils import TimeUtils
-from settings import (
-    REGION, 
-    USER_ACTIVITY_THRESHOLDS,
-    SPECIAL_ACTIVITY_STRATEGY,
-    USER_ACTIVITY_STRATEGY
-)
+from shard import TimeUtils, ParseUtils, PolicyUtils
+
+from ..db_ops import mysql_transaction
+from ..settings import REGION
+
 
 class UserStatsSyncer:
-    """用户基础信息同步器
-
-    从外部 API 返回的账号数据中提取用户基础信息、Dog Tag 标识和
-    各模式战斗场次统计，并同步写入 MySQL 的 T_user_base 和 T_user_stats 表。
-    """
-    @staticmethod
-    def _get_insignias(data: dict) -> str:
-        """从 DogTag 数据中生成标识字符串"""
-        if not data:
-            return None
-        
-        keys = [
-            "texture_id",
-            "symbol_id",
-            "border_color_id",
-            "background_color_id",
-            "background_id"
-        ]
-
-        if any(k not in data for k in keys):
-            return None
-        
-        return "-".join(str(data[k]) for k in keys)
-    
-    @staticmethod
-    def _get_activity_level(current_timestamp: int, last_battle_time: int | None) -> int:
-        """根据最后战斗时间戳返回活跃等级（0-9）"""
-        if not last_battle_time or last_battle_time <= 0:
-            return 0
-
-        diff = current_timestamp - last_battle_time
-
-        for threshold, level in USER_ACTIVITY_THRESHOLDS:
-            if diff <= threshold:
-                return level
-
-        return 9
-
-    @classmethod
-    def _extract_user_data(cls, account_id: int, current_timestamp: int, response: dict) -> dict:
-        """从 API 响应中提取用户基础数据"""
-        user_data = {
-            'username': None,
-            'register_time': None,
-            'insignias': None,
-            'is_enabled': 1,
-            'is_public': 1,
-            'activity_level': 0,
-            'total_battles': 0,
-            'pve_battles': 0,
-            'pvp_battles': 0,
-            'ranked_battles': 0,
-            'rating_battles': 0,
-            'karma': 0,
-            'last_battle_at': None,
-            'random_stats': {},
-            'ranked_stats': {}
-        }
-        
-        user_info = response.get(str(account_id))
-        
-        # 无有效数据
-        if user_info is None:
-            user_data['is_enabled'] = 0
-            return user_data
-
-        # 隐藏战绩
-        if 'hidden_profile' in user_info:
-            user_data['is_public'] = 0
-            user_data['username'] = user_info['name']
-            return user_data
-        
-        # 无有效数据
-        if 'statistics' not in user_info:
-            user_data['is_enabled'] = 0
-            return user_data
-        
-        # 无数据账号
-        if 'basic' not in user_info['statistics']:
-            user_data['username'] = user_info['name']
-            register_time = int(user_info.get('created_at', 0))
-            user_data['register_time'] = register_time if register_time != 0 else None
-            return user_data
-        
-        # 正常有数据用户
-        statistics = user_info['statistics']
-        basic_data = statistics.get('basic', {})
-        leveling_points = basic_data.get('leveling_points', 0)
-        
-        # 中国服主播体验账号的特殊等级点数偏移量（1,000,000）
-        # 国服 API 返回的 leveling_points 包含了此偏移，需减去以得到真实场次
-        if leveling_points >= 1_000_000:
-            leveling_points -= 1_000_000
-        
-        # 处理时间戳字段
-        register_time = int(user_info.get('created_at', 0))
-        last_battle_time = basic_data.get('last_battle_time', 0)
-        if last_battle_time == 0:
-            last_battle_time = None
-
-        pve_battles = statistics.get('pve', {}).get('battles_count', 0)
-        pvp_battles = statistics.get('pvp', {}).get('battles_count', 0)
-        ranked_battles = statistics.get('rank_solo', {}).get('battles_count', 0)
-        
-        user_data.update({
-            'username': user_info['name'],
-            'register_time': register_time if register_time not in (0, None) else None,
-            'insignias': cls._get_insignias(user_info.get('dog_tag')),
-            'activity_level': cls._get_activity_level(current_timestamp, last_battle_time),
-            'total_battles': leveling_points,
-            'karma': basic_data.get('karma', 0),
-            'last_battle_at': last_battle_time,
-            'pve_battles': pve_battles,
-            'pvp_battles': pvp_battles,
-            'ranked_battles': ranked_battles
-        })
-        
-        # 处理俄服的评分战数据
-        if REGION == 'ru':
-            rating_count = 0
-            rating_count += statistics.get('rating_solo', {}).get('battles_count', 0)
-            rating_count += statistics.get('rating_div', {}).get('battles_count', 0)
-            user_data['rating_battles'] = rating_count
-
-        if pvp_battles > 0:
-            user_data['random_stats'] = {
-                'battles': pvp_battles,
-                'total_exp': statistics['pvp']['exp'],
-                'win_rate': round(statistics['pvp']['wins']/pvp_battles*100, 2),
-                'avg_damage': int(statistics['pvp']['damage_dealt']/pvp_battles),
-                'avg_frags': round(statistics['pvp']['frags']/pvp_battles, 2),
-                'avg_exp': int(statistics['pvp']['original_exp']/pvp_battles),
-                'max_exp': statistics['pvp']['max_exp'],
-                'max_frags': statistics['pvp']['max_frags'],
-                'max_planes': statistics['pvp']['max_planes_killed'],
-                'max_damage': statistics['pvp']['max_damage_dealt'],
-                'max_scouting': statistics['pvp']['max_scouting_damage'],
-                'max_potential': statistics['pvp']['max_total_agro']
-            }
-        
-        if ranked_battles > 0:
-            user_data['ranked_stats'] = {
-                'battles': ranked_battles ,
-                'total_exp': statistics['rank_solo']['exp'],
-                'win_rate': round(statistics['rank_solo']['wins']/ranked_battles*100, 2),
-                'avg_damage': int(statistics['rank_solo']['damage_dealt']/ranked_battles),
-                'avg_frags': round(statistics['rank_solo']['frags']/ranked_battles, 2),
-                'avg_exp': int(statistics['rank_solo']['original_exp']/ranked_battles),
-                'max_exp': statistics['rank_solo']['max_exp'],
-                'max_frags': statistics['rank_solo']['max_frags'],
-                'max_planes': statistics['rank_solo']['max_planes_killed'],
-                'max_damage': statistics['rank_solo']['max_damage_dealt'],
-                'max_scouting': statistics['rank_solo']['max_scouting_damage'],
-                'max_potential': statistics['rank_solo']['max_total_agro']
-            }
-        
-        return user_data
+    """用户基础信息同步器"""
 
     @staticmethod
-    def _fetch_user_base_row(cursor: Cursor, account_id: int) -> tuple | None:
+    def _fetch_user_base_row(
+        cursor: Cursor, 
+        account_id: int
+    ) -> tuple | None:
         """从 T_user_base 表查询用户基本信息行"""
         sql = """
             SELECT
@@ -190,23 +34,26 @@ class UserStatsSyncer:
         return cursor.fetchone()
 
     @staticmethod
-    def _update_user_base(cursor: Cursor, account_id: int, user_data: dict, old_username: str, old_timestamp: int) -> None:
+    def _update_user_base(
+        cursor: Cursor, 
+        account_id: int, 
+        user_data: dict, 
+        old_username: str, 
+        old_timestamp: int
+    ) -> None:
         """更新 T_user_base 表"""
-        if not user_data['username']:
+        if not user_data['is_enabled']:
             return
-        
-        if user_data['register_time'] is None:
-            # 有名称但无注册时间 -> 隐藏战绩用户
+        elif not user_data['is_public']:
             sql = """
-                UPDATE T_user_base 
-                SET 
-                    username = %s, 
-                    updated_at = NOW() 
+                UPDATE T_user_base
+                SET
+                    username = %s,
+                    updated_at = NOW()
                 WHERE account_id = %s;
             """
             cursor.execute(sql, [user_data['username'], account_id])
         else:
-            # 有名称和注册时间 -> 正常用户
             sql = """
                 UPDATE T_user_base 
                 SET 
@@ -217,7 +64,12 @@ class UserStatsSyncer:
                 WHERE account_id = %s;
             """
             cursor.execute(
-                sql, [user_data['username'], user_data['register_time'], user_data['insignias'], account_id]
+                sql, [
+                    user_data['username'], 
+                    user_data['register_time'], 
+                    user_data['insignias'], 
+                    account_id
+                ]
             )
         
         # 检测昵称变更
@@ -233,9 +85,16 @@ class UserStatsSyncer:
             cursor.execute(sql, [account_id, old_username])
 
     @staticmethod
-    def _update_user_stats(cursor: Cursor, account_id: int, user_level: int, user_data: dict, current_timestamp: int, return_refresh_time: bool) -> int | None:
+    def _update_user_stats(
+        cursor: Cursor, 
+        account_id: int, 
+        user_level: int, 
+        activity_level: int,
+        user_data: dict, 
+        current_timestamp: int
+    ) -> int | None:
         """更新 T_user_stats 表"""
-        if user_data['is_enabled'] == 0:
+        if not user_data['is_enabled']:
             # 账号不存在
             sql = """
                 UPDATE T_user_stats 
@@ -247,7 +106,7 @@ class UserStatsSyncer:
                 WHERE account_id = %s;
             """
             cursor.execute(sql, [account_id])
-        elif user_data['is_public'] == 0:
+        elif not user_data['is_public']:
             # 账号隐藏战绩
             sql = """
                 UPDATE T_user_stats 
@@ -259,22 +118,9 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            if user_level > 0:
-                interval_seconds = 86400
-            else:
-                interval_seconds = 30*86400
+            interval_seconds = PolicyUtils.user_hidden_policy(user_level)
             cursor.execute(sql, [interval_seconds, account_id])
         else:
-            if user_level == 2 and user_data['activity_level'] == 1:
-                diff_timestamp = current_timestamp - user_data['last_battle_at']
-                interval_seconds = 600  # 默认 10min
-                for item in SPECIAL_ACTIVITY_STRATEGY:
-                    if diff_timestamp < item[0]:
-                        interval_seconds = item[1]
-                        break
-            else:
-                interval_seconds = USER_ACTIVITY_STRATEGY.get(f"{user_level}-{user_data['activity_level']}", 30*86400)
-
             sql = """
                 UPDATE T_user_stats 
                 SET 
@@ -293,27 +139,46 @@ class UserStatsSyncer:
                 WHERE account_id = %s;
             """
 
+            interval_seconds = PolicyUtils.user_normal_policy(
+                timestamp=current_timestamp,
+                user_level=user_level,
+                activity_level=activity_level,
+                lbt=user_data['last_battle_at']
+            )
             cursor.execute(
                 sql,
-                [user_data['activity_level'], user_data['total_battles'], user_data['pve_battles'], 
-                user_data['pvp_battles'], user_data['ranked_battles'], user_data['rating_battles'], 
-                user_data['karma'], user_data['last_battle_at'], interval_seconds, account_id]
+                [
+                    activity_level, 
+                    user_data['total_battles'], 
+                    user_data['pve_battles'], 
+                    user_data['pvp_battles'], 
+                    user_data['ranked_battles'], 
+                    user_data['rating_battles'], 
+                    user_data['karma'], 
+                    user_data['last_battle_at'], 
+                    interval_seconds, 
+                    account_id
+                ]
             )
 
-        if return_refresh_time:
-            sql = """
-                SELECT 
-                    UNIX_TIMESTAMP(updated_at) 
-                FROM T_user_stats
-                WHERE account_id = %s;
-            """
-            cursor.execute(sql, [account_id])
-            return cursor.fetchone()[0]
+        sql = """
+            SELECT 
+                UNIX_TIMESTAMP(updated_at) 
+            FROM T_user_stats
+            WHERE account_id = %s;
+        """
+        cursor.execute(sql, [account_id])
+        return cursor.fetchone()[0]
 
     @staticmethod
-    def _update_user_battles(cursor: Cursor, account_id: int, table_name: str, user_data: dict) -> None:
+    def _update_user_battles(
+        cursor: Cursor, 
+        account_id: int, 
+        table_name: str, 
+        user_data: dict
+    ) -> None:
         """更新 T_user_random / T_user_ranked 表"""
-        if user_data == {}:
+        if user_data is None:
             return
         
         sql = f"""
@@ -335,14 +200,28 @@ class UserStatsSyncer:
             WHERE account_id = %s;
         """
         cursor.execute(sql, [
-            user_data['battles'], user_data['total_exp'], user_data['win_rate'], user_data['avg_damage'], 
-            user_data['avg_frags'], user_data['avg_exp'], user_data['max_exp'], user_data['max_frags'], 
-            user_data['max_planes'], user_data['max_damage'], user_data['max_scouting'], user_data['max_potential'], 
+            user_data['battles'], 
+            user_data['total_exp'], 
+            user_data['win_rate'], 
+            user_data['avg_damage'], 
+            user_data['avg_frags'], 
+            user_data['avg_exp'], 
+            user_data['max_exp'], 
+            user_data['max_frags'], 
+            user_data['max_planes'], 
+            user_data['max_damage'], 
+            user_data['max_scouting'], 
+            user_data['max_potential'], 
             account_id
         ])
 
     @staticmethod
-    def _update_user_cache(cursor: Cursor, account_id: int, user_data: dict, old_pvp: int) -> None:
+    def _update_user_cache(
+        cursor: Cursor, 
+        account_id: int, 
+        user_data: dict, 
+        old_pvp: int
+    ) -> None:
         """更新 T_user_cache 表"""
         if user_data['is_enabled'] and user_data['is_public']:
             if old_pvp != user_data['pvp_battles']:
@@ -372,16 +251,32 @@ class UserStatsSyncer:
             cursor.execute(sql, [account_id])
 
     @classmethod
-    def refresh(cls, conn: Connection, account_id: int, api_result: dict, return_refresh_time: bool = False) -> int | str | None:
+    def refresh(
+        cls, 
+        conn: Connection, 
+        account_id: int, 
+        api_result: dict
+    ) -> int | str:
         """基于用户基本信息接口的数据，刷新数据库的用户数据表"""
-        current_timestamp = TimeUtils.get_current_timestamp()
+        current_timestamp = TimeUtils.timestamp()
             
         try:
-            user_data = cls._extract_user_data(account_id, current_timestamp, api_result)
+            user_data = ParseUtils.user_basic_data(
+                region=REGION,
+                account_id=account_id, 
+                response=api_result
+            )
+            activity_level = PolicyUtils.user_activity_level(
+                timestamp=current_timestamp,
+                lbt=user_data['last_battle_at']
+            )
 
             with mysql_transaction(conn, account_id) as cursor:
                 # 从数据库中读取用户的 username
-                existing = cls._fetch_user_base_row(cursor, account_id)
+                existing = cls._fetch_user_base_row(
+                    cursor=cursor, 
+                    account_id=account_id
+                )
                 
                 if existing is None:
                     return "UserNotInDB"
@@ -389,22 +284,49 @@ class UserStatsSyncer:
                 old_username, old_timestamp, random, ranked, user_level = existing
 
                 if random is None or ranked is None:
-                    return "UserNotInDB"
+                    return "DataIntegrityError"
 
                 # 更新 T_user_base
-                cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
+                cls._update_user_base(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    user_data=user_data, 
+                    old_username=old_username, 
+                    old_timestamp=old_timestamp
+                )
                 
                 # 更新 T_user_stats
-                update_timestamp = cls._update_user_stats(cursor, account_id, user_level, user_data, current_timestamp, return_refresh_time)
+                update_timestamp = cls._update_user_stats(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    user_level=user_level, 
+                    activity_level=activity_level, 
+                    user_data=user_data, 
+                    current_timestamp=current_timestamp
+                )
 
                 # 更新 T_user_random / T_user_ranked
-                cls._update_user_battles(cursor, account_id, 'T_user_random', user_data['random_stats'])
-                cls._update_user_battles(cursor, account_id, 'T_user_ranked', user_data['ranked_stats'])
+                cls._update_user_battles(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    table_name='T_user_random', 
+                    user_data=user_data['random_stats']
+                )
+                cls._update_user_battles(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    table_name='T_user_ranked', 
+                    user_data=user_data['ranked_stats']
+                )
 
                 # 更新 T_user_cache
-                cls._update_user_cache(cursor, account_id, user_data, random)
+                cls._update_user_cache(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    user_data=user_data, 
+                    old_pvp=random
+                )
 
-                if return_refresh_time:
-                    return update_timestamp
-        except Exception:
-            return
+                return update_timestamp
+        except Exception as e:
+            return type(e).__name__

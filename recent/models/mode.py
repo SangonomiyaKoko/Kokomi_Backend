@@ -45,38 +45,46 @@ class UpdateStrategy(Enum):
 
 class UpdateAction(Enum):
     """更新动作"""
-    CONTINUE = auto()
-    NEED_UPDATE = auto()
-    SKIP = auto()
+    FAILED = auto()
+    SKIPPED = auto()
     DISABLED = auto()
+    CONTINUE = auto()
 
-class SkipReason(Enum):
-    """跳过原因"""
-    USER_HIDDEN = "UserHidden"
-    NO_LOCAL_DATA = "NoLocalData"
-    NO_FETCH_MODES = 'NoFetchModes'
-    NOT_CONFIGURED = "NotConfigured"
-    STATS_UNCHANGED = "StatsUnchanged"
+class FailedReason(Enum):
     OBTAIN_DATA_FAILED = "ObtainDataFailed"
+    ACQUIRE_LOCK_FAILED = "AcquireLockFailed"
     DB_OPERATION_FAILED = "DbOperationFailed"
     MYSQL_REFRESH_FAILED = "MySQLRefreshFailed"
 
-class DisableReason(Enum):
-    """禁用原因"""
-    USER_HIDDEN = "UserHidden"
-    USER_INVALID = "UserInvalid"                # 通用兜底原因
-    USER_INACTIVE = "UserInactive"
-    USER_NO_BATTLE = "UserNoBattle"
-    USER_HIDDEN_TOO_LONG = "UserHiddenTooLong"
-    DATA_INTEGRITY_ERROR = "DataIntegrityError"
-    USER_DISABLED = "UserDisabled"              # 本地库中已被停用
-    USER_NO_BATTLE_RECORD = "UserNoBattleRecord"  # 从未有过战斗记录
-    ACCOUNT_NOT_FOUND = "AccountNotFound"       # API 中无此账号
-    ACCOUNT_NO_STATS = "AccountNoStats"         # 账号存在但无统计数据
-
-class UpdateReason(Enum):
+class UpdatedReason(Enum):
     """更新原因"""
     CONTINUE = "Continue"
     FIRST_UPDATE = "FirstUpdate"
     STATS_CHANGED = "StatsChanged"
     FALLBACK_REFRESH = "FallbackRefresh"
+
+class SkippedReason(Enum):
+    """跳过原因"""
+    USER_HIDDEN = "UserHidden"
+    NOT_CONFIGURED = "NotConfigured"  # 未从 MySQL 中读取到有效数据
+    STATS_UNCHANGED = "StatsUnchanged"
+    HIDDEN_PROFILE = "HiddenProfile"
+    NO_FETCH_MODES = "NoFetchModes"
+
+class DisabledReason(Enum):
+    """禁用原因"""
+    USER_HIDDEN = "UserHidden"    # 首次更新不允许隐藏战绩状态
+    ACCOUNT_INVALID = "AccountInvalid"    # 账号无效或已被停用
+    ACCOUNT_NO_STATS = "AccountNoStats"   # 账号存在但无战斗数据
+    DATA_INTEGRITY_ERROR = "DataIntegrityError"  # 数据库完整性效验失败
+
+    USER_INACTIVE_TOO_LONG = "UserInactiveTooLong"       # 账号长时间未被查询
+    ACCOUNT_HIDDEN_TOO_LONG = "AccountHiddenTooLong"     # 账号长时间保持隐藏战绩状态
+    ACCOUNT_INACTIVE_TOO_LONG = "AccountInactiveTooLong" # 账号长时间未有战斗数据
+    
+
+class RunnerResult(Enum):
+    FAILED = auto()
+    SKIPPED = auto()
+    UPDATED = auto()
+    DISABLED = auto()

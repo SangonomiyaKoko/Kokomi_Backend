@@ -1,69 +1,75 @@
 import os
-import sys
-import json
 from pathlib import Path
-from datetime import datetime
+
+from shard import FileUtils, ServicesName
 
 
-CLIENT_NAME = 'ClanMember'
-REFRESH_INTERVAL = 600
-MAX_REFRESH_BATCH = 2000
-DATE_FMT = '%Y-%m-%d %H:%M:%S'
-USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
+# 运行所需相关文件地址
+_root_dir = Path(os.getcwd())
+if not (_root_dir / 'README.md').exists():
+    # 以 README.md 文件为标记，校验启动路径是否为根目录
+    print(
+        f"Invalid working directory: {_root_dir}. "
+        f"Please start the service from the project root directory."
+    )
+    exit(1)
+LOG_DIR = _root_dir / 'logs'
+DATA_DIR = _root_dir / 'data'
 
-ROOT_DIR = Path(os.getcwd())
-LOG_DIR = ROOT_DIR / 'logs'
-DATA_DIR = ROOT_DIR / 'data'
-
-BATCH_SIZE = 1000
-MIN_IMBALANCE_SCORE = 20
-REBALANCE_ENABLED = True
-
-# 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
-if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
-    # 关闭代理，避免请求外部API时被本地环境变量干扰
+# 加载环境配置数据
+# 生产环境下的环境变量由 Docker Compose 注入 env.prod，开发环境加载 env.dev
+# 在程序中，通过判断环境变量中是否存在 PLATFORM 来判断是否为生产环境
+ENV_FILE = 'env.dev'
+_platform = os.getenv('PLATFORM')
+if (
+    _platform is None or
+    not _platform.startswith('KokomiAPI')
+):
+    # 开发环境中关闭代理，避免本地测试中请求外部 API 时被本地环境变量干扰
     os.environ['NO_PROXY'] = '127.0.0.1,localhost'
     from dotenv import load_dotenv
     if not load_dotenv('env.dev'):
-        # 开发环境下如果加载env.dev失败，直接退出程序
-        print(f"{datetime.now().strftime(DATE_FMT)} [ERROR] Failed to load env.dev configuration")
+        # 开发环境下如果加载 env.dev 失败，直接退出
+        print("[ERROR] Failed to load env.dev")
         exit(1)
-    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.dev")
 else:
-    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
+    ENV_FILE = 'env.prod'
 
-LOG_LEVEL = os.getenv("LOG_LEVEL")
+# 中间件连接配置
+LOG_LEVEL = os.getenv("LOG_LEVEL", "debug")
 SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
 MYSQL_CONFIG = {
-    "host": os.getenv("MYSQL_HOST"),
+    "host": os.getenv("MYSQL_HOST", "localhost"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "user": os.getenv("MYSQL_USER"),
-    "password": os.getenv("MYSQL_PASSWORD"),
-    "database": os.getenv("MYSQL_DATABASE"),
-    "autocommit": False  # 关闭自动提交，改为手动控制事务，以便在发生异常时能正确回滚，保证数据一致性
+    "user": os.getenv("MYSQL_USER", "username"),
+    "password": os.getenv("MYSQL_PASSWORD", "password"),
+    "database": os.getenv("MYSQL_DATABASE", "database"),
+    "autocommit": False
 }
 REDIS_CONFIG = {
-    "host": os.getenv("REDIS_HOST"),
+    "host": os.getenv("REDIS_HOST", "localhost"),
     "port": int(os.getenv("REDIS_PORT", 6379)),
     "db": int(os.getenv("REDIS_DATABASE", 0)),
     "password": os.getenv("REDIS_PASSWORD"),
     "decode_responses": True
 }
 
-# 因为是运行必要数据，故不处理可能存在的文件加载异常
-# 确保在文件缺失或格式错误时能直接raise并停止服务，避免进入不稳定状态
-file_path = DATA_DIR / 'json/init_marker.json'
-with open(file_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-    REGION: str = data['region']
-file_path = DATA_DIR / 'const/endpoints.json'
-with open(file_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-    CLAN_API: str = data[REGION]['clan_api']
-file_path = DATA_DIR / 'const/constants.json'
-with open(file_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-    USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
-    CLAN_ACTIVITY_THRESHOLDS: list = data['CLAN_ACTIVITY_THRESHOLDS']
-    CLAN_ACTIVITY_STRATEGY: dict = data['CLAN_ACTIVITY_STRATEGY']
-print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")
+# 加载配置文件或者数据文件
+_data = FileUtils.load_json(
+    fp=DATA_DIR / 'json/init_marker.json'
+)
+REGION: str = _data['region']
+
+# 加载策略或配置文件
+_data = FileUtils.load_json(
+    fp=DATA_DIR / 'json/services_config.json'
+).get(ServicesName.MEMBER, {})
+MEM_MONITOR = _data.get('MEM_MONITOR', False)
+REFRESH_INTERVAL = _data.get('REFRESH_INTERVAL', 600)
+REQUEST_TIMEOUT = _data.get('REQUEST_TIMEOUT', 5)
+BATCH_SIZE = _data.get('BATCH_SIZE', 10_000)
+MIN_IMBALANCE_SCORE = _data.get('MIN_IMBALANCE_SCORE', 20)
+MAX_DISPATCH_PER_ROUND = _data.get('MAX_DISPATCH_PER_ROUND', 2000)
+REFRESH_ADVANCE_SECONDS = _data.get('REFRESH_ADVANCE_SECONDS', 60)
+NEVER_REFRESHED_PRIORITY = _data.get('NEVER_REFRESHED_PRIORITY', 600)
+REBALANCE_ENABLED = _data.get('REBALANCE_ENABLED', True)

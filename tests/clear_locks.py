@@ -52,7 +52,7 @@ def purge_refresh_queue():
 def release_redis_lock():
     SCAN_BATCH_SIZE = 5000
 
-    pattern = 'refresh_lock:user:*'
+    pattern = 'refresh_lock:queue:*'
     redis_client = redis.Redis(**REDIS_CONFIG)
 
     cursor = 0

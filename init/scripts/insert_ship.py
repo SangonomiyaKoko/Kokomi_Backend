@@ -40,11 +40,12 @@ with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
 
-# 读取常量配置
-file_path = ROOT_DIR / 'data/const/constants.json'
-with open(file_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-    SHIP_INIT_TABLE_LIST: list = data['SHIP_INIT_TABLE_LIST']
+SHIP_INIT_TABLE_LIST = [
+    "T_ship_pvp_stats",
+    "T_ship_stats_by_battles",
+    "T_ship_stats_by_users",
+    "T_ship_rating_distribution"
+]
 
 # 需要初始化的 PvP 极值记录指标 ID
 METRIC_IDS = [3, 4, 5, 7, 8, 9]
@@ -58,9 +59,6 @@ def parse_ship_row(row: dict) -> dict:
         'tier': int(row['tier']),
         'type_id': int(row['type_id']),
         'nation_id': int(row['nation_id']),
-        'rarity_id': int(row['rarity_id']) if row.get('rarity_id') else None,
-        'premium': bool(int(row.get('premium', 0))),
-        'special': bool(int(row.get('special', 0))),
         'index': row.get('index', ''),
         'default_name': row.get('default', '')
     }
@@ -99,9 +97,6 @@ def main(filepath: Path):
             s['tier'],
             s['type_id'],
             s['nation_id'],
-            s['rarity_id'],
-            s['premium'],
-            s['special'],
             s['index'],         # index_code
             s['default_name']   # ship_name
         ))
@@ -121,8 +116,8 @@ def main(filepath: Path):
         sql_base = """
             INSERT INTO T_ship_base (
                 ship_id, is_enabled, is_old, tier, type_id,
-                nation_id, rarity_id, premium, special, index_code, ship_name
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                nation_id, index_code, ship_name
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
         with conn.cursor() as cursor:
             cursor.executemany(sql_base, base_data)

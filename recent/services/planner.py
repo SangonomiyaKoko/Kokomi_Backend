@@ -1,24 +1,26 @@
 from dataclasses import replace
 
-from loggers import logger
-from db import sqlite_read_only
-from context import UpdateContext
-from utils import TimeUtils
-from repository import ShipDataRepository
-from models import (
+from shard import TimeUtils
+
+from ..core import UpdateContext
+from ..db_ops import sqlite_read_only
+from ..repository import ShipDataRepository
+from ..models import (
     DataType,
     BattleMode,
     UpdateStrategy,
+    RunnerResult,
     FULL_UPDATE_MODES
 )
-from settings import REGION
+from ..logger import logger
+from ..settings import REGION, TIMEZONE
 
 
 class UpdatePlanner:
     """写回层：把拉取到的用户数据按模式落库"""
 
     @classmethod
-    def main(cls, ctx: UpdateContext) -> str:
+    def main(cls, ctx: UpdateContext) -> RunnerResult:
         """根据更新策略生成数据库写回计划"""
         if ctx.update_strategy == UpdateStrategy.NEW_USER:
             return cls._initialize(ctx)
@@ -95,7 +97,7 @@ class UpdatePlanner:
             indices=indices
         )
 
-        return 'Initialize'
+        return RunnerResult.UPDATED
 
     @staticmethod
     def _mark_hidden(ctx: UpdateContext) -> str:
@@ -105,7 +107,8 @@ class UpdatePlanner:
         # 按需将今日 summary 更新为隐藏状态
         if ctx.latest_summary.is_public:
             # 当前 summary 有战绩但更新时间非今日 → 更新为隐藏
-            if TimeUtils.get_reset_date(stats.updated_at) != ctx.now_date:
+            update_date = TimeUtils.reset_date(TIMEZONE, stats.updated_at)
+            if update_date != ctx.now_date:
                 ctx.update_plan.user_summary.set_update_params_from_hidden(
                     snapshot_date=ctx.now_date, 
                     updated_at=ctx.update_timestamp
@@ -118,7 +121,7 @@ class UpdatePlanner:
                     updated_at=ctx.update_timestamp
                 )
 
-        return 'Hidden'
+        return RunnerResult.UPDATED
 
     @classmethod
     def _normal(cls, ctx: UpdateContext) -> str:
@@ -331,7 +334,7 @@ class UpdatePlanner:
         if recent_ships:
             cls._calc_recent(ctx, recent_ships)
 
-        return 'Success'
+        return RunnerResult.UPDATED
 
     @staticmethod
     def _calc_recent(ctx: UpdateContext, recent_ships: list) -> None:

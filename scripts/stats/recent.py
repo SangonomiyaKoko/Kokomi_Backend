@@ -3,7 +3,7 @@ import json
 from pymysql.cursors import Cursor
 from collections import defaultdict
 
-from logger import logger
+from .logger import logger
 
 
 def get_agg_rows(cursor: Cursor):

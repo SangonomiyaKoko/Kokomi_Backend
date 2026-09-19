@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Any, Optional
 
-from models import BattleMode, ModeBattleStats
+from ..models import BattleMode, ModeBattleStats
 
 
 @dataclass(frozen=True, slots=True)

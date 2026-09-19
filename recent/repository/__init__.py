@@ -1,3 +1,4 @@
+from .basic_data import BasicDataRepository
 from .ship_map import ShipMapRepository
 from .ship_data import ShipDataRepository
 from .mode_latest import ModeLatestRepository
@@ -7,6 +8,7 @@ from .user_summary import UserSummaryRepository
 
 
 __all__ = [
+    'BasicDataRepository',
     'ShipMapRepository',
     'ShipDataRepository',
     'ModeLatestRepository',

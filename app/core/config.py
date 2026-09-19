@@ -1,9 +1,10 @@
 import os
-import json
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
 from datetime import datetime, timezone
+
+from shard import FileUtils
 
 
 @dataclass(frozen=True)
@@ -32,7 +33,7 @@ class RabbitMQConfig:
 
 @dataclass(frozen=True)
 class SecurityConfig:
-    """RabbitMQ 配置"""
+    """API 权限令牌配置"""
     root: str
     user: str
     manager: str
@@ -44,34 +45,13 @@ class RuntimeConfig:
     REDIS: RedisConfig
     RABBITMQ: RabbitMQConfig
 
-@dataclass(frozen=True)
-class EndpointsConfig:
-    VORTEX_API: list[str]
-    CLAN_API: str
-    OFFICIAL_API: Optional[str]
-
-@dataclass(frozen=True)
-class ConstantsConfig:
-    SERVICE_LIST: list[str]
-    USER_INIT_TABLE_LIST: list[str]
-    CLAN_INIT_TABLE_LIST: list[str]
-    SHIP_INIT_TABLE_LIST: list[str]
-    METRIC_RATING_THRESHOLDS: dict[list]
-
-@dataclass(frozen=True)
-class PolicyConfig:
-    USER_ACTIVITY_THRESHOLDS: list[list]
-    USER_ACTIVITY_STRATEGY: dict[str, int]
-    SPECIAL_ACTIVITY_STRATEGY: list[list]
-
 class EnvConfig:
     PLATFORM: Optional[str] = None
     DEV_MODE: Optional[bool] = False
     REGION: Optional[str] = None
     TIMEZONE: Optional[int] = 0
-    LOCALTION: Optional[str] = None
+    LOCATION: Optional[str] = None
     INIT_TIME : Optional[int] = None
-    UID_RULE: Optional[list] = None
     SSL_CA_BUNDLE: Optional[str] = None
 
     ROOT_DIR: Path = Path('/app')
@@ -79,12 +59,11 @@ class EnvConfig:
     DATA_DIR: Path = Path('/app/data')
     INIT_DIR: Path = Path('/app/init')
     SQLITE_DIR: Path = Path('/app/data/db')
-    SQLITE_SQL: str = None
+
+    # Vortex 接口代理策略，格式为 (mode, points)，交由 shard.Endpoints 解析
+    PROXY_CONFIG: tuple = ('default', [])
 
     _config: Optional[RuntimeConfig] = None
-    _policy: Optional[PolicyConfig] = None
-    _endpoints: Optional[EndpointsConfig] = None
-    _constants: Optional[ConstantsConfig] = None
 
     @classmethod
     def _require_env(cls, key: str, default: Optional[str] = None) -> str:
@@ -100,15 +79,14 @@ class EnvConfig:
         return os.getenv(key, default)
 
     @classmethod
-    def _load_json_file(cls, file_path: Path) -> dict:
-        """加载运行必要的 JSON 文件数据"""
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Configuration file not found: {file_path}")
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {file_path}: {e}")
+    def _require_json_file(cls, file_path: Path) -> dict:
+        """加载运行必要的 JSON 文件数据，文件缺失或解析失败时抛错"""
+        data = FileUtils.load_json(fp=file_path, default=None)
+        if data is None:
+            raise FileNotFoundError(
+                f"Configuration file not found or invalid: {file_path}"
+            )
+        return data
 
     @classmethod
     def _load_env_file(cls) -> str:
@@ -160,18 +138,14 @@ class EnvConfig:
         custom_sqlite_dir = cls._require_env_optional("SQLITE_DIR")
         cls.SQLITE_DIR = Path(custom_sqlite_dir) if custom_sqlite_dir else cls.DATA_DIR / 'db'
 
-        sql_file_path = cls.DATA_DIR / 'const/recent.sql'
-        with open(sql_file_path, "r", encoding="utf-8") as f:
-            cls.SQLITE_SQL = f.read()
-        
     @classmethod
     def _init_region(cls):
         file_path = cls.DATA_DIR / 'json/init_marker.json'
-        data = cls._load_json_file(file_path)
-        
+        data = cls._require_json_file(file_path)
+
         if 'region' not in data:
             raise ValueError(f"Missing 'region' key in {file_path}")
-        
+
         cls.REGION = data.get('region')
         cls.TIMEZONE = data.get("timezone", 0)
         cls.LOCATION = data.get('location', 'N/A')
@@ -182,52 +156,14 @@ class EnvConfig:
             raise ValueError(f"Invalid region value: {cls.REGION}")
 
     @classmethod
-    def _init_endpoints(cls):
-        file_path = cls.DATA_DIR / 'const/endpoints.json'
-        data = cls._load_json_file(file_path)
-        
-        if cls.REGION not in data:
-            raise ValueError(f"Region '{cls.REGION}' not found in endpoints config")
-        
-        region_data = data[cls.REGION]
-        
-        required_fields = ['vortex_api', 'clan_api', 'uid_rule']
-        for field in required_fields:
-            if field not in region_data:
-                raise ValueError(
-                    f"Missing required field '{field}' in endpoints config"
-                )
-        
-        cls._endpoints = EndpointsConfig(
-            VORTEX_API=region_data['vortex_api'],
-            CLAN_API=region_data['clan_api'],
-            OFFICIAL_API=region_data.get('official_api')
-        )
-        
-        cls.UID_RULE = region_data['uid_rule']
+    def _init_proxy(cls):
+        """读取 Vortex 接口代理策略配置"""
+        file_path = cls.DATA_DIR / 'json/proxy_strategy.json'
+        data = FileUtils.load_json(fp=file_path)
 
-    @classmethod
-    def _init_constants(cls):
-        file_path = cls.DATA_DIR / 'const/constants.json'
-        data = cls._load_json_file(file_path)
-        
-        cls._constants = ConstantsConfig(
-            SERVICE_LIST=data['SERVICE_LIST'],
-            USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
-            CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
-            SHIP_INIT_TABLE_LIST=data['SHIP_INIT_TABLE_LIST'],
-            METRIC_RATING_THRESHOLDS=data['METRIC_RATING_THRESHOLDS']
-        )
-
-    @classmethod
-    def _init_policy(cls):
-        file_path = cls.DATA_DIR / 'const/policy.json'
-        data = cls._load_json_file(file_path)
-        
-        cls._policy = PolicyConfig(
-            USER_ACTIVITY_THRESHOLDS=data['USER_ACTIVITY_THRESHOLDS'],
-            USER_ACTIVITY_STRATEGY=data['USER_ACTIVITY_STRATEGY'],
-            SPECIAL_ACTIVITY_STRATEGY=data['SPECIAL_ACTIVITY_STRATEGY']
+        cls.PROXY_CONFIG = (
+            data.get('mode', 'default'),
+            data.get('points', [])
         )
 
     @classmethod
@@ -247,10 +183,8 @@ class EnvConfig:
         cls._init_runtime_config()
         # 读取子节点的区域配置
         cls._init_region()
-        # 加载运行必要的数据文件
-        cls._init_policy()
-        cls._init_endpoints()
-        cls._init_constants()
+        # 读取接口代理策略配置
+        cls._init_proxy()
 
         return env_file
 
@@ -260,23 +194,3 @@ class EnvConfig:
         if cls._config is None:
             raise RuntimeError("Configuration not initialized")
         return cls._config
-
-    @classmethod
-    def get_policy(cls) -> PolicyConfig:
-        if cls._policy is None:
-            raise RuntimeError("Endpoints not initialized. Call EnvConfig.init() first")
-        return cls._policy
-
-    @classmethod
-    def get_endpoints(cls) -> EndpointsConfig:
-        """获取端点配置"""
-        if cls._endpoints is None:
-            raise RuntimeError("Endpoints not initialized. Call EnvConfig.init() first")
-        return cls._endpoints
-
-    @classmethod
-    def get_constants(cls) -> ConstantsConfig:
-        """获取常量配置"""
-        if cls._constants is None:
-            raise RuntimeError("Constants not initialized. Call EnvConfig.init() first")
-        return cls._constants

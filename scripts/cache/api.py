@@ -1,13 +1,16 @@
-import random
 import traceback
 from redis import Redis
 from requests import Session
 from typing import Optional, Union
 
-from logger import logger
-from utils import get_current_iso_time
-from exception import write_exception
-from settings import VORTEX_API
+from shard import Endpoints, RedisKeys, TimeUtils
+
+from .logger import logger, write_exception
+from .settings import (
+    REGION,
+    REQUEST_TIMEOUT,
+    PROXY_CONFIG
+)
 
 
 def fetch_data(session: Session, url: str) -> Union[dict, str]:
@@ -20,7 +23,7 @@ def fetch_data(session: Session, url: str) -> Union[dict, str]:
         成功时返回解析后的 dict，失败时返回错误标识字符串
     """
     try:
-        resp = session.get(url, timeout=5)
+        resp = session.get(url, timeout=REQUEST_TIMEOUT)
 
         if resp.status_code == 200:
             data = resp.json()
@@ -55,7 +58,7 @@ def record_http_metrics(
     error_count = 0
     error = None
 
-    today = get_current_iso_time()[:10]
+    iso_time = TimeUtils.iso_time()
 
     # 检查所有的返回数据
     for i, response in enumerate(responses):
@@ -63,15 +66,23 @@ def record_http_metrics(
             logger.info(f'{response} {urls[i]}')
             error_count += 1
             error = response
-    
-    # 记录游戏 API 调用的统计数据
-    try:
-        redis_client.incrby(f'metrics:http:annual:{today[:4]}', len(urls))
-        redis_client.incrby(f'metrics:http:monthly:{today[:7]}', len(urls))
-        redis_client.incrby(f'metrics:http:daily:total:{today}', len(urls))
 
-        if error_count > 0:
-            redis_client.incrby(f'metrics:http:daily:error:{today}', error_count)
+    # 记录游戏 API 调用的统计数据
+    incrby_keys = {
+        RedisKeys.metrics('http', 'annual', iso_time.date_year): len(urls),
+        RedisKeys.metrics('http', 'monthly', iso_time.date_month): len(urls),
+        RedisKeys.metrics('http', 'daily:total', iso_time.date): len(urls)
+    }
+    if error_count > 0:
+        incrby_keys.update({
+            RedisKeys.metrics('http', 'daily:error', iso_time.date): error_count
+        })
+
+    try:
+        pipe = redis_client.pipeline()
+        for name, amount in incrby_keys.items():
+            pipe.incrby(name, amount)
+        pipe.execute()
     except Exception:
         logger.warning('Failed to record HTTP metrics')
 
@@ -93,10 +104,9 @@ def fetch_user_pvp_data(
         失败时返回 None
     """
     try:
-        redis_key = f"token:ac:{account_id}"
-        ac = redis_client.get(redis_key)
+        ac = redis_client.get(RedisKeys.user_ac_token(account_id))
 
-        base_url = random.choice(VORTEX_API)
+        base_url = Endpoints.vortex_api(REGION, PROXY_CONFIG)
 
         url = f'{base_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac}' if ac else '')
         response = fetch_data(session, url)

@@ -227,24 +227,6 @@ async def patch_clan_db(
     return await MySQLAPI.set_clan_status(clan_id, 1)
 
 
-@router.get("/clan-battle/{season_id}/db/", summary="获取赛季工会战数据库的基本信息")
-async def get_clan_db(
-    season_id: int = Path(..., ge=1, le=50, description="赛季ID")
-):
-    """获取赛季工会战数据库的基本信息
-    
-    返回指定赛季ID统计到的战斗记录条数，用于检测和DEBUG。
-    
-    --- 
-
-    **权限要求**: `Root` **开发模式**: ❌ **维护模式**: ✅
-    """
-    if EnvConfig.DEV_MODE:
-        return JSONResponse.API_NodeNotAvailable
-    
-    return await MySQLAPI.get_clan_season_overview(season_id)
-
-
 @router.get("/blacklist/list/", summary="平台黑名单列表")
 async def block_user():
     """平台黑名单列表

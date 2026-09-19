@@ -1,6 +1,6 @@
 from sqlite3 import Cursor
 
-from params import UserSummaryLocalEntry, UserSummaryUpdateParams
+from ..params import UserSummaryLocalEntry, UserSummaryUpdateParams
 
 
 class UserSummaryRepository:

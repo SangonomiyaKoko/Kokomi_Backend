@@ -3,29 +3,33 @@ from functools import wraps
 from datetime import datetime, timezone
 from typing import Optional, List
 
+from shard import TimeUtils as CommonTimeUtils
+
 from app.core import EnvConfig, api_logger
 
-# Recent服务重置时间是所在地区的 5:00 AM
-SERVER_RESET_OFFSET = 5
 
 class TimeUtils:
-    """时间相关工具函数集合"""
-    
+    """时间相关工具函数集合
+
+    与各子服务共用的时间处理统一由 shard.TimeUtils 提供，
+    此处仅保留 API 侧专用的时间方法。
+    """
+
     @staticmethod
     def timestamp() -> int:
         """获取当前 UTC 时间戳（秒）"""
-        return int(datetime.now(timezone.utc).timestamp())
+        return CommonTimeUtils.timestamp()
 
     @staticmethod
     def timestamp_ms() -> int:
         """获取当前 UTC 时间戳（毫秒）"""
         return int(datetime.now(timezone.utc).timestamp() * 1000)
-    
+
     @staticmethod
     def now_iso() -> str:
         """获取当前 UTC 时间的 ISO 8601 格式字符串"""
-        return datetime.now(timezone.utc).isoformat(timespec="seconds")
-    
+        return CommonTimeUtils.iso_time().iso
+
     @staticmethod
     def fromtimestamp(timestamp: int, strftime: str = "%Y-%m-%d %H:%M:%S") -> Optional[str]:
         """将时间戳转换为指定格式的 UTC 时间字符串"""
@@ -36,22 +40,19 @@ class TimeUtils:
     @staticmethod
     def get_reset_date(current_timestamp: int, days: int = 0) -> int:
         """获取 Recent 服务重置日期（返回 YYYYMMDD 格式的整数）"""
-        reset_timestamp = current_timestamp + EnvConfig.TIMEZONE * 3600 - SERVER_RESET_OFFSET * 3600 - days * 86400
-        return int(datetime.fromtimestamp(reset_timestamp, timezone.utc).strftime("%Y%m%d"))
+        return CommonTimeUtils.reset_date(
+            tz=EnvConfig.TIMEZONE,
+            timestamp=current_timestamp - days * 86400
+        )
 
     @staticmethod
     def get_reset_date_list(current_timestamp: int, start_date: int) -> List[int]:
         """获取从今日起至指定日期的 Recent 服务重置日期列表（最多 1000 天）"""
-        result = []
-        # 设置循环最大次数，防止死循环
-        for _ in range(1000):
-            reset_timestamp = current_timestamp + EnvConfig.TIMEZONE * 3600 - SERVER_RESET_OFFSET * 3600
-            strftime = int(datetime.fromtimestamp(reset_timestamp, timezone.utc).strftime("%Y%m%d"))
-            result.append(strftime)
-            if strftime == start_date:
-                break
-            current_timestamp -= 86400
-        return result
+        return CommonTimeUtils.reset_date_list(
+            tz=EnvConfig.TIMEZONE,
+            timestamp=current_timestamp,
+            start_date=start_date
+        )
 
     def async_timing(func):
         """
@@ -78,4 +79,3 @@ class TimeUtils:
             api_logger.info(f"[Timing] {func.__name__} Cost: {end - start:.6f} s")
             return result
         return sync_wrapper
-

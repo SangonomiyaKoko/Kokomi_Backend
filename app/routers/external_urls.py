@@ -180,7 +180,7 @@ async def download_ship_ranking_msgpack():
 
     **权限要求**: `Root` / `Visitor` **开发模式**: ✅ **维护模式**: ✅
     """
-    file_path = EnvConfig.DATA_DIR / f'trash/ship_ranking.msgpack'
+    file_path = EnvConfig.DATA_DIR / f'local/ship_ranking.msgpack'
     
     # 检查文件是否存在
     if not file_path.exists():
@@ -219,8 +219,7 @@ async def download_clan_ranking_msgpack():
     ```
     [
         rank, clan_id, tag, leading_team, battles, win_rate, league,
-        division, public_rating, max_streak, stage_type, stage_battles,
-        stage_victories, stage_progress, last_battle_at
+        division, public_rating, max_streak, stage_type,  stage_progress, last_battle_at
     ]
     ```
     
@@ -228,7 +227,7 @@ async def download_clan_ranking_msgpack():
 
     **权限要求**: `Root` / `Visitor` **开发模式**: ✅ **维护模式**: ✅
     """
-    file_path = EnvConfig.DATA_DIR / f'trash/clan_ranking.msgpack'
+    file_path = EnvConfig.DATA_DIR / f'local/clan_ranking.msgpack'
     
     # 检查文件是否存在
     if not file_path.exists():

@@ -1,8 +1,23 @@
-from loggers import logger
-from db import fetch_user_record, sqlite_transaction
-from context import RunContext, UpdateContext
-from models import UpdateResult
-from repository import (
+import traceback
+from typing import Optional
+
+from shard import (
+    RedisKeys, 
+    TimeUtils, 
+    StringUtils, 
+    ServicesName
+)
+
+from ..core import RunContext, UpdateContext
+from ..db_ops import (
+    mysql_transaction, 
+    mysql_read_only, 
+    sqlite_transaction, 
+    remove_file
+)
+from ..models import UpdateResult, RunnerResult
+from ..repository import (
+    BasicDataRepository,
     ShipMapRepository,
     ShipDataRepository,
     ModeLatestRepository,
@@ -10,6 +25,8 @@ from repository import (
     UserRecentRepository,
     UserSummaryRepository
 )
+from ..logger import logger, write_exception
+from ..settings import DATA_DIR
 
 from .loader import UserDataLoader
 from .updater import UpdateEvaluate
@@ -18,33 +35,49 @@ from .planner import UpdatePlanner
 
 
 class UserUpdateRunner:
-    """单用户更新流水线：判定 → 拉取 → 写回，任一阶段 SKIP / DISABLED 即短路"""
+    """单用户更新流水线"""
 
     @classmethod
     async def run(
         cls, run_ctx: RunContext, account_id: int
-    ) -> None:
+    ) -> RunnerResult:
         """执行单个用户的完整更新流程"""
+        try:
+            # 创建该用户的更新上下文
+            ctx = cls._build_context(run_ctx, account_id)
 
-        # 创建该用户的更新上下文
-        ctx = cls._build_context(run_ctx, account_id)
-
-        # 加载本地数据库，补全 summary 数据
-        load_result = UserDataLoader.main(ctx)
-        if not cls._handle_stage_result(run_ctx, account_id, load_result):
-            return
+            # 加载读取用户的本地数据库
+            load_result = cls._handle_stage_result(
+                run_ctx=run_ctx,
+                account_id=account_id, 
+                result=UserDataLoader.main(ctx)
+            )
+            if load_result:
+                return load_result
+        except Exception as e:
+            error_name = type(e).__name__
+            error_id = write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+            logger.error(f'{account_id} | ERROR - {error_name} - {error_id}')
+            return RunnerResult.FAILED
         
-        error = False    # 异常标记，异常流程不应执行数据库写入操作
         try:
             # 更新评估，确定需要更新的模式合集
-            decision = UpdateEvaluate.main(run_ctx, ctx)
-            if not cls._handle_stage_result(run_ctx, account_id, decision):
-                return
+            evaluate_result = cls._handle_stage_result(
+            run_ctx=run_ctx,
+                account_id=account_id, 
+                result=UpdateEvaluate.main(run_ctx, ctx)
+            )
+            if evaluate_result:
+                return evaluate_result
 
-            ctx.fetch_modes = decision.modes
+            # 确定需要更新的策略和模式
             logger.debug(
                 f'{account_id} | Strategy: '
-                f'{ctx.update_strategy}/{decision.reason_text}'
+                f'{ctx.update_strategy}'
             )
             logger.debug(
                 f'{account_id} | Modes: '
@@ -52,25 +85,36 @@ class UserUpdateRunner:
             )
 
             # 拉取外部接口获取最新数据，同步 MySQL 并构建数据模型
-            fetch_result = await UserDataProcessor.main(ctx, run_ctx)
-            if not cls._handle_stage_result(run_ctx, account_id, fetch_result):
-                return
+            fetch_result = cls._handle_stage_result(
+                run_ctx=run_ctx,
+                account_id=account_id, 
+                result=await UserDataProcessor.main(run_ctx, ctx)
+            )
+            if fetch_result:
+                return fetch_result
 
             # 对比本地数据库，确定写入计划
             update_result = UpdatePlanner.main(ctx)
-        except:
-            error = True
-            raise
+        except Exception as e:
+            ctx.update_plan.exception_raised = True
+            error_name = type(e).__name__
+            error_id = write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+            logger.error(f'{account_id} | ERROR - {type(e).__name__} - {error_id}')
+            return RunnerResult.FAILED
         finally:
             # 只有没有异常被捕获且有计划写入数据时才提交写入
-            if not error and ctx.update_plan.planned_count > 0:
+            if ctx.update_plan.can_execute:
                 logger.debug(
                     f'{account_id} | Planned insert/update rows: '
                     f'{ctx.update_plan.planned_count}'
                 )
                 cls._commit_plan(ctx)
 
-        logger.debug(f'{account_id} | Updated - {update_result}')
+        return update_result
 
     @staticmethod
     def _build_context(
@@ -80,30 +124,54 @@ class UserUpdateRunner:
         ctx = UpdateContext(account_id=account_id)
 
         # 读取用户在 MySQL 中记录
-        with run_ctx.mysql_connection.cursor() as cursor:
-            record, stats = fetch_user_record(cursor, account_id)
+        with mysql_read_only(run_ctx.mysql_connection, account_id) as cursor:
+            record, stats = BasicDataRepository.load_user_record(cursor, account_id)
             ctx.user_record = record
             ctx.user_stats = stats
 
         # 加载用户访问令牌
-        ac = run_ctx.redis_client.get(f"token:ac:{account_id}")
-        ctx.access_token = ac.split(':')[0] if ac and ':' in ac else (ac or None)
+        ac = run_ctx.redis_client.get(RedisKeys.user_ac_token(account_id))
+        ctx.access_token = StringUtils.token_decode(ac)[0]
         return ctx
 
     @staticmethod
     def _handle_stage_result(
         run_ctx: RunContext, account_id: int, result: UpdateResult
-    ) -> bool:
-        """统一处理阶段结果，记录日志与统计并短路，返回是否继续进行下一个流程"""
-        if result.is_skip:
-            logger.debug(f'{account_id} | SKIP - {result.reason_text}')
-            return False
+    ) -> Optional[RunnerResult]:
+        """统一处理阶段结果，记录日志与统计并短路，返回不为 None 则中断"""
+        if result.is_skipped:
+            logger.debug(f'{account_id} | SKIPPED - {result.reason_text}')
+            return RunnerResult.SKIPPED
+
+        if result.is_failed:
+            logger.debug(f'{account_id} | FAILED - {result.reason_text}')
+            return RunnerResult.FAILED
+        
         if result.is_disabled:
             logger.debug(f'{account_id} | DISABLED - {result.reason_text}')
-            # 统计与禁用用户直接记入 RunContext
-            run_ctx.disabled_users[account_id] = result.reason_text
-            return False
-        return True
+            # 关闭用户的 Recent 功能权限
+            with mysql_transaction(run_ctx.mysql_connection, account_id) as cursor:
+                BasicDataRepository.disable_user(cursor, account_id)
+    
+            # 记录时间和原因到操作日志中
+            log_path = DATA_DIR / 'local' / 'Operation.log'
+            if not log_path.exists():
+                logger.error(f'File missing: {log_path}')
+                return
+            
+            line = (
+                f'{TimeUtils.log_time()} [{ServicesName.RECENT}] '
+                f'RecentDisabled: {account_id}-{result.reason_text}\n'
+            )
+            with open(log_path, mode='a', encoding='utf-8') as f:
+                f.write(line)
+    
+            # 清理 SQLite 数据库文件
+            remove_file(account_id)
+
+            return RunnerResult.DISABLED
+        
+        return
 
     @staticmethod
     def _commit_plan(

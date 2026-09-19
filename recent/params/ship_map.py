@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Any, Optional
 
-from utils import StringUtils
-from models import BattleMode, ModeBattleStats
+from shard import StringUtils
+
+from ..models import BattleMode, ModeBattleStats
 
 
 @dataclass(frozen=True, slots=True)

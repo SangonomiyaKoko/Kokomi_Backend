@@ -70,7 +70,7 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     container_name: backend-account
-    command: python scripts/account/main.py
+    command: python -m scripts.account.main
     env_file:
       - env.prod
     restart: on-failure:1
@@ -81,7 +81,7 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
     container_name: backend-cache
-    command: python scripts/cache/main.py
+    command: python -m scripts.cache.main
     env_file:
       - env.prod
     restart: on-failure:1
@@ -92,7 +92,7 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
     container_name: backend-season
-    command: python scripts/season/main.py
+    command: python -m season.main
     env_file:
       - env.prod
     restart: on-failure:1
@@ -103,7 +103,7 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
     container_name: backend-member
-    command: python scripts/member/main.py
+    command: python -m scripts.member.main
     env_file:
       - env.prod
     restart: on-failure:1
@@ -114,7 +114,7 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     container_name: backend-stats
-    command: python scripts/stats/main.py
+    command: python -m scripts.stats.main
     env_file:
       - env.prod
     restart: on-failure:1

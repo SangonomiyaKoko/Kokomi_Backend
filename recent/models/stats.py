@@ -134,7 +134,7 @@ class ShipBattleStats:
 
 @dataclass(slots=True)
 class ShipDataEntry:
-    """一条 (mode, ship) 的统计数据，对应 ship_index_data 一行"""
+    """某个模式下的单船统计数据"""
     solo: Optional[ShipBattleStats] = None    # data_type_1
     div2: Optional[ShipBattleStats] = None    # data_type_2
     div3: Optional[ShipBattleStats] = None    # data_type_3

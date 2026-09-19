@@ -46,25 +46,10 @@ class UserStats:
         else:
             raise ValueError(f'Unknown parameter {mode}')
 
-    def __str__(self) -> str:
-        return (
-            f"UserStats("
-            f"is_enabled={self.is_enabled}, "
-            f"is_public={self.is_public}, "
-            f"total_battles={self.total_battles}, "
-            f"pve_battles={self.pve_battles}, "
-            f"pvp_battles={self.pvp_battles}, "
-            f"ranked_battles={self.ranked_battles}, "
-            f"karma={self.karma}, "
-            f"last_battle_at={self.last_battle_at}, "
-            f"updated_at={self.updated_at}"
-            f")"
-        )
-
 
 @dataclass(frozen=True, slots=True)
 class UserRecord:
-    """用户在 MySQL 主库中的配置"""
+    """用户配置数据"""
     user_level: int
     storage_limit: int
     last_query_at: int | None
@@ -74,13 +59,3 @@ class UserRecord:
     def is_configured(self) -> bool:
         """用户配置是否有效"""
         return self.user_level > 0 and self.storage_limit > 0
-
-    def __str__(self) -> str:
-        return (
-            f"UserRecord("
-            f"user_level={self.user_level}, "
-            f"storage_limit={self.storage_limit}, "
-            f"last_query_at={self.last_query_at}, "
-            f"next_refresh_at={self.next_refresh_at}"
-            f")"
-        )

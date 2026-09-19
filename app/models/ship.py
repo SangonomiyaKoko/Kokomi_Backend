@@ -1,4 +1,5 @@
-from app.core import EnvConfig
+from shard import CommonConfig
+
 from app.constants import GameData
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
@@ -193,10 +194,9 @@ class ShipModel:
                 'disable': 0
             }
 
-            constant = EnvConfig.get_constants()
             sql = """
                 SELECT
-                    ship_id, 
+                    ship_id,
                     is_enabled
                 FROM T_ship_base;
             """
@@ -215,12 +215,12 @@ class ShipModel:
                     sql = """
                         INSERT INTO T_ship_base (
                             ship_id, is_enabled, is_old, tier, type_id,
-                            nation_id, rarity_id, premium, special, index_code, ship_name
-                        ) VALUES (%s, TRUE, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                            nation_id, index_code, ship_name
+                        ) VALUES (%s, TRUE, %s, %s, %s, %s, %s, %s);
                     """
                     await cur.execute(sql, [ship_id] + ship_row)
 
-                    for table_name in constant.SHIP_INIT_TABLE_LIST:
+                    for table_name in CommonConfig.SHIP_INIT_TABLE_LIST:
                         sql = f"INSERT INTO {table_name} (ship_id) VALUES (%s);"
                         await cur.execute(sql, [ship_id])
                     
@@ -238,14 +238,11 @@ class ShipModel:
                         SET 
                             is_enabled = TRUE, 
                             is_old = %s, 
-                            rarity_id = %s, 
-                            premium = %s, 
-                            special = %s, 
                             index_code = %s, 
                             ship_name = %s 
                         WHERE ship_id = %s;
                     """
-                    await cur.execute(sql, [ship_row[0], ship_row[4], ship_row[5], ship_row[6], ship_row[7], ship_row[8], ship_id])
+                    await cur.execute(sql, [ship_row[0], ship_row[4], ship_row[5], ship_id])
                     result['update'] += 1
 
             for ship_id in enabled_ship_ids:

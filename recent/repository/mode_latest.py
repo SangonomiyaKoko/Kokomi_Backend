@@ -1,7 +1,7 @@
 from sqlite3 import Cursor
 
-from models import BattleMode
-from params import (
+from ..models import BattleMode
+from ..params import (
     ModeLatestUpdateParams,
     ModeLatestLocalEntry
 )
@@ -43,7 +43,7 @@ class ModeLatestRepository:
                     update_time = ?
                 WHERE ship_mode = ?;
             """
-            cursor.executemany(sql, [params.clan_special_update_params, BattleMode.CLAN.value])
+            cursor.execute(sql, [params.clan_special_update_params, BattleMode.CLAN.value])
 
         if params.has_update_params:
             sql = """

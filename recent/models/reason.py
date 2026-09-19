@@ -4,11 +4,11 @@ from typing import Optional, Union
 from dataclasses import dataclass
 
 from .mode import (
-    BattleMode,
     UpdateAction,
-    SkipReason,
-    UpdateReason,
-    DisableReason
+    FailedReason,
+    SkippedReason,
+    UpdatedReason,
+    DisabledReason
 )
 
 
@@ -16,15 +16,20 @@ from .mode import (
 class ValidationResult:
     """用户校验流程的执行结果"""
     action: UpdateAction
-    reason: Optional[SkipReason | DisableReason] = None
+    reason: Optional[FailedReason | SkippedReason | DisabledReason] = None
 
     @classmethod
-    def skip(cls, reason: SkipReason) -> ValidationResult:
+    def failed(cls, reason: FailedReason) -> ValidationResult:
+        """创建失败结果"""
+        return cls(action=UpdateAction.FAILED, reason=reason)
+
+    @classmethod
+    def skipped(cls, reason: SkippedReason) -> ValidationResult:
         """创建跳过结果"""
-        return cls(action=UpdateAction.SKIP, reason=reason)
+        return cls(action=UpdateAction.SKIPPED, reason=reason)
 
     @classmethod
-    def disabled(cls, reason: DisableReason) -> ValidationResult:
+    def disabled(cls, reason: DisabledReason) -> ValidationResult:
         """创建禁用结果"""
         return cls(action=UpdateAction.DISABLED, reason=reason)
 
@@ -34,9 +39,14 @@ class ValidationResult:
         return cls(action=UpdateAction.CONTINUE, reason=None)
 
     @property
-    def is_skip(self) -> bool:
+    def is_failed(self) -> bool:
+        """判断当前结果是否为失败"""
+        return self.action == UpdateAction.FAILED
+
+    @property
+    def is_skipped(self) -> bool:
         """判断当前结果是否为跳过"""
-        return self.action == UpdateAction.SKIP
+        return self.action == UpdateAction.SKIPPED
 
     @property
     def is_disabled(self) -> bool:
@@ -47,35 +57,37 @@ class ValidationResult:
 class UpdateResult:
     """用户更新流程的执行结果"""
     action: UpdateAction
-    reason: Union[SkipReason, DisableReason, UpdateReason]
-    modes: Optional[set[BattleMode]] = None
+    reason: Union[FailedReason, SkippedReason, DisabledReason, UpdatedReason]
 
     @classmethod
-    def need_update(
-        cls, reason: UpdateReason, modes: set[BattleMode] | None = None
-    ) -> UpdateResult:
-        """创建需要更新结果"""
-        return cls(action=UpdateAction.NEED_UPDATE, reason=reason, modes=modes)
+    def failed(cls, reason: FailedReason) -> UpdateResult:
+        """创建失败结果"""
+        return cls(action=UpdateAction.FAILED, reason=reason)
 
     @classmethod
-    def skip(cls, reason: SkipReason) -> UpdateResult:
+    def skipped(cls, reason: SkippedReason) -> UpdateResult:
         """创建跳过结果"""
-        return cls(action=UpdateAction.SKIP, reason=reason)
+        return cls(action=UpdateAction.SKIPPED, reason=reason)
 
     @classmethod
-    def disabled(cls, reason: DisableReason) -> UpdateResult:
+    def disabled(cls, reason: DisabledReason) -> UpdateResult:
         """创建禁用结果"""
         return cls(action=UpdateAction.DISABLED, reason=reason)
 
-    @property
-    def is_need_update(self) -> bool:
-        """判断当前结果是否需要更新"""
-        return self.action == UpdateAction.NEED_UPDATE
+    @classmethod
+    def other(cls, reason: UpdatedReason) -> UpdateResult:
+        """创建需要更新结果"""
+        return cls(action=UpdateAction.CONTINUE, reason=reason)
 
     @property
-    def is_skip(self) -> bool:
+    def is_failed(self) -> bool:
+        """判断当前结果是否为失败"""
+        return self.action == UpdateAction.FAILED
+
+    @property
+    def is_skipped(self) -> bool:
         """判断当前结果是否为跳过"""
-        return self.action == UpdateAction.SKIP
+        return self.action == UpdateAction.SKIPPED
 
     @property
     def is_disabled(self) -> bool:

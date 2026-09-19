@@ -5,37 +5,44 @@ import os
 import signal
 import asyncio
 
-from loggers import logger
-from scheduler import start_scheduler
-from settings import (
+from shard import ServicesName
+
+from .core import start_scheduler
+from .logger import logger
+from .settings import (
     REGION, 
-    CLIENT_NAME, 
+    ENV_FILE,
+    PROXY_CONFIG,
     REFRESH_INTERVAL
 )
-
-
-def handler(*_: object) -> None:
-    """信号处理器，退出"""
-    logger.info('The process is closing')
-    os._exit(0)
 
 
 async def main() -> None:
     """主函数，程序入口"""
 
-    logger.info('Start running service: %s', CLIENT_NAME)
-    logger.info('Service refresh interval: %s seconds', REFRESH_INTERVAL)
-    logger.info('Current node region: %s', REGION.upper())
+    pid = os.getpid()
+    logger.info('Service startup parameters:')
+    logger.info('├─ Service:      %s', ServicesName.RECENT)
+    logger.info('├─ Node region:  %s', REGION.upper())
+    logger.info('├─ Env file:     %s', ENV_FILE)
+    logger.info('├─ Proxy mode:   %s', PROXY_CONFIG[0])
+    logger.info('├─ Refresh:      %s s', REFRESH_INTERVAL)
+    logger.info('├─ Platform:     %s', os.name)
+    logger.info('└─ Process ID:   %s', pid)
 
     # 启动调度器
-    await start_scheduler()
+    await start_scheduler(pid)
 
+def _handler(*_):
+    """信号处理器，退出"""
+    logger.info('The process is closing')
+    os._exit(0)
 
 if __name__ == '__main__':
     if os.name != 'nt':
-        signal.signal(signal.SIGTERM, handler)
+        signal.signal(signal.SIGTERM, _handler)
 
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        handler()
+        _handler()

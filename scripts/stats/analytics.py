@@ -1,9 +1,10 @@
 import json
 from collections import defaultdict
 
-from logger import logger
-from utils import calc_ship_rating
-from settings import (
+from shard import RatingUtils
+
+from .logger import logger
+from .settings import (
     BUCKETS,
     MIN_SAMPLES
 )
@@ -260,14 +261,14 @@ class ShipStatsAggregator:
                     avg_frags = stats[IDX_FRAGS] / battles
                     
                     # 计算该用户在该船上的 Rating
-                    rating = calc_ship_rating(
-                        player_stats=[
+                    rating = RatingUtils.calc_ship_rating(
+                        ship_data=[
                             round(win_rate * 100, 4),     # 胜率转换为百分比
                             int(avg_damage),               # 场均伤害
                             round(avg_frags, 2)            # 场均击毁
                         ],
-                        benchmark_stats=self.server_ship_metrics.get(ship_id)  # 基准数据（服务器平均）
-                    )
+                        server_data=self.server_ship_metrics.get(ship_id)  # 基准数据（服务器平均）
+                    )[0]
                     
                     valid_user_averages[ship_id] = [
                         battles,                                    # 战斗场次

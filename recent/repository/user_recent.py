@@ -1,6 +1,6 @@
 from sqlite3 import Cursor
 
-from params import UserRecentUpdateParams
+from ..params import UserRecentUpdateParams
 
 class UserRecentRepository:
     """user_recent_stats 表的数据访问对象"""

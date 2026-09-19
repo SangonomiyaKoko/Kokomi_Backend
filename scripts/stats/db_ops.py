@@ -1,7 +1,8 @@
 from pymysql.cursors import Cursor
 
-from logger import logger
-from utils import get_current_iso_time
+from shard import TimeUtils
+
+from .logger import logger
 
 
 def get_max_id(cursor: Cursor) -> int:
@@ -242,10 +243,10 @@ def archive_base_table(cursor: Cursor) -> None:
     """
     cursor.execute(sql)
 
-    today = get_current_iso_time()[:10]
+    today = TimeUtils.iso_time().date
     sql = """
-        SELECT 1 
-        FROM ARCH_base_count 
+        SELECT 1
+        FROM ARCH_base_count
         WHERE stat_date = %s;
     """
     cursor.execute(sql, [today])

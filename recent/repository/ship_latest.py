@@ -1,9 +1,9 @@
 from sqlite3 import Cursor
 
-from params import ShipLatestUpdateParams, ShipLatestLocalCollection
-from models import (
-    BattleMode,
-    FULL_UPDATE_MODES
+from ..models import BattleMode, FULL_UPDATE_MODES
+from ..params import (
+    ShipLatestUpdateParams, 
+    ShipLatestLocalCollection
 )
 
 

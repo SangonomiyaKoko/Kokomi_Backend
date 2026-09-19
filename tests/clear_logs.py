@@ -13,10 +13,14 @@ logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(os.getcwd())
 
-file_path = ROOT_DIR / 'data/const/constants.json'
-with open(file_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-    SERVICE_LIST: list = data['SERVICE_LIST']
+SERVICE_LIST = [
+    "Account",
+    "ClanMember",
+    "ClanSeason",
+    "Recent",
+    "ServerStats",
+    "UserCache"
+]
 
 def main():
     """删除所有错误日志文件"""

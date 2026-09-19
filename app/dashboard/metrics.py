@@ -4,7 +4,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
-from app.core import EnvConfig
+from shard import RedisKeys, ServicesName
+
 from app.middlewares import RedisClient
 
 
@@ -260,10 +261,9 @@ class ServiceMetrics:
             total_count: 总服务数
         """
         active_count = 0
-        constant = EnvConfig.get_constants()
-        services = constant.SERVICE_LIST
+        services = ServicesName.to_list()
         for service in services:
-            key = f'status:{service}'
+            key = RedisKeys.services(service)
             exists = await RedisClient.exists(key)
             if exists['code'] == 1000 and exists['data']:
                 active_count += 1

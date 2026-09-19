@@ -5,7 +5,9 @@ from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
 from app.schemas import DataIntegrityError
-from app.utils import TimeUtils, StringUtils
+from app.utils import TimeUtils
+
+from shard import StringUtils
 
 
 class DemoPlayerModel:
@@ -177,7 +179,7 @@ class PlayerModel:
                 'username': data[1],
                 'created_at': data[2],
                 'clan': clan_data,
-                'insignias': StringUtils.parse_insignias(data[3])
+                'insignias': StringUtils.insignias_decode(data[3])
             }
             
             # 读取用户的缓存信息，检查是否处于隐藏战绩状态

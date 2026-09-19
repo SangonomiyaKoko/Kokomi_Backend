@@ -15,7 +15,6 @@ from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
 from app.database import MySQLManager
 from app.network import HttpClient
-from app.utils import RatingUtils
 from app.middlewares import (
     RedisConnection,
     SecurityManager, 
@@ -51,6 +50,7 @@ def csv_writer_thread():
     api_logger.info('The log writing thread has exited')
 
 async def app_init():
+    """初始化 APP 运行所需的资源"""
     # 初始化http客户端
     HttpClient.init_client()
     # 初始化mysql并测试mysql连接
@@ -67,12 +67,10 @@ async def app_init():
     VisitorManager.init()
     # 初始化黑名单管理器
     BlacklistManager.init()
-    # 加载工具函数所需的全局配置数据
-    RatingUtils.init(EnvConfig.get_constants().METRIC_RATING_THRESHOLDS)
 
 # 应用程序的生命周期管理
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     # 读取工作路径，加载配置文件
     ROOT_DIR = os.getcwd()
     api_logger.info(f'Working dir: {ROOT_DIR}')
@@ -103,8 +101,11 @@ async def lifespan(app: FastAPI):
         writer_thread.join()
 
 app_description = """
-接口返回值文档：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/cn/return.md
-API Responses：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/en/return.md
+## API Responses Docs:
+
+[简体中文]：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/cn/return.md
+
+[English]：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/en/return.md
 """
 
 # 加载APP

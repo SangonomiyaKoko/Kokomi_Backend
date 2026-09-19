@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import pymysql
 from pymysql.constants import CLIENT
@@ -34,11 +35,14 @@ DB_CONFIG = {
 DATABASE = os.getenv("MYSQL_DATABASE")
 
 def main():
+    logger.warning("This action will clear the data in the database")
+    logger.warning("Do not use this script in a production environment!")
     confirm = input(f"Are you sure you want to rebuild database '{DATABASE}'? (Y/N): ").strip().upper()
-    if confirm != 'Y':
+    if confirm.upper() != 'Y':
         logger.info("Operation cancelled by user")
         return
-    
+    logger.info("Starting to execute the database rebuild command")
+    time.sleep(2)
     conn = pymysql.connect(
         **DB_CONFIG,
         client_flag=CLIENT.MULTI_STATEMENTS

@@ -165,10 +165,11 @@ class MySQLManager:
         except Exception:
             try:
                 await conn.rollback()
-            except Exception:
-                pass
+            except Exception as e:
+                api_logger.error(f"Rolled back failed: {type(e).__name__}")
+            else:
+                api_logger.warning("Auto transaction rolled back due to exception")
             await cls._release_conn_only(conn)
-            api_logger.warning("Auto transaction rolled back due to exception")
             raise
         else:
             await conn.commit()

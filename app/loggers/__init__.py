@@ -4,7 +4,7 @@ from .error_log import write_exception
 
 __all__ = [
     'CSVWriter',
-    'log_queue'
+    'log_queue',
     'ExceptionLogger',
     'write_exception'
 ]

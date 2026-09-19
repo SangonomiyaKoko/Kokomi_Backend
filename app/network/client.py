@@ -6,12 +6,7 @@ from app.loggers import ExceptionLogger
 from app.schemas import GameAPIException
 
 
-TIMEOUT = httpx.Timeout(
-    connect=2.0,
-    read=10.0,
-    write=3.0,
-    pool=2.0
-)
+TIMEOUT = 5
 
 class HttpClient:
     """HTTP 异步客户端，用于调用各类游戏 API"""

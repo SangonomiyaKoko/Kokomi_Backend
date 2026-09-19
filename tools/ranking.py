@@ -166,18 +166,18 @@ def main():
 
     try:
         with conn.cursor() as cursor:
-            # 刷新工会排行榜
-            if SEASON_ID != 0:
-                result = read_clan_league(cursor)
+            # # 刷新工会排行榜
+            # if SEASON_ID != 0:
+            #     result = read_clan_league(cursor)
 
-                key = 'leaderboard:clan'
-                pipe = redis_client.pipeline()
-                pipe.delete(key)
-                if result:
-                    pipe.zadd(key, {str(k): float(v) for k, v in result.items()})
-                pipe.execute()
+            #     key = 'leaderboard:clan'
+            #     pipe = redis_client.pipeline()
+            #     pipe.delete(key)
+            #     if result:
+            #         pipe.zadd(key, {str(k): float(v) for k, v in result.items()})
+            #     pipe.execute()
 
-                logger.info('Clan leaderboard cache refreshed')
+            #     logger.info('Clan leaderboard cache refreshed')
 
 
             # 刷新船只排行榜
