@@ -103,9 +103,9 @@ async def lifespan(_: FastAPI):
 app_description = """
 ## API Responses Docs:
 
-[简体中文]：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/cn/return.md
+[简体中文]：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/api/cn/return.md
 
-[English]：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/en/return.md
+[English]：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/api/en/return.md
 """
 
 # 加载APP

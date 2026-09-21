@@ -12,7 +12,7 @@
 
 因此刷新被拆成**调度**与**执行**两半：
 
-| | 调度（[scripts/account/](../scripts/account/)） | 执行（本模块 `tasks/`） |
+| | 调度（[scripts/account/](../../scripts/account/)） | 执行（本模块 `tasks/`） |
 | --- | --- | --- |
 | 触发 | 定时轮询（`REFRESH_INTERVAL`） | 消息队列事件驱动 |
 | 职责 | 扫描全表，判定"这轮该刷新谁" | 刷新"被指定的那一个用户" |
@@ -362,7 +362,7 @@ finally:
 
 即 **6 写 1 读**。
 
-> `T_user_random` 与 `T_user_ranked` 的表结构完全同构（见 [init/mysql/01-schemas/02-user.sql](../init/mysql/01-schemas/02-user.sql)），因此共用一个 `_update_user_battles`，表名由参数传入。该方法以 `user_data is None` 作为跳过条件——`refresh` 传入的是 `user_data['random_stats']` / `['ranked_stats']`，二者在**该模式场次为 0 时解析结果即为 `None`**，因此方法直接返回、不执行 UPDATE，**避免用 0 覆盖已有战绩**。
+> `T_user_random` 与 `T_user_ranked` 的表结构完全同构（见 [init/mysql/01-schemas/02-user.sql](../../init/mysql/01-schemas/02-user.sql)），因此共用一个 `_update_user_battles`，表名由参数传入。该方法以 `user_data is None` 作为跳过条件——`refresh` 传入的是 `user_data['random_stats']` / `['ranked_stats']`，二者在**该模式场次为 0 时解析结果即为 `None`**，因此方法直接返回、不执行 UPDATE，**避免用 0 覆盖已有战绩**。
 
 ### 5.2 `next_refresh_at`：跨服务契约
 
@@ -562,14 +562,14 @@ celery:
 
 | 文件 | 说明 |
 | --- | --- |
-| [init/mysql/01-schemas/02-user.sql](../init/mysql/01-schemas/02-user.sql) | 本模块触及的 7 张用户表结构 |
-| [shard/contracts.py](../shard/contracts.py) | `CommonConfig.REFRESH_TASK_NAME` / `REFRESH_QUEUE_NAME`、`RedisKeys` 键名、`Endpoints.vortex_api` |
-| [shard/game/user.py](../shard/game/user.py) | `UserPolicy` 策略表、`user_activity_level` / `user_normal_policy` / `user_hidden_policy` |
-| [shard/utils/data.py](../shard/utils/data.py) | `UserBasicDataDict`、`user_basic_data` 归一化、`StringUtils.token_decode` |
-| [shard/db/mysql.py](../shard/db/mysql.py) | `MySQLOPS.transaction`（事务上下文管理器） |
-| [shard/db/redis.py](../shard/db/redis.py) | `distributed_lock`（第三层 `user` 锁） |
-| [shard/logger.py](../shard/logger.py) | `exception_writer`（异常摘要 + 详情落盘） |
-| [scripts/account/worker.py](../scripts/account/worker.py) | 调度侧的筛选、投递与 `queue` 锁加锁 |
-| [scripts/cache/db_ops.py](../scripts/cache/db_ops.py) | `is_due` 的下游消费方 |
-| [tests/send_tasks.py](../tests/send_tasks.py) | 本地手动投递任务 |
-| [docs/deploy/dev-full.md](../docs/deploy/dev-full.md) | 开发环境启动命令（含 `-P solo`） |
+| [init/mysql/01-schemas/02-user.sql](../../init/mysql/01-schemas/02-user.sql) | 本模块触及的 7 张用户表结构 |
+| [shard/contracts.py](../../shard/contracts.py) | `CommonConfig.REFRESH_TASK_NAME` / `REFRESH_QUEUE_NAME`、`RedisKeys` 键名、`Endpoints.vortex_api` |
+| [shard/game/user.py](../../shard/game/user.py) | `UserPolicy` 策略表、`user_activity_level` / `user_normal_policy` / `user_hidden_policy` |
+| [shard/utils/data.py](../../shard/utils/data.py) | `UserBasicDataDict`、`user_basic_data` 归一化、`StringUtils.token_decode` |
+| [shard/db/mysql.py](../../shard/db/mysql.py) | `MySQLOPS.transaction`（事务上下文管理器） |
+| [shard/db/redis.py](../../shard/db/redis.py) | `distributed_lock`（第三层 `user` 锁） |
+| [shard/logger.py](../../shard/logger.py) | `exception_writer`（异常摘要 + 详情落盘） |
+| [scripts/account/worker.py](../../scripts/account/worker.py) | 调度侧的筛选、投递与 `queue` 锁加锁 |
+| [scripts/cache/db_ops.py](../../scripts/cache/db_ops.py) | `is_due` 的下游消费方 |
+| [tests/send_tasks.py](../../tests/send_tasks.py) | 本地手动投递任务 |
+| [deploy/dev-full.md](../deploy/dev-full.md) | 开发环境启动命令（含 `-P solo`） |

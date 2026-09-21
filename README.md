@@ -18,11 +18,11 @@
 project/
 ├── app/          # API 服务
 ├── data/         # 项目运行所需数据
-├── docs/         # 相关文档
+├── docs/         # 文档：部署 / 接口 / 服务设计 / 系统核心
 ├── init/         # 项目初始化文件
 ├── logs/         # 日志数据
 ├── scripts/      # 子服务
-├── task/         # 消息队列消费者
+├── tasks/        # 消息队列消费者
 ├── tests/        # 相关测试脚本
 └── tools/        # 相关小工具脚本
 ```
@@ -31,7 +31,7 @@ project/
 
 ```
 app/:             API 服务 + Dashboard 服务
-task/:            Celery 消费者，消费 MQ 中待更新的用户
+tasks/:           Celery 消费者，消费 MQ 中待更新的用户
 scripts/account/: 读取需要更新的用户 ID，发送到 MQ
 scripts/cache/:   更新用户随机缓存数据，实现船只排行榜
 scripts/member/:  更新工会内的用户列表
