@@ -1,7 +1,9 @@
 from typing import Optional
 
 
-class RatingUtils:
+class RatingAlgo:
+    """评分与等级换算相关公用算法"""
+
     # 计算评分等级所用的区间
     _METRIC_RATING_THRESHOLDS = {
         "rating":   [750,1100,1350,1550,1750,2100,2450],
@@ -16,7 +18,7 @@ class RatingUtils:
 
         将指标值与预设阈值列表对比，返回 1-8 的等级
         """
-        thresholds = RatingUtils._METRIC_RATING_THRESHOLDS.get(metric_name)
+        thresholds = RatingAlgo._METRIC_RATING_THRESHOLDS.get(metric_name)
         if not thresholds:
             return 1
 
@@ -53,6 +55,6 @@ class RatingUtils:
 
         return (
             round(700 * n_dmg + 300 * n_frags + 150 * n_wins, 2),
-            RatingUtils.get_metric_level(r_dmg, 'damage'),
-            RatingUtils.get_metric_level(r_frags, 'frags')
+            RatingAlgo.get_metric_level(r_dmg, 'damage'),
+            RatingAlgo.get_metric_level(r_frags, 'frags')
         )

@@ -1,61 +1,9 @@
-class CommonConfig:
-    REFRESH_TASK_NAME = 'user_refresh'
-    REFRESH_QUEUE_NAME = 'refresh_queue'
-    STATUS_FIELDS = [
-        'overdue', 
-        'within_24h', 
-        'within_week', 
-        'within_month', 
-        'within_quarter'
-    ]
-    USER_INIT_TABLE_LIST = [
-        "T_user_clan",
-        "T_user_stats",
-        "T_user_cache",
-        "T_user_random",
-        "T_user_ranked",
-        "T_user_config"
-    ]
-    CLAN_INIT_TABLE_LIST = [
-        "T_clan_users",
-        "T_clan_stats",
-        "T_clan_team"
-    ]
-    SHIP_INIT_TABLE_LIST = [
-        "T_ship_pvp_stats",
-        "T_ship_stats_by_battles",
-        "T_ship_stats_by_users",
-        "T_ship_rating_distribution"
-    ]
+DAY_IN_SECONDS = 86400
 
-
-class ClanPolicy:
-    # 计算工会活跃等级所用用户数量区间配置
-    # 基于工会内用户数量，确定工会活跃度等级
-    ACTIVITY_THRESHOLDS = [
-        [10, 3],
-        [30, 2],
-        [50, 1]
-    ]
-
-    # 计算工会下次更新时间配置
-    # 基于工会活跃等级，确定工会更新时间间隔
-    NORMAL_STRATEGY = {
-        "0-1": 21600,    # 6 HOURS
-        "0-2": 43200,    # 12 HOURS
-        "0-3": 93600     # 26 HOURS
-    }
-
-    # 公会战排行榜需要遍历的「联赛-分段」组合
-    LEAGUE_LIST = [
-        "0-1",
-        "1-1", "1-2", "1-3",
-        "2-1", "2-2", "2-3",
-        "3-1", "3-2", "3-3",
-        "4-1", "4-2", "4-3"
-    ]
 
 class UserPolicy:
+    """账号等级、活跃等级与更新间隔的策略配置"""
+
     # 账号等级降级条件配置
     MAX_INACTIVE_DAYS = 60
     MAX_NO_BATTLE_DAYS = 180
@@ -89,7 +37,7 @@ class UserPolicy:
         "0-7": 1728000,  # 20 DAYS
         "0-8": 2592000,  # 30 DAYS
         "0-9": 7776000,  # 90 DAYS
-        
+
         # Lv.1 用户更新策略
         # 仅面向活跃度 7 及以下用户，即过去 365 天内活跃
         "1-1": 3600,     # 1 HOUR
@@ -101,7 +49,7 @@ class UserPolicy:
         "1-7": 43200,    # 12 HOURS
         "1-8": 2592000,  # 30 DAYS
         "1-9": 5184000,  # 60 DAYS
-        
+
         # Lv.2 用户更新策略
         # 仅面向活跃度 5 及以下用户，即过去 90 天内活跃
         "2-1": 600,      # 10 MINS
@@ -129,3 +77,78 @@ class UserPolicy:
         "1": 86400,
         "2": 3600
     }
+
+
+class UserPolicyUtils:
+    """基于 UserPolicy 推导账号活跃等级与更新间隔"""
+
+    @staticmethod
+    def max_hidden_days() -> int:
+        """账号隐藏战绩触发账号等级降级的条件"""
+        return UserPolicy.MAX_HIDDEN_PROFILE_DAYS
+
+    @staticmethod
+    def max_user_inactive_interval() -> int:
+        """用户不活跃触发账号等级降级的条件"""
+        return UserPolicy.MAX_INACTIVE_DAYS * DAY_IN_SECONDS
+
+    @staticmethod
+    def max_battle_inactive_interval() -> int:
+        """账号不活跃触发账号等级降级的条件"""
+        return UserPolicy.MAX_NO_BATTLE_DAYS * DAY_IN_SECONDS
+
+    @staticmethod
+    def user_activity_level(
+        timestamp: int, lbt: int = None
+    ) -> int:
+        """基于用户最后战斗时间戳返回用户活跃等级"""
+        if not lbt or lbt <= 0:
+            return 0
+
+        diff = timestamp - lbt
+        for threshold, level in UserPolicy.ACTIVITY_THRESHOLDS:
+            if diff <= threshold:
+                return level
+
+        # 超过配置最大时间区间统一返回 9
+        return 9
+
+    @staticmethod
+    def user_hidden_policy(
+        user_level: int
+    ) -> int:
+        """隐藏战绩账号的更新间隔"""
+        if user_level > 0:
+            return DAY_IN_SECONDS
+        else:
+            return 30 * DAY_IN_SECONDS
+
+    @staticmethod
+    def user_normal_policy(
+        timestamp: int,
+        user_level: int,
+        activity_level: int,
+        lbt: int
+    ) -> int:
+        """普通账号的更新间隔"""
+        if user_level == 2 and activity_level == 1:
+            interval_seconds = 600  # 默认 10min
+
+            diff_timestamp = timestamp - lbt
+            for item in UserPolicy.SPECIAL_STRATEGY:
+                if diff_timestamp < item[0]:
+                    interval_seconds = item[1]
+                    break
+
+            return interval_seconds
+        else:
+            user_key = f"{user_level}-{activity_level}"
+            return UserPolicy.NORMAL_STRATEGY.get(user_key, DAY_IN_SECONDS)
+
+    @staticmethod
+    def recent_fallback_timeout(
+        user_level: int
+    ) -> int:
+        """账号保底更新间隔"""
+        level_key = str(user_level)
+        return UserPolicy.FALLBACK_TIMEOUT.get(level_key, DAY_IN_SECONDS)

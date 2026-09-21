@@ -1,8 +1,8 @@
 import math
 
 
-class SchedulerUtils:
-    """刷新计划调度与均衡相关公用函数"""
+class BalanceAlgo:
+    """刷新计划调度与均衡相关公用算法"""
 
     @staticmethod
     def calc_imbalance_score(counts: list) -> float:
@@ -70,7 +70,7 @@ class SchedulerUtils:
                 continue
 
             # 过滤轻微波动
-            score = SchedulerUtils.calc_imbalance_score(interval_counts)
+            score = BalanceAlgo.calc_imbalance_score(interval_counts)
             if score >= min_score:
                 intervals.append((left, hour))
 

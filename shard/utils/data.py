@@ -1,6 +1,169 @@
+import json
+import re
+from pathlib import Path
 from typing import Optional, TypedDict
+from json import JSONDecodeError
 
-from .string_utils import StringUtils
+
+class StringUtils:
+    """字符串编解码相关公用函数"""
+
+    @staticmethod
+    def is_date_format(value: str) -> bool:
+        """简单效验传入的字符串是否符合日期格式"""
+        return bool(
+            re.fullmatch(r"\d{4}-\d{2}-\d{2}", value)
+        )
+
+    @staticmethod
+    def token_decode(data: str) -> list:
+        """解析读取得到 AC 字段中数据"""
+        # 数据格式： TOKEN or TOKEN:ID1,ID2,...
+        if data is None:
+            return [None, None]
+
+        if ':' not in data:
+            # 未配置绑定账号
+            return [data, None]
+
+        split_str = data.split(':')
+        token = split_str[0]
+        users = split_str[1]
+
+        # 根据参数数量分割字符串
+        if users is None:
+            return [token, None]
+        elif ',' not in users:
+            return [token, [users]]
+        else:
+            return [token, users.split(',')]
+
+    @staticmethod
+    def insignias_encode(data: dict) -> Optional[str]:
+        """从 DogTag 数据中生成标识字符串"""
+        if not data:
+            return None
+
+        keys = [
+            "texture_id",
+            "symbol_id",
+            "border_color_id",
+            "background_color_id",
+            "background_id"
+        ]
+
+        if any(k not in data for k in keys):
+            return None
+
+        return "-".join(
+            str(data[k]) for k in keys
+        )
+
+    @staticmethod
+    def insignias_decode(insignia_str: str) -> Optional[dict]:
+        """将储存的 DogTag 字符串反序列化为 Dict"""
+        if insignia_str is None:
+            return None
+
+        parts = insignia_str.split("-")
+
+        keys = [
+            "texture_id",
+            "symbol_id",
+            "border_color_id",
+            "background_color_id",
+            "background_id"
+        ]
+
+        if len(parts) != len(keys):
+            return None
+
+        return {
+            key: int(part) for key, part in zip(keys, parts)
+        }
+
+    @staticmethod
+    def index_data_encode(data: list) -> Optional[str]:
+        """将统计字段列表序列化为用于储存的 index_data 字符串"""
+        if not data:
+            return None
+
+        return ','.join(
+            map(str, data)
+        )
+
+    @staticmethod
+    def index_data_decode(data: str) -> list[int]:
+        """将储存的 index_data 数据反序列化为用于计算的 List"""
+        if not data:
+            return []
+
+        return [
+            int(x) for x in data.split(',')
+        ]
+
+    @staticmethod
+    def index_map_encode(data: dict) -> Optional[str]:
+        """将船只索引合集序列化为用于储存的 index_map 字符串"""
+        if not data:
+            return None
+
+        return ','.join(
+            f'{key}:{value}' for key, value in data.items()
+        )
+
+    @staticmethod
+    def index_map_decode(data: str) -> dict:
+        """将储存的 index_map 数据反序列化为用于计算的 Dict"""
+        result = {}
+        if not data:
+            return result
+
+        for part in data.split(','):
+            key, value = part.split(':')
+            result[int(key)] = int(value)
+
+        return result
+
+
+class FileUtils:
+    """文件装载相关公用函数"""
+
+    @staticmethod
+    def load_json(
+        fp: Path, default: Optional[dict] = None
+    ) -> dict:
+        """加载 JSON 文件，未配置 default 则默认为必要文件
+        
+        如果必要文件不存在、读取失败或解析失败将抛出异常
+        """
+        if default is None:
+            if not fp.exists():
+                raise FileNotFoundError(f'File missing: {fp}')
+            
+            with open(fp, "r", encoding="utf-8") as f:
+                return json.load(f)
+        else:
+            if not fp.exists():
+                return default
+            
+            with open(fp, "r", encoding="utf-8") as f:
+                try:
+                    return json.load(f)
+                except JSONDecodeError:
+                    return default
+        
+
+    @staticmethod
+    def load_sql(
+        fp: Path
+    ) -> Optional[str]:
+        """加载数据库初始化 SQL 文件"""
+        if not fp.exists():
+            raise FileNotFoundError(f'File missing: {fp}')
+
+        with open(fp, "r", encoding="utf-8") as f:
+            return f.read()
 
 
 # 定义战斗统计数据的 TypedDict
@@ -42,12 +205,12 @@ class ParseUtils:
 
     @staticmethod
     def user_basic_data(
-        region: str, 
-        account_id: int, 
+        region: str,
+        account_id: int,
         response: dict
     ) -> UserBasicDataDict:
         """从 API 响应中提取用户基础数据
-        
+
         返回以下形式的数据：
         - 用户不存在，无有效字段且 is_enabled = 0
         - 用户隐藏战绩，仅 name 字段有效且 is_public = 0
@@ -70,9 +233,9 @@ class ParseUtils:
             'random_stats': None,
             'ranked_stats': None
         }
-        
+
         user_info = response.get(str(account_id))
-        
+
         # 无有效数据
         if user_info is None:
             user_data['is_enabled'] = 0
@@ -83,7 +246,7 @@ class ParseUtils:
             user_data['is_public'] = 0
             user_data['username'] = user_info['name']
             return user_data
-        
+
         # 无有效数据
         if 'statistics' not in user_info:
             user_data['is_enabled'] = 0
@@ -97,20 +260,20 @@ class ParseUtils:
             user_data['is_enabled'] = 0
             user_data['register_time'] = None
             return user_data
-        
+
         # 无数据账号
         if 'basic' not in user_info['statistics']:
             return user_data
-        
+
         # 正常有数据用户
         statistics = user_info['statistics']
         basic_data = statistics.get('basic', {})
         leveling_points = basic_data.get('leveling_points', 0)
-        
+
         # 处理中国服主播体验账号的特殊等级点数偏移量（1,000,000）
         if leveling_points >= 1_000_000:
             leveling_points -= 1_000_000
-        
+
         # 最后战斗时间戳
         last_battle_time = basic_data.get('last_battle_time', 0)
         if last_battle_time == 0:
@@ -120,7 +283,7 @@ class ParseUtils:
         pvp_battles = statistics.get('pvp', {}).get('battles_count', 0)
         ranked_battles = statistics.get('rank_solo', {}).get('battles_count', 0)
         encoded_insignias = StringUtils.insignias_encode(user_info.get('dog_tag'))
-        
+
         user_data.update({
             'username': user_info['name'],
             'total_battles': leveling_points,
@@ -131,7 +294,7 @@ class ParseUtils:
             'karma': basic_data.get('karma', 0),
             'insignias': encoded_insignias
         })
-        
+
         # 处理俄服的评分战数据
         if region == 'ru':
             rating_count = 0
@@ -154,7 +317,7 @@ class ParseUtils:
                 'max_scouting': statistics['pvp']['max_scouting_damage'],
                 'max_potential': statistics['pvp']['max_total_agro']
             }
-        
+
         if ranked_battles > 0:
             user_data['ranked_stats'] = {
                 'battles': ranked_battles ,
@@ -170,5 +333,5 @@ class ParseUtils:
                 'max_scouting': statistics['rank_solo']['max_scouting_damage'],
                 'max_potential': statistics['rank_solo']['max_total_agro']
             }
-        
+
         return user_data

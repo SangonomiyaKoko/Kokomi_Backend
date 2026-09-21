@@ -6,7 +6,7 @@ from typing import Callable, Optional, Iterator
 
 from tqdm import tqdm
 
-from .time_utils import TimeUtils
+from .utils.time import TimeUtils
 
 
 # 日志输出格式

@@ -15,7 +15,7 @@ class ISOTimeString:
     @property
     def iso(self) -> str:
         """返回 ISO 8601 格式字符串
-        
+
         eg: 2026-09-10T07:54:46+00:00
         """
         return self._string
@@ -23,7 +23,7 @@ class ISOTimeString:
     @property
     def date(self) -> str:
         """返回字符串中 date 信息
-        
+
         eg: 2026-09-10
         """
         return self._string[:10]
@@ -31,7 +31,7 @@ class ISOTimeString:
     @property
     def date_year(self) -> str:
         """返回字符串中 date 信息
-        
+
         eg: 2026
         """
         return self._string[:4]
@@ -39,7 +39,7 @@ class ISOTimeString:
     @property
     def date_month(self) -> str:
         """返回字符串中 date 信息
-        
+
         eg: 2026-09
         """
         return self._string[:7]
@@ -54,7 +54,7 @@ class ISOTimeString:
 
 class TimeUtils:
     """时间处理相关公用函数"""
-    
+
     @staticmethod
     def timestamp() -> int:
         """获取当前的时间戳"""
@@ -74,7 +74,7 @@ class TimeUtils:
         ts = int(time.time())
         for _ in range(days):
             date = datetime.fromtimestamp(
-                timestamp=ts, 
+                timestamp=ts,
                 tz=timezone.utc
             ).strftime("%Y-%m-%d")
             date_list.append(f'{date}.log')
@@ -104,7 +104,7 @@ class TimeUtils:
         tz: int, timestamp: int
     ) -> int:
         """获取基于时区漂移和更新漂移重置的日期
-        
+
         eg: 20260910
         """
         # 计算偏移时间戳：当前时间戳 + 时区偏移 - 更新偏移
@@ -116,7 +116,7 @@ class TimeUtils:
 
         # 以 UTC 时间为基准计算服务所需的当前时间
         strftime = datetime.fromtimestamp(
-            timestamp=reset_timestamp, 
+            timestamp=reset_timestamp,
             tz=timezone.utc
         ).strftime("%Y%m%d")
 
@@ -130,14 +130,14 @@ class TimeUtils:
         result = []
         for i in range(1000):   # 正常情况下不可能超过 1000 天，此处为避免死循环
             reset_timestamp = (
-                timestamp 
+                timestamp
                 - i * 86400
                 + tz * 3600
                 - TIMEZONE_OFFSET * 3600
             )
             strftime = int(
                 datetime.fromtimestamp(
-                    timestamp=reset_timestamp, 
+                    timestamp=reset_timestamp,
                     tz=timezone.utc
                 ).strftime("%Y%m%d")
             )
@@ -149,46 +149,8 @@ class TimeUtils:
         for i in range(len(result) - 1):
             if result[i] <= result[i + 1]:
                 raise RuntimeError("Date list not in strictly decreasing order")
-            
+
         return result
-
-    @staticmethod
-    def cb_update_period(
-        tz: int, season_start: Optional[int], season_finish: Optional[int]
-    ) -> int | None:
-        """读取 CLAN 模式赛季信息，检测当前时间是否属于更新活跃时间段"""
-        now_ts = int(time.time())
-
-        # 未配置 CLAN 模式活跃时间段时默认不活跃
-        if not season_start or not season_finish:
-            return None
-
-        # 当前时间不在 CLAN 赛季时间范围内
-        if not (season_start <= now_ts <= season_finish):
-            return None
-
-        # 转换为服务器当地时间
-        local_ts = now_ts + tz * 3600
-        dt = datetime.fromtimestamp(local_ts, tz=timezone.utc)
-
-        # 周一 / 周四 / 周五 / 周日的 01:00–05:00 为更新活跃时间段
-        if dt.isoweekday() not in (1, 4, 5, 7) or not (1 <= dt.hour < 5):
-            return None
-
-        # 当前活跃时间段的开始时间：当地时间当天 01:00
-        period_start = dt.replace(
-            hour=1,
-            minute=0,
-            second=0,
-            microsecond=0,
-        )
-
-        # 转回 UTC Unix timestamp
-        period_start_ts = int(
-            period_start.timestamp() - tz * 3600
-        )
-
-        return period_start_ts
 
     @staticmethod
     def formtime_to_timestamp(formtime: str) -> int:
@@ -200,9 +162,9 @@ class TimeUtils:
         """计算从当前时刻到今天 23:59:59 剩余的秒数"""
         now = datetime.now()
         end_of_day = now.replace(
-            hour=23, 
-            minute=59, 
-            second=59, 
+            hour=23,
+            minute=59,
+            second=59,
             microsecond=0
 
         )
