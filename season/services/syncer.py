@@ -1,9 +1,7 @@
-from pymysql import Connection
 from pymysql.cursors import Cursor
-from shard import CommonConfig
+from shard import CommonConfig, MySQLOPS
 
 from ..core import RunContext
-from ..db_ops import mysql_transaction
 from ..models import ClanRecord
 from ..logger import logger
 
@@ -86,10 +84,10 @@ class ClanBaseSyncer:
 
     @classmethod
     def main(
-        cls, mysql_conn: Connection, run_ctx: RunContext
+        cls, run_ctx: RunContext
     ) -> list[int]:
         """同步公会基础数据，并筛选出需要刷新详情的公会"""
-        with mysql_transaction(mysql_conn) as cursor:
+        with MySQLOPS.transaction(run_ctx.mysql_connection) as cursor:
             records = cls._load_records(
                 cursor, [entry.clan_id for entry in run_ctx.clan_entries]
             )
@@ -99,8 +97,8 @@ class ClanBaseSyncer:
             existing = [e for e in run_ctx.clan_entries if e.clan_id in records]
 
             cls._update_clan_bases(cursor, existing)
+            cls._insert_clans(cursor, missing)
             if missing:
-                cls._insert_clans(cursor, missing)
                 logger.info(f'Insert new clans: {len(missing)}')
 
             update_ids = set()

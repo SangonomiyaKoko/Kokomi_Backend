@@ -1,9 +1,8 @@
 import msgpack
 
-from shard import RedisKeys, TimeUtils
+from shard import MySQLOPS, RedisKeys, TimeUtils
 
 from ..core import RunContext
-from ..db_ops import mysql_read_only
 from ..repository import ClanStatsRepository
 from ..logger import logger
 from ..settings import DATA_DIR
@@ -32,7 +31,7 @@ class ClanRankingWriter:
         )
 
         # 从 MySQL 读取各个工会具体的排名数据
-        with mysql_read_only(run_ctx.mysql_connection) as cursor:
+        with MySQLOPS.read_only(run_ctx.mysql_connection) as cursor:
             rows = ClanStatsRepository.load_leaderboard(cursor, clans)
 
         data = []
@@ -59,3 +58,5 @@ class ClanRankingWriter:
         packed_bytes = msgpack.packb(payload, use_bin_type=True)
         with open(file_path, "wb") as f:
             f.write(packed_bytes)
+
+        logger.info(f'Snapshot file refresh complete')

@@ -26,6 +26,7 @@ class RunContext:
 
     # 本赛季信息
     season_id: int = field(default=0)
+    season_config: tuple = field(default=(None, None))
     clan_entries: List[LeagueClanEntry] = field(
         default_factory=list
     )
@@ -34,8 +35,8 @@ class RunContext:
     )
 
     # 本次更新统计到赛季对局数量
-    record_match = 0
-    discard_match = 0
+    record_match: int = field(default=0)
+    discard_match: int = field(default=0)
 
     def set_status_key(self) -> None:
         """刷新标识服务状态的键有效期"""
@@ -57,6 +58,9 @@ class UpdateContext:
     """单个公会更新流程的上下文"""
     clan_id: int
     season_id: int
+
+    record_inc: int = field(default=0)
+    discard_inc: int = field(default=0)
 
     record: BattleRecord = field(init=False, default=None)
     stats: ClanSeasonStats = field(init=False, default=None)

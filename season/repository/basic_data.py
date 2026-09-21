@@ -31,7 +31,7 @@ class BasicDataRepository:
         # 实际提前 600s 更新，宁可早更
         cursor.execute(
             sql,
-            [FALLBACK_REFRESH_SECONDS - 60, tracking_key, tracking_type]
+            [FALLBACK_REFRESH_SECONDS - 600, tracking_key, tracking_type]
         )
         result = cursor.fetchone()
         if not result or not result[0]:

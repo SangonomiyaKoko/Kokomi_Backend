@@ -8,7 +8,7 @@ ClanSeason 服务负责公会战赛季数据的采集与还原：轮询官方 Cl
 
 ### 1.1 数据源的能力边界
 
-官方 Clan API（`clans.korabli.su` / `clans.worldofwarships.com` 等，按 `REGION` 选域名）提供两类数据：
+官方 Clan API（`clans.worldofwarships.com` 等）提供两类数据：
 
 - **排行榜接口** `/api/ladder/structure/?realm={realm}&league={league}&division={division}&limit=1000`
   按「联赛-分段」返回该分段的公会列表（`id` / `tag` / `last_battle_at` / `season_number`）；
@@ -74,6 +74,8 @@ clan_rating ──────────────────► Redis lead
 
 > 但**初始分不为基线的公会，即便尚未开战也必须落库**，否则首场战斗统计不出正确的分差。这是 `is_baseline` 判定同时要求 `battles_count == 0` **且** `public_rating == 1100` 的原因。
 
+> **该基线只在"本赛季的基线已经落库"这个前提下成立**：正常流程会在赛季开始前把各公会本赛季的初始基线写入 `T_clan_team`，此后它们的首场战斗都能对着基线差分出正确分差。若某公会的缓存 `season` 与当前赛季不符，说明它是**赛季中途才建档**的——它的真实起始分未必是 `1100`（例如上赛季第一名本赛季从 `1300` 起算），按基线起算会得出 `+250` 这种假分差。因此此时**不使用本基线**，整份快照的场次全部计入 `discard`（见 5.1 与 6.4）。
+
 **② 丢弃计数 `discard`**
 
 差值不为 1 的场次无法还原，计入 SQLite `database_meta` 的 `discard` 键，与 `record`（成功还原）、`total`（两者之和）一起构成本轮的数据质量指标：
@@ -124,40 +126,27 @@ season/
 ├── logger.py        # 日志与异常落盘（封装 shard 的 logger 与 exception_writer）
 ├── core/            # 调度与上下文
 │   ├── context.py   #   RunContext（整轮）/ UpdateContext（单公会）
-│   ├── scheduler.py #   轮循环：建资源 → 跑一轮 → 清资源 → 休眠
+│   ├── scheduler.py #   读赛季配置 + 轮循环：建资源 → 跑一轮 → 清资源 → 休眠
 │   └── worker.py    #   单轮编排：串起各 service
 ├── services/        # 业务编排（无状态类方法，按需调用）
 ├── clients/         # 外部 API 接入（端点注册 + 请求 + 指标上报）
 ├── repository/      # 数据访问（纯 SQL，不感知业务）
-├── models/          # 领域模型（frozen dataclass）
-└── db_ops/          # MySQL / SQLite 连接与事务上下文管理器
+└── models/          # 领域模型（frozen dataclass）
 ```
 
-分层职责边界：
+MySQL / SQLite 的连接与事务上下文管理器由 `shard.db` 提供，本模块不再自持；SQLite 的路径由 `shard.db.SQLiteOPS.season_db_path` 推导，建表 SQL 用 `settings.CREATE_SQL`，均在调用时传入。
 
-| 层 | 只做 | 不做 |
-| --- | --- | --- |
-| `core` | 流程编排、资源生命周期、异常兜底 | 业务规则、SQL |
-| `services` | 业务规则、数据加工、事务边界（调用 db_ops） | 直接拼 SQL |
-| `repository` | SQL 语句与行 → 模型转换 | 业务判断、事务控制 |
-| `models` | 数据结构、序列化、派生属性 | IO |
-| `clients` | 拼 URL、发请求、错误分类、指标上报 | 业务语义 |
-| `db_ops` | 连接与事务的上下文管理 | 任何业务 SQL |
-
-**依赖方向单向向下**，且 `services` 之间只允许一条依赖：`updater → parser`（流水线需要用解析器）。其余 service 互不调用，由 `core/worker.py` 统一编排。
-
-### 3.3 services 层职责一览
+### 3.3 各模块职责一览
 
 | 模块 | 类 / 函数 | 职责 |
 | --- | --- | --- |
 | `collector` | `LeagueCollector` | 遍历 13 个「联赛-分段」，收集全部活跃公会条目 + 赛季切换检测 |
-| `collector` | `read_season_data` / `refresh_season_data` | 读写本地赛季配置 `data/json/clan_season.json` |
+| `collector` | `refresh_season_data` | 检测到赛季切换时改写本地赛季配置（`start` / `finish` 重置为 `None`） |
 | `syncer` | `ClanBaseSyncer` | 同步公会基础信息，并筛选出本轮需要刷详情的公会 |
 | `updater` | `ClanSeasonUpdater` | 单公会流水线：拉详情 → 解析 → 差分 → 提交 → 刷榜 |
 | `parser` | `ClanStatsParser` | 公会详情响应 → `ClanSeasonStats`（含晋级赛解析） |
 | `ranking` | `ClanRankingWriter` | 生成排行榜 msgpack 快照 |
-
-> 历史上曾有一个独立的 `planner.py`（`BattleRecordPlanner`）负责差分，现已并入 `updater` 的 `_plan_record` / `_plan_team`。
+| `core/scheduler` | `read_season_data` | 每轮建连时读取本地赛季配置（`core/worker` 不再自持） |
 
 ### 3.4 上下文对象
 
@@ -169,7 +158,8 @@ season/
 | --- | --- |
 | `session` / `redis_client` / `mysql_connection` | 本轮中间件连接（`create_resources` 后填充） |
 | `season_id` | 当前赛季 ID |
-| `clan_entries` | 本轮收集到的全部公会条目 |
+| `season_config` | 赛季起止时间 `(start, finish)`，任一为 `None` 时跳过赛季区间校验 |
+| `clan_entries` | 本轮收集到的全部公会条目（已按 `clan_id` 去重） |
 | `league_counts` | 各联赛的公会数量分布（仅用于日志） |
 | `record_match` / `discard_match` | 本轮成功还原 / 无法还原的场次计数 |
 
@@ -183,8 +173,9 @@ season/
 | `stats` | `ClanSeasonStats \| None` | 本次拉取并解析出的最新统计 |
 | `cache` | `ClanTeamCache \| None` | 从 `T_clan_team` 读出的旧队伍快照（差分基线） |
 | `record` | `BattleRecord \| None` | 差分还原出的待写入对战明细 |
+| `record_inc` / `discard_inc` | `int` | 本次判定出的可还原 / 不可还原场次，默认 `0` |
 
-> 三个可选字段均为 `field(init=False, default=None)`：由流水线按阶段逐步填充，`None` 即代表"该阶段未产出"。
+> `stats` / `cache` / `record` 三个可选字段均为 `field(init=False, default=None)`：由流水线按阶段逐步填充，`None` 即代表"该阶段未产出"。`record_inc` / `discard_inc` 默认 `0`，由 `_plan_record` 按判定结果写入，再由 `main` 在入库成功后累加到 `RunContext`。
 
 ---
 
@@ -258,7 +249,7 @@ time_window, battle_time
 
 `victory` 为胜场差，`rating` 为该队伍当前的公开评分。
 
-`time_window` 是该场战斗所处的**时间区间索引**（详见 5.2 与 6.1）：由 `_plan_record` 用**战斗时间**（`ctx.stats.last_battle_time`）反查 `GameUtils.get_window_index` 得到，而不是取当前时间——保底刷新等场景下轮次可能已在窗口之外，取当前时间会得到错误的区间。战斗时间落在任何区间之外时为 `None`。
+`time_window` 是该场战斗所处的**时间区间索引**（详见 5.2 与 6.1）：由 `_plan_record` 用**战斗时间**（`ctx.stats.last_battle_time`）反查 `ClanBattleUtils.get_window_index` 得到，而不是取当前时间——保底刷新等场景下轮次可能已在窗口之外，取当前时间会得到错误的区间。战斗时间落在任何区间之外时为 `None`。
 
 > **联赛编号方向**：`0=紫金 1=白金 2=黄金 3=白银 4=青铜 5=无`，**数字越小段位越高**（见 `app/constants/clan.py` 的颜色映射与两张表的列注释）。因此 `_plan_team` 中 `new.league > old.league` 判为 `▼` 降级、否则为 `▲` 晋级。
 
@@ -322,7 +313,7 @@ team_bravo       JSON     DEFAULT NULL  -- 队伍 2 数据
 
 **本表是差分还原的核心**：每轮更新后覆盖写入本轮快照，下一轮读出来与新快照相减。`NULL` 表示该队伍处于赛季基线状态。
 
-`season` 字段用于**检测跨赛季**：若缓存中的 `season` 与当前赛季不符，说明本赛季首轮数据尚无可比基线，此时不做差分，直接把该公会的全部场次计入 `discard`。
+`season` 字段用于**检测跨赛季**：正常流程在赛季开始前就会把各公会本赛季的初始基线写入本表（含非 `1100` 的特殊起始分），所以 `season` 与当前赛季不符只可能是"这条公会是赛季中途才建档的"——它的起始分不可知，不能按 `1100` 强行起算。此时不做差分，把快照里的全部场次计入 `discard`（详见 2.2 与 6.4）。
 
 #### `T_tracking_meta` — 任务追踪
 
@@ -335,7 +326,7 @@ UNIQUE KEY uk_key_type (tracking_key, tracking_type)
 
 提供两个操作：
 
-- `is_need_update` — 追踪值为 `NULL`，或距上次更新已超过 `FALLBACK_REFRESH_SECONDS`（配置项，默认 86400 秒）时返回 `True`；追踪行整行缺失时返回 `False`，该情况由初始化种子数据（`('clan_season', 'refresh_time')`）兜底；
+- `is_need_update` — 追踪值为 `NULL`，或距上次更新已超过 `FALLBACK_REFRESH_SECONDS - 600`（配置项，默认 86400 秒；阈值提前 10 分钟，宁可早更）时返回 `True`；追踪行整行缺失时返回 `False`，该情况由初始化种子数据（`('clan_season', 'refresh_time')`）兜底；
 - `update_tracking_key` — 写为 `NOW()`。
 
 两者共同实现**保底每日刷新一次**。
@@ -348,7 +339,7 @@ UNIQUE KEY uk_key_type (tracking_key, tracking_type)
 
 ### 5.2 SQLite（赛季库，每赛季一个文件）
 
-文件路径 `data/local/season_{season_id}.db`，由 `ensure_database()` 按 `init/sqlite/clan_battle.sql` 建表。
+文件路径由 `SQLiteOPS.season_db_path(DATA_DIR, season_id)` 推导（`data/season/{season_id}.db`），由 `SQLiteOPS.ensure_database(season_file, CREATE_SQL)` 按 `init/sqlite/clan_battle.sql` 建表，建表 SQL 在 `settings.py` 启动时读入。
 
 > 对战明细放在 SQLite 而非 MySQL，是因为它是**纯追加、只增不减、按赛季隔离**的时序数据：单赛季可达数百万行，用独立文件承载既便于整体归档/清理，也不给主库带来写入压力。
 
@@ -410,7 +401,7 @@ metric_value INTEGER DEFAULT 0
 | --- | --- | --- |
 | ① 赛季已配置 | `clan_season.json` 的 `id != 0` | 记 warning 后返回 |
 | ② 保底每日一次 | `is_need_update('clan_season', 'refresh_time')` | **进入闸门 ③** |
-| ③ 处于活跃窗口 | `GameUtils.is_cb_active(REGION, start, finish)` | 记日志后返回 |
+| ③ 处于活跃窗口 | `ClanBattleUtils.is_cb_active(REGION, start, finish)` | 记日志后返回 |
 
 闸门 ② 与 ③ 是**或**的关系：`is_need_update` 表示"距上次成功更新已超过 `FALLBACK_REFRESH_SECONDS`"，一旦成立就**绕过**窗口判断强制刷新，保证哪怕活跃窗口配置有误、或长期无战斗，数据也能每天至少同步一次。
 
@@ -418,7 +409,7 @@ metric_value INTEGER DEFAULT 0
 
 1. 若 `season_start` 与 `season_finish` **都已填写**，且当前时间不在 `[start, finish]` 内 → 返回 `False`；
    （两者任一为空时跳过此检查——新赛季起止时间未知，需人工补录，期间退化为纯窗口判断，避免因配置缺失而停止更新）
-2. 否则转调 `get_window_index(region, now)`，命中任一窗口返回 `True`，否则 `False`。
+2. 否则匹配当天的 `CLAN_BATTLE_WINDOWS`（UTC），命中任一窗口返回 `True`，否则 `False`。
 
 **`get_window_index(region, timestamp)`** 承担另一件事：给定一个时间戳，返回它落在哪个**时间区间**（`1`/`2`/`3`），不在任何区间时返回 `None`。它是纯窗口匹配、**不含赛季起止校验**，且正是 `time_window` 列的来源——`_plan_record` 传入**战斗发生时间**（而非当前时间）来反查该场战斗属于哪个区间。
 
@@ -439,9 +430,10 @@ metric_value INTEGER DEFAULT 0
 
 `LeagueCollector.main` 遍历 `ClanPolicy.LEAGUE_LIST` 的 13 个「联赛-分段」组合（`0-1`，`1-1` … `4-3`），逐个请求排行榜接口。
 
-- `realm` 由 `GameUtils.CLAN_REALM_MAP[REGION]` 映射（如 `asia → sg`、`na → us`、`cn → cn360`）；
+- `realm` 由 `CLAN_REALM_MAP[REGION]` 映射（如 `asia → sg`、`na → us`、`cn → cn360`）；
 - 单个分段请求失败只记日志并 `continue`，**不中断整轮**；
-- 每段 `limit=1000`，累加得到 `clan_entries` 与 `league_counts`（后者仅用于日志）。
+- 每段 `limit=1000`，累加得到 `clan_entries` 与 `league_counts`（后者仅用于日志）；
+- `clan_entries` 按 `clan_id` **去重**，保留首次出现的条目：采集期间公会恰好晋级 / 降级时可能同时出现在两个分段中，重复条目会让 `T_clan_base` 的批量插入撞上 `UNIQUE` 索引。去重只作用于 `clan_entries`，`league_counts` 仍按各分段的原始条数统计。
 
 **赛季切换处理**是这里最需要小心的分支。取该分段第一条数据的 `season_id` 与 `run_ctx.season_id` 比对：
 
@@ -470,8 +462,6 @@ metric_value INTEGER DEFAULT 0
 | `record.season != run_ctx.season_id` | ✅ | 跨赛季，需要重置基线 |
 
 > **这是整个服务最关键的降本设计**：排行榜接口只能告诉你"这个公会的 `last_battle_at` 变了"，详情接口才能告诉你"具体变成什么"。用前者做粗筛，只为真正有新战斗的公会请求详情，使绝大多数轮次的详情请求量与实际参战公会的数量同阶，而不是与在榜公会总数同阶。
->
-> 同一公会可能同时出现在多个分段中，`update_ids` 以 `set` 去重（不保证顺序）。
 
 ### 6.4 逐公会更新流水线
 
@@ -488,8 +478,8 @@ metric_value INTEGER DEFAULT 0
 
 阶段二  _plan_record   （异常仅记日志）
    ④ 逐队算场次差（负数截断为 0）
-   ⑤ 按差值决定是否生成 BattleRecord，并给出 (record_inc, discard_inc)
-   → 所有提前退出都用「返回值」表达，不用 return
+   ⑤ 按差值决定是否生成 BattleRecord，并把 record_inc / discard_inc 记到 ctx 上
+   → 所有提前退出都只是写完增量后 return 回 main，不影响阶段三
 
         ↓ 阶段二失败：只意味着本轮没有明细，统计照常写入
 
@@ -508,14 +498,17 @@ battles_diff = max(new.battles_count - old.battles_count, 0)
 
 | 情形 | 处理 |
 | --- | --- |
-| `cache.season != 当前赛季` | 无有效基线，两队场次全部计入 `discard`，不生成明细 |
+| `T_clan_team` 无对应行（`ctx.cache is None`） | 理论上不该出现（占位行保证）；记 error 后跳过差分 |
+| `cache.season != 当前赛季` | 本地没有本赛季的初始化基线，本地场次一律视为 0，快照中的**全部场次计入 `discard`**，不生成明细 |
 | `battles_diff == 0`（两队之和） | 无新增场次，不生成明细 |
 | `battles_diff > 1`（两队之和） | 漏采，无法逐场还原，全部计入 `discard` |
 | `battles_diff == 1` | **生成一条 `BattleRecord`**，`record_inc = 1`；差值必来自其中一支队伍，据此确定 `team_number` |
 
+> **跨赛季为什么整份快照都丢弃**：缓存 `season` 与当前赛季不符，说明这条公会的本赛季初始基线从未落库（见 2.2）。它的真实起始分不一定是 `1100`，拿它去差分只会得到 `+250` 这类假数据。代价则有限——本轮 `_commit` 仍会把 `T_clan_team.season` 写成当前赛季并落库，`ZADD` 也照常执行，所以从下一轮起差分就恢复正常，丢掉的只是"发现它时已经在打的那几场"。
+
 > **注意"恰好为 1"这个硬约束的代价**：若某个公会在一轮轮询间隔内连打 3 场，这 3 场都会被丢弃。因此 `discard / total` 是衡量数据完整性的核心指标——活跃窗口内 `REFRESH_INTERVAL`（默认 60 秒）需要足够小，才能让"一轮一场"成为常态。
 
-**为什么阶段二必须用返回值而不是 `return`**：阶段二内部的多个提前退出（无新增场次、增量 > 1、赛季不一致）意味着**"本轮没有明细要记"，而不是"这个公会更新失败"**——它新拉到的统计依然是有效的、更新的。若把这些早退写成 `return`，这些公会就会**只写 MySQL 不刷 Redis**，导致排行榜分数长期停在旧值。
+**为什么阶段二的早退只写增量、不从 `main` 返回**：阶段二内部的多个提前退出（缺缓存行、赛季不一致、无新增场次、增量 > 1）意味着**"本轮没有明细要记"，而不是"这个公会更新失败"**——它新拉到的统计依然是有效的、更新的。因此这些早退一律是"把 `record_inc` / `discard_inc` 记到 `ctx` 上、再 return 回 `main`"，绝不从 `main` 里返回；否则这些公会就会**只写 MySQL 不刷 Redis**，导致排行榜分数长期停在旧值。
 
 **写库顺序**上，MySQL 事务（`T_clan_stats` + `T_clan_team`）与 SQLite 事务（`clan_battle`）是**分开的两次事务**，且 MySQL 在前：前者写入基线，后者写入由基线推出的明细。若 SQLite 写入失败，基线已经更新，该场次将永久丢失——这是为了不让 SQLite 的故障阻塞主库数据的更新。
 
@@ -529,7 +522,7 @@ battles_diff = max(new.battles_count - old.battles_count, 0)
 
 1. `zcard leaderboard:clan` 取在榜公会总数（为 0 则跳过）；
 2. `zrevrange 0, 49` 取**前 50 名**（`TOP_CLAN_LIMIT`）；
-3. 从 MySQL 批量读取这 50 个公会的展示字段（`T_clan_stats` LEFT JOIN `T_clan_base` 取 `tag`），并叠加 `RatingUtils.get_metric_level` 计算出的胜率等级；
+3. 从 MySQL 批量读取这 50 个公会的展示字段（`T_clan_stats` LEFT JOIN `T_clan_base` 取 `tag`），并叠加 `RatingAlgo.get_metric_level` 计算出的胜率等级；
 4. 组装 payload 写入 `data/local/clan_ranking.msgpack`：
 
 ```python
@@ -546,8 +539,6 @@ battles_diff = max(new.battles_count - old.battles_count, 0)
 名次按**实际写入的行数**连续编排（`len(data) + 1`），而非 ZSET 中的原始 rank——即使中间有公会因数据缺失被跳过，快照里的名次也是连续的。
 
 若某个在榜公会查不到 `T_clan_stats` 行，说明 ZSET 中存在脏数据：代码会 `zrem` 剔除该成员并**放弃本次快照**，在下轮重建。
-
-> 取舍：宁可本轮不出快照，也不出一份含缺失行的快照。
 
 ### 6.6 写回追踪时间
 
@@ -569,20 +560,20 @@ finally:
 这一设计把"本轮任务的完成"与"数据的正确"绑定在一起：
 
 - **提前返回**（无活跃公会、无待刷新公会）视为**已完成**，追踪时间照常写回——没有可做的工作本身就是一种完成；
-- **失败**（SQLite 异常、排行榜收集失败、单公会写库失败）不写回，于是保底计时不会重置，下轮会继续重试。
+- **失败**（建库失败、SQLite 异常、单公会写库失败、检测到赛季切换而放弃本轮）不写回，于是保底计时不会重置，下轮会继续重试。
 
 ### 6.7 完整时序
 
 ```
 start_scheduler
   └─ run_once
-       ├─ create_resources        建连 + 置 status:ClanSeason
+       ├─ create_resources        建连 + 读赛季配置 + 置 status:ClanSeason
        ├─ [REGION == 'ru']        改永久键 → 返回 → start_scheduler 退出
        └─ run_worker
-            ├─ read_season_data                    ← 闸门 ①
+            ├─ season_id / season_config           ← 闸门 ①（已由 create_resources 读入）
             ├─ is_need_update / is_cb_active       ← 闸门 ②③
-            ├─ ensure_database                     ← 建/校验赛季 SQLite
             ├─ LeagueCollector.main                ← 收集 13 段排行榜（含赛季切换检测）
+            ├─ ensure_database                     ← 按（可能已切换的）赛季 ID 建/校验 SQLite
             ├─ ClanBaseSyncer.main (MySQL 事务)    ← 同步基础信息 + 筛选
             ├─ for clan_id in update_ids:
             │     ClanSeasonUpdater.main           ← 逐公会流水线（三阶段）
@@ -598,10 +589,10 @@ start_scheduler
 | 设计点 | 处理方式 | 目的 |
 | --- | --- | --- |
 | **差分必须为 1** | 两队差值之和 `!= 1` 时不生成明细，`> 1` 计入 `discard` | 只有恰好一场才能确定胜负与分差，宁缺毋滥 |
-| **早退用返回值** | `_plan_record` 的所有分支返回 `(record_inc, discard_inc)` | 保证"无明细"的分支仍会刷榜与写库 |
-| **阶段二异常只记日志** | 由 `main` 捕获后按 `(0, 0)` 继续 | 统计已解析成功，不应因为算不出明细而丢弃 |
+| **早退只记增量** | `_plan_record` 的各分支把 `record_inc` / `discard_inc` 记到 `ctx` 上后 return 回 `main` | 保证"无明细"的分支仍会刷榜与写库 |
+| **阶段二异常只记日志** | 由 `main` 捕获后继续提交（构造明细失败的那一场已在 `_plan_record` 内计为 `discard`） | 统计已解析成功，不应因为算不出明细而丢弃 |
 | **阶段三异常向上抛** | `_commit` / `ZADD` 不捕获 | 能失败通常意味着数据库或 Redis 整体不可用；若逐个吞掉会产生数千条重复异常日志（fail-fast） |
-| **跨赛季双层防护** | 收集阶段发现新赛季→放弃本轮并重置配置；单公会 `season` 不符→全场次计入 `discard` | 避免用上赛季基线差分出错误明细 |
+| **跨赛季双层防护** | 收集阶段发现新赛季→放弃本轮并重置配置；单公会 `season` 不符→本地场次视为 0、快照场次全部计入 `discard` | 起始分不可知的公会不能按 `1100` 强行差分，宁缺毋滥 |
 | **区间由战斗时间推导** | `time_window` 用 `last_battle_time` 反查，不用当前时间 | 保底刷新等轮次可能已在窗口之外，取当前时间会错记区间 |
 | **新赛季起止时间未知** | `refresh_season_data` 把 `start`/`finish` 置 `None` | 退化为纯窗口判断，服务不中断，等待人工补录 |
 | **新公会建档** | `T_clan_base` + 三张子表同时插入占位行 | 保证后续所有 `UPDATE` 都有命中行 |
@@ -615,7 +606,7 @@ start_scheduler
 | **ZSET 脏数据自愈** | 快照时查不到 `T_clan_stats` 则 `zrem` 并放弃本次快照 | 下轮自动重建，避免脏数据长期驻留 |
 | **比对前只做粗筛** | 用排行榜的 `last_battle_at` 变化筛选，再拉详情 | 详情请求量与"实际参战公会数"同阶，而非"在榜总数"同阶 |
 | **先落库再刷缓存** | `ZADD` 排在 `_commit` 之后 | 避免制造"Redis 有、MySQL 无"的公会 |
-| **建库失败删残留** | `ensure_database` 失败时 `unlink` 残缺文件 | 空库文件存在会让后续写入全部失败 |
+| **建库失败删残留** | `SQLiteOPS.ensure_database` 失败时 `unlink` 残缺文件，调用方抛异常中断整轮 | 空库文件存在会让后续写入全部失败；建库失败属于整体性故障，适合 fail-fast |
 | **退出不展开栈** | `SIGTERM` / `KeyboardInterrupt` 走 `os._exit(0)` | 主线程通常阻塞在同步 IO 上，优雅退出可能挂住容器 |
 | **俄服自退** | `REGION == 'ru'` 置永久键后结束进程 | 该服无 CLAN 模式，服务不应参与轮询 |
 
@@ -638,7 +629,7 @@ start_scheduler
 
 ### 8.3 对战明细（SQLite）
 
-`data/local/season_{season_id}.db` 为按赛季隔离的独立文件，可整体归档或清理；`database_meta` 中的 `record` / `discard` / `total` 用于监控数据还原的完整度。
+`data/season/{season_id}.db` 为按赛季隔离的独立文件，可整体归档或清理；`database_meta` 中的 `record` / `discard` / `total` 用于监控数据还原的完整度。
 
 ### 8.4 公会赛季统计（MySQL）
 
@@ -689,11 +680,11 @@ start_scheduler
 | 约束 | 位置 | 说明 |
 | --- | --- | --- |
 | 排行榜快照只取前 50 名 | `ranking.TOP_CLAN_LIMIT` | `data` 最多 50 行；`clans` 字段是全量基数，两者语义不同（有意为之） |
-| 每个分段最多 1000 条 | `endpoints.league_ranking` | 接口 `limit=1000`；单分段公会数超过该值时会有公会收集不到 |
+| 每个分段最多 1000 条 | `clients/endpoints.EndpointRegistry.league_ranking` | 接口 `limit=1000`；单分段公会数超过该值时会有公会收集不到 |
 | 快照在部分分支下不生成 | `worker.run_worker` | "无活跃公会"与"无待刷新公会"两处提前返回会跳过快照生成，此时快照的 `time` 字段不推进（有意为之） |
 | `stage_progress` 上限 5 字符 | `T_clan_stats.stage_progress VARCHAR(5)` | 与晋级赛最多 5 场的赛制对应；超出会写入失败 |
 | `season` 列为 `TINYINT` | `T_clan_stats.season` | 赛季 ID 上限 127 |
-| 每赛季一个 SQLite 文件 | `sqlite_ops` | 明细不与汇总同库，避免主库随赛季膨胀 |
+| 每赛季一个 SQLite 文件 | `shard.db.SQLiteOPS.season_db_path` | 明细不与汇总同库，避免主库随赛季膨胀 |
 | 明细增量 > 1 时丢弃 | `updater._plan_record` | LBT 只有一个时间戳，无法还原每场 |
 
 ---
@@ -705,9 +696,9 @@ start_scheduler
 | `init/mysql/01-schemas/03-clan.sql` | MySQL 侧表结构（本服务涉及的 4 张表） |
 | `init/mysql/02-data/01-base.sql` | `T_tracking_meta` 种子行 |
 | `init/sqlite/clan_battle.sql` | SQLite 侧表结构与统计表种子数据 |
-| `shard/game_utils.py` | `CLAN_BATTLE_WINDOWS`、`is_cb_active`、`get_window_index`、`CLAN_REALM_MAP` |
-| `shard/constants.py` | `LEAGUE_LIST`、`CLAN_INIT_TABLE_LIST` |
-| `shard/endpoints.py` | 各服 Clan API 域名 |
-| `shard/redis_keys.py` | Redis 键名生成 |
+| `shard/game/clan.py` | `CLAN_BATTLE_WINDOWS`、`is_cb_active`、`get_window_index`、`CLAN_REALM_MAP`、`ClanPolicy.LEAGUE_LIST` |
+| `shard/contracts.py` | `CommonConfig.CLAN_INIT_TABLE_LIST`、`RedisKeys`、`Endpoints`、`ServicesName` |
+| `shard/db/` | MySQL / SQLite 的连接与事务上下文管理器（`MySQLOPS` / `SQLiteOPS`） |
+| `shard/utils/data.py` | `FileUtils.load_json` / `load_sql`（配置与建表 SQL 装载） |
+| `shard/algo/rating.py` | `RatingAlgo.get_metric_level`（快照中的胜率等级） |
 | `app/routers/external_urls.py` | 快照 msgpack 的下载路由 |
-| `temp/season.md` | 本服务早期版本的设计文档（结构参考） |

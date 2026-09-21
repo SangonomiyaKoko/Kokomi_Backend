@@ -62,18 +62,19 @@ _data = FileUtils.load_json(
 )
 REGION: str = _data['region']
 
+# 加载 SQLite 数据库初始化文件
 CREATE_SQL = FileUtils.load_sql(
     fp=INIT_DIR / 'sqlite/clan_battle.sql'
 )
 
 # 加载策略或配置文件
 _data = FileUtils.load_json(
-    fp=DATA_DIR / 'json/services_config.json'
+    fp=DATA_DIR / 'json/services_config.json',
+    default={}
 ).get(ServicesName.SEASON, {})
 MEM_MONITOR = _data.get('MEM_MONITOR', False)
 REFRESH_INTERVAL = _data.get('REFRESH_INTERVAL', 60)
 REQUEST_TIMEOUT = _data.get('REQUEST_TIMEOUT', 5)
-# 保底刷新间隔：距上次成功更新超过该秒数时强制刷新一轮
 FALLBACK_REFRESH_SECONDS = _data.get('FALLBACK_REFRESH_SECONDS', 86400)
 
 

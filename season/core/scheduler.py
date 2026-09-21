@@ -1,4 +1,5 @@
 import gc
+import json
 import time
 import psutil
 import asyncio
@@ -12,6 +13,7 @@ from shard import RedisKeys, ServicesName
 from ..logger import logger, write_exception
 from ..settings import (
     REGION,
+    DATA_DIR,
     MEM_MONITOR,
     SSL_CA_BUNDLE,
     MYSQL_CONFIG,
@@ -22,6 +24,16 @@ from ..settings import (
 from .context import RunContext
 
 
+def read_season_data() -> dict:
+    """从本地 JSON 文件读取当前赛季配置数据"""
+    file_path = DATA_DIR / 'json/clan_season.json'
+    if not file_path.exists():
+        return {"id": 0, "start": None, "finish": None}
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def create_resources(run_ctx: RunContext) -> None:
     """创建所有需要的资源连接"""
     run_ctx.redis_client = redis.Redis(**REDIS_CONFIG)
@@ -30,6 +42,10 @@ def create_resources(run_ctx: RunContext) -> None:
     if SSL_CA_BUNDLE:
         # 处理俄服接口证书效验问题
         run_ctx.session.verify = SSL_CA_BUNDLE
+
+    season = read_season_data()
+    run_ctx.season_id = season['id']
+    run_ctx.season_config = (season['start'], season['finish'])
 
     # 设置当前服务状态
     run_ctx.set_status_key()

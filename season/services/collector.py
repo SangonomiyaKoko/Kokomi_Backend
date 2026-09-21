@@ -2,7 +2,7 @@ import json
 
 from shard import (
     ClanPolicy,
-    GameUtils,
+    CLAN_REALM_MAP,
     RedisKeys,
     progress_iterable
 )
@@ -11,16 +11,6 @@ from ..core import RunContext
 from ..clients import APIRequester
 from ..logger import logger
 from ..settings import DATA_DIR, REGION
-
-
-def read_season_data() -> dict:
-    """从本地 JSON 文件读取当前赛季配置数据"""
-    file_path = DATA_DIR / 'json/clan_season.json'
-    if not file_path.exists():
-        return {"id": 0, "start": None, "finish": None}
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 
 def refresh_season_data(season_id: int) -> None:
@@ -43,6 +33,7 @@ class LeagueCollector:
         """收集排行榜数据，返回是否成功获取到数据"""
         entries = []
         league_counts = {}
+        _existing_ids = set() # 去重用
 
         logger.enable_tqdm()
         try:
@@ -55,7 +46,7 @@ class LeagueCollector:
                 league_data = APIRequester.fetch_leagues(
                     session=run_ctx.session,
                     redis_client=run_ctx.redis_client,
-                    realm=GameUtils.CLAN_REALM_MAP.get(REGION),
+                    realm=CLAN_REALM_MAP.get(REGION),
                     league=league,
                     division=division
                 )
@@ -86,7 +77,11 @@ class LeagueCollector:
                 league_counts[league] = (
                     league_counts.get(league, 0) + len(league_data)
                 )
-                entries.extend(league_data)
+                # ID 去重
+                for entry in league_data:
+                    if entry.clan_id not in _existing_ids:
+                        _existing_ids.add(entry.clan_id)
+                        entries.append(entry)
         finally:
             logger.disable_tqdm()
 

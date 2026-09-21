@@ -7,10 +7,10 @@ from typing import List, Optional
 from shard import TimeUtils
 
 
-PROMOTION = '▲'     # 晋级 ▲
-DEMOTION = '▼'      # 降级 ▼
-STAR_FILLED = '★'  # ★
-STAR_EMPTY = '☆'   # ☆
+DEMOTION = '▼'      # 保级赛失败标记 ▼
+PROMOTION = '▲'     # 晋级赛成功标记 ▲
+STAR_FILLED = '★'  # 晋级/保级赛胜利标记 ★
+STAR_EMPTY = '☆'   # 晋级/保级赛失败标记 ☆
 
 # 新赛季基线数据
 # 公会尚未参加本赛季时 API 不返回队伍数据，以该基线作为新旧对比的起点

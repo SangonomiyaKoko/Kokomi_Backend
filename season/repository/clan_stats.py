@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pymysql.cursors import Cursor
-from shard import RatingUtils
+from shard import RatingAlgo
 
 from ..models import ClanTeamCache, ClanSeasonStats
 
@@ -70,7 +70,7 @@ class ClanStatsRepository:
                 leading_team,
                 battles,
                 win_rate,
-                RatingUtils.get_metric_level(
+                RatingAlgo.get_metric_level(
                     value=win_rate,
                     metric_name='win_rate'
                 ),
