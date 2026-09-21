@@ -1,40 +1,43 @@
 import os
-import json
+import sys
 from pathlib import Path
 
+from shard import FileUtils, ServicesName
 
-CLIENT_NAME = 'Celery'
-REQUEST_TIMEOUT = 5
 
-_ROOT_DIR = Path(os.getcwd())
-if not (_ROOT_DIR / 'README.md').exists():
+# 运行所需相关文件地址
+_root_dir = Path(os.getcwd())
+if not (_root_dir / 'README.md').exists():
     # 以 README.md 文件为标记，校验启动路径是否为根目录
     print(
-        f"Invalid working directory: {_ROOT_DIR}. "
+        f"Invalid working directory: {_root_dir}. "
         f"Please start the service from the project root directory."
     )
-    exit(1)
-LOG_DIR = _ROOT_DIR / 'logs'
-DATA_DIR = _ROOT_DIR / 'data'
+    sys.exit(1)
+LOG_DIR = _root_dir / 'logs'
+DATA_DIR = _root_dir / 'data'
 
+# 加载环境配置数据
 # 生产环境下的环境变量由 Docker Compose 注入 env.prod，开发环境加载 env.dev
 # 在程序中，通过判断环境变量中是否存在 PLATFORM 来判断是否为生产环境
-_PLATFORM = os.getenv('PLATFORM')
-if _PLATFORM is None or not _PLATFORM.startswith('KokomiAPI'):
+ENV_FILE = 'env.dev'
+_platform = os.getenv('PLATFORM')
+if (
+    _platform is None or
+    not _platform.startswith('KokomiAPI')
+):
     # 开发环境中关闭代理，避免本地测试中请求外部 API 时被本地环境变量干扰
     os.environ['NO_PROXY'] = '127.0.0.1,localhost'
     from dotenv import load_dotenv
     if not load_dotenv('env.dev'):
-        # 开发环境下如果加载env.dev失败，直接退出程序
+        # 开发环境下如果加载 env.dev 失败，直接退出
         print("[ERROR] Failed to load env.dev")
-        exit(1)
-    print("[INIT] Env config loaded: env.dev")
+        sys.exit(1)
 else:
-    print("[INIT] Env config loaded: env.prod")
+    ENV_FILE = 'env.prod'
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "debug")
+# 中间件连接配置
 SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
-
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST", "localhost"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),
@@ -56,18 +59,24 @@ RABBITMQ_CONFIG = {
 }
 
 # 加载配置文件或者数据文件
-file_path = DATA_DIR / 'json/init_marker.json'
-with open(file_path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-    REGION: str = data['region']
+_data = FileUtils.load_json(
+    fp=DATA_DIR / 'json/init_marker.json'
+)
+REGION: str = _data['region']
 
 # 加载策略或配置文件
-file_path = DATA_DIR / 'json/proxy_strategy.json'
-if not file_path.exists():
-    PROXY_CONFIG = ('default', [])
-else:
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    PROXY_CONFIG = (data['mode'], data['points'])
+_data = FileUtils.load_json(
+    fp=DATA_DIR / 'json/proxy_strategy.json',
+    default={}
+)
+PROXY_CONFIG = (
+    _data.get('mode', 'default'), 
+    _data.get('points', [])
+)
 
-print("[INIT] Configuration data loading complete")
+# 加载策略或配置文件
+_data = FileUtils.load_json(
+    fp=DATA_DIR / 'json/services_config.json',
+    default={}
+).get(ServicesName.CELERY, {})
+REQUEST_TIMEOUT = _data.get('REQUEST_TIMEOUT', 5)

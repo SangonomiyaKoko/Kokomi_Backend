@@ -40,5 +40,3 @@ class RunContext:
             autocommit=False,     # 必须使用手动事务
             **MYSQL_CONFIG
         )
-
-        print("[INIT] Resource initialization complete.")

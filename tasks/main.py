@@ -2,11 +2,12 @@ from celery import Celery
 from shard import CommonConfig
 
 from .context import RunContext
-from .scripts import refresh_user
-from .settings import RABBITMQ_CONFIG
+from .refresher import UserRefresher
+from .settings import ENV_FILE, RABBITMQ_CONFIG
 
 
 # 资源上下文
+print(f"Env config loaded: {ENV_FILE}")
 run_ctx = RunContext()
 
 # 创建 Celery 应用
@@ -41,7 +42,7 @@ def task_update_user_data(payload: dict):
         return f'InvalidParams: {payload}'
 
     # 主流程
-    result = refresh_user(
+    result = UserRefresher.refresh(
         run_ctx=run_ctx, 
         account_id=account_id
     )

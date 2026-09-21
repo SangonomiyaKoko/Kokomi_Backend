@@ -1,43 +1,13 @@
-from typing import Union, Optional, Iterator
-from contextlib import contextmanager
+from typing import Union, Optional
 
-from redis import Redis
 from pymysql.cursors import Cursor
 from dbutils.pooled_db import PooledDB
 
-from shard import RedisKeys, PolicyUtils, UserBasicDataDict
-
-from .db_ops import mysql_transaction
-
-@contextmanager
-def refresh_lock(
-    lock_key: str, redis_client: Redis
-) -> Iterator[bool]:
-    """分布式锁，防止并发重复刷新同一用户"""
-    if not lock_key:
-        yield False
-        return
-
-    # 任务理论上不存在超过 20s 的可能
-    # 因此设置 60s 过期时间防止死锁
-    acquired = redis_client.set(
-        name=lock_key, 
-        value=1, 
-        nx=True, 
-        ex=60
-    )
-
-    if not acquired:
-        # 未成功获取到锁，不再次进行尝试
-        yield False
-        return
-    
-    try:
-        # 成功获取到锁
-        yield True
-    finally:
-        # 释放锁
-        redis_client.delete(lock_key)
+from shard import (
+    MySQLOPS,
+    UserPolicyUtils, 
+    UserBasicDataDict
+)
 
 
 class UserStatsSyncer:
@@ -152,7 +122,7 @@ class UserStatsSyncer:
                     updated_at = NOW()
                 WHERE account_id = %s;
             """
-            interval_seconds = PolicyUtils.user_hidden_policy(user_level)
+            interval_seconds = UserPolicyUtils.user_hidden_policy(user_level)
             cursor.execute(sql, [interval_seconds, account_id])
         else:
             sql = """
@@ -173,7 +143,7 @@ class UserStatsSyncer:
                 WHERE account_id = %s;
             """
 
-            interval_seconds = PolicyUtils.user_normal_policy(
+            interval_seconds = UserPolicyUtils.user_normal_policy(
                 timestamp=current_timestamp,
                 user_level=user_level,
                 activity_level=activity_level,
@@ -288,7 +258,6 @@ class UserStatsSyncer:
     def refresh(
         cls,
         db_pool: PooledDB,
-        redis_client: Redis,
         timestamp: int,
         account_id: int,
         user_data: UserBasicDataDict,
@@ -298,71 +267,66 @@ class UserStatsSyncer:
         
         正常返回整数类型的更新时间戳，错误返回错误标识字符串
         """
-        user_lock_key = RedisKeys.user_lock(account_id)
-        with refresh_lock(user_lock_key, redis_client) as locked:
-            if not locked:
-                return 'AcquireLockFailed'
-            
-            try:
-                with mysql_transaction(db_pool) as cursor:
-                    # 从数据库中读取用户的 username
-                    existing = cls._fetch_user_base_row(
-                        cursor=cursor, 
-                        account_id=account_id
-                    )
-                    
-                    if existing is None:
-                        return "UserNotInDB"
-                    
-                    old_username, old_timestamp, random, ranked, user_level = existing
+        try:
+            with db_pool.connection() as conn, MySQLOPS.transaction(conn) as cursor:
+                # 从数据库中读取用户的基本信息
+                existing = cls._fetch_user_base_row(
+                    cursor=cursor, 
+                    account_id=account_id
+                )
+                if existing is None:
+                    return "UserNotInDB"
 
-                    if random is None or ranked is None:
-                        return "DataIntegrityError"
+                # 此处读取 ranked 并无实际需求，仅为后续拓展预留
+                old_name, old_ts, random, ranked, user_level = existing
+                if random is None or ranked is None:
+                    return "DataIntegrityError"
 
-                    # 更新 T_user_base
-                    cls._update_user_base(
-                        cursor=cursor, 
-                        account_id=account_id, 
-                        user_data=user_data, 
-                        old_username=old_username, 
-                        old_timestamp=old_timestamp
-                    )
-                    
-                    # 更新 T_user_stats
-                    update_timestamp = cls._update_user_stats(
-                        cursor=cursor, 
-                        account_id=account_id, 
-                        user_level=user_level, 
-                        activity_level=activity_level, 
-                        user_data=user_data, 
-                        current_timestamp=timestamp
-                    )
+                # 更新 T_user_base
+                cls._update_user_base(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    user_data=user_data, 
+                    old_username=old_name, 
+                    old_timestamp=old_ts
+                )
+                
+                # 更新 T_user_stats
+                update_timestamp = cls._update_user_stats(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    user_level=user_level, 
+                    activity_level=activity_level, 
+                    user_data=user_data, 
+                    current_timestamp=timestamp
+                )
 
-                    # 更新 T_user_random / T_user_ranked
-                    cls._update_user_battles(
-                        cursor=cursor, 
-                        account_id=account_id, 
-                        table_name='T_user_random', 
-                        user_data=user_data['random_stats']
-                    )
-                    cls._update_user_battles(
-                        cursor=cursor, 
-                        account_id=account_id, 
-                        table_name='T_user_ranked', 
-                        user_data=user_data['ranked_stats']
-                    )
+                # 更新 T_user_random / T_user_ranked
+                cls._update_user_battles(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    table_name='T_user_random', 
+                    user_data=user_data['random_stats']
+                )
+                cls._update_user_battles(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    table_name='T_user_ranked', 
+                    user_data=user_data['ranked_stats']
+                )
 
-                    # 更新 T_user_cache
-                    cls._update_user_cache(
-                        cursor=cursor, 
-                        account_id=account_id, 
-                        user_data=user_data, 
-                        old_pvp=random
-                    )
+                # 更新 T_user_cache
+                cls._update_user_cache(
+                    cursor=cursor, 
+                    account_id=account_id, 
+                    user_data=user_data, 
+                    old_pvp=random
+                )
 
-                    return update_timestamp
-            except Exception as e:
-                # Celery 任务中不捕获该异常以避免日志风暴
-                return type(e).__name__
+                return update_timestamp
+        except Exception as e:
+            # 通过返回错误标识符用于记录错误指标
+            # Celery 任务中不捕获该异常以避免日志风暴
+            return type(e).__name__
 
     
