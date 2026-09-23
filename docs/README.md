@@ -37,6 +37,7 @@
 | 文档 | 服务 |
 | --- | --- |
 | [season.md](services/season.md) | `season/` 公会赛季信息与排行榜 |
+| [recent.md](services/recent.md) | `recent/` 用户每日战绩快照与近期数据 |
 | [tasks.md](services/tasks.md) | `tasks/` Celery 用户数据刷新（消费 `refresh_queue`） |
 | [scripts_account.md](services/scripts_account.md) | `scripts/account/` 用户数据刷新调度（生产 `refresh_queue`） |
 | [scripts_member.md](services/scripts_member.md) | `scripts/member/` 公会成员与进出关系刷新 |
