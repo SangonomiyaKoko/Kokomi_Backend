@@ -10,7 +10,7 @@ class DemoClanModel:
         '''
         从数据库中获取工会的基本数据
         '''
-        async with MySQLManager.read_only_cursor() as cur:
+        async with MySQLManager.read_only() as cur:
             data = {
                 'clan_id': clan_id,
                 'clan_tag': None,
@@ -49,7 +49,7 @@ class DemoClanModel:
 
     @ExceptionLogger.handle_database_exception_async
     async def set_clan_status(clan_id: int, status: int):
-        async with MySQLManager.auto_transaction_cursor() as cur:
+        async with MySQLManager.auto_transaction() as cur:
             sql = """
                 UPDATE T_clan_users 
                 SET is_enabled = %s 

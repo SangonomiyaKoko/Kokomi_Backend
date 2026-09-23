@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS T_base_id (
     id              INT           AUTO_INCREMENT,
 
     meta            VARCHAR(5)    NOT NULL,         -- 统计键，通常为表名
+    counts          INT           DEFAULT 0,        -- 总行数
     min_id          BIGINT        DEFAULT 0,        -- 数据行数
     max_id          BIGINT        DEFAULT 0,        -- 数据行数
 
@@ -108,21 +109,6 @@ CREATE TABLE IF NOT EXISTS T_base_id (
     PRIMARY KEY (id),
 
     UNIQUE KEY uk_meta (meta)
-);
-
--- 指标等级阈值表
--- 定义各项指标等级评定的阈值，用于 F_get_metric_level 函数
-CREATE TABLE IF NOT EXISTS T_metric_level_thresholds (
-    id               INT          AUTO_INCREMENT,
-
-    metric_id        INT          NOT NULL,        -- 指标 ID
-    threshold        FLOAT        NOT NULL,        -- 阈值
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id),
-
-    INDEX idx_mid (metric_id)
 );
 
 CREATE TABLE IF NOT EXISTS T_refresh_stats (

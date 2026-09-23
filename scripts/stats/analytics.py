@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 
-from shard import RatingUtils
+from shard import RatingAlgo
 
 from .logger import logger
 from .settings import (
@@ -261,7 +261,7 @@ class ShipStatsAggregator:
                     avg_frags = stats[IDX_FRAGS] / battles
                     
                     # 计算该用户在该船上的 Rating
-                    rating = RatingUtils.calc_ship_rating(
+                    rating = RatingAlgo.calc_ship_rating(
                         ship_data=[
                             round(win_rate * 100, 4),     # 胜率转换为百分比
                             int(avg_damage),               # 场均伤害
@@ -437,14 +437,10 @@ class ShipStatsAggregator:
         
         return update_data
 
-    def aggregation_stats(self) -> tuple[int, int, int]:
+    def log_aggregation_stats(self) -> None:
         """输出聚合统计概要到日志
 
-        将本轮聚合处理的用户数、船只条目数和总战斗场次写入 INFO 日志，
-        并以元组形式返回，供 refresh_table_meta 写入 T_table_meta 表。
-
-        Returns:
-            (total_users, total_ship_entries, total_ship_battles)
+        将本轮聚合处理的用户数、船只条目数和总战斗场次写入 INFO 日志
         """
         logger.info(
             "Users: %s | "
@@ -454,4 +450,3 @@ class ShipStatsAggregator:
             f"{self.total_ship_entries:,}",
             f"{self.total_ship_battles:,}"
         )
-        return (self.total_users, self.total_ship_entries, self.total_ship_battles)

@@ -11,9 +11,13 @@ env.dev
 env.prod
 redis.conf
 /temp/
-/data/db/*
+/data/db/
 /data/local/*
 !/data/local/.gitkeep
+/data/season/*
+!/data/season/.gitkeep
+/data/version/*
+!/data/version/.gitkeep
 /data/json/*
 !/data/json/.gitkeep
 /data/trash/*

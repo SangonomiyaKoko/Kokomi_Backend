@@ -1,6 +1,10 @@
-from shard import RedisKeys, progress_iterable
+from shard import (
+    MySQLOPS, 
+    RedisKeys, 
+    progress_iterable, 
+    distributed_lock
+)
 
-from ..db_ops import mysql_read_only, refresh_lock
 from ..models import RunnerResult
 from ..repository import BasicDataRepository
 from ..services import UserUpdateRunner
@@ -16,7 +20,7 @@ async def run_worker(
     """Recent 功能后台更新服务"""
 
     # 读取所有的计划用户列表
-    with mysql_read_only(run_ctx.mysql_connection) as cursor:
+    with MySQLOPS.read_only(run_ctx.mysql_connection) as cursor:
         update_list = BasicDataRepository.load_user_ids(cursor)
 
     logger.enable_tqdm()
@@ -48,7 +52,7 @@ async def run_worker(
 
             # 获取分布式锁以避免并发写导致的问题
             recent_lock_key = RedisKeys.recent_lock(account_id)
-            with refresh_lock(recent_lock_key, run_ctx.redis_client) as locked:
+            with distributed_lock(recent_lock_key, run_ctx.redis_client) as locked:
                 if not locked:
                     logger.info(f'{account_id} | FAILED - AcquireLockFailed')
                     run_ctx.run_counter.record(RunnerResult.FAILED)

@@ -3,7 +3,7 @@ from app.loggers import ExceptionLogger
 from app.response import JSONResponse
 from app.utils import GameUtils
 
-from shard import RatingUtils, StringUtils
+from shard import RatingAlgo, StringUtils
 
 class RankingModel:
     @ExceptionLogger.handle_database_exception_async
@@ -50,7 +50,7 @@ class RankingModel:
                     'battles': row[6],
                     'rating': row[7],
                     'win_rate': row[8],
-                    'win_rate_level': RatingUtils.get_metric_level(row[8], 'win_rate'),
+                    'win_rate_level': RatingAlgo.get_metric_level(row[8], 'win_rate'),
                     'avg_damage': row[9],
                     'avg_damage_level': row[10],
                     'avg_frags': row[11],

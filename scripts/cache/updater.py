@@ -1,13 +1,11 @@
 import json
-import uuid
 import traceback
 from redis import Redis
 from requests import Session
 from pymysql import Connection
 from pymysql.cursors import Cursor
-from typing import Optional
 
-from shard import RatingUtils
+from shard import RatingAlgo
 
 from .logger import logger, write_exception
 from .api import fetch_user_pvp_data
@@ -17,8 +15,7 @@ class UserCacheUpdater:
     """用户 PvP 缓存数据更新器
 
     负责从 API 获取用户数据，提取并计算各项统计指标，
-    更新 MySQL 中的用户 PvP 缓存和船只排行榜，
-    同时将近期增量数据写入暂存表并同步 Redis 排行榜
+    更新 MySQL 中的用户 PvP 缓存和船只排行榜，并同步 Redis 排行榜
 
     Attributes:
         ship_info: 船只排行榜基准数据，来自 read_ship_data()
@@ -26,9 +23,7 @@ class UserCacheUpdater:
     def __init__(
         self,
         enabled_ship_ids: list,
-        ship_info: dict,
-        game_version: Optional[str],
-        version_start: Optional[str]
+        ship_info: dict
     ):
         """初始化更新器
 
@@ -37,8 +32,6 @@ class UserCacheUpdater:
         """
         self.enabled_ship_ids = enabled_ship_ids
         self.ship_info = ship_info
-        self.game_version = game_version
-        self.version_start = version_start
 
     @staticmethod
     def _build_ship_pvp_cache(pvp_data: dict) -> dict:
@@ -71,67 +64,6 @@ class UserCacheUpdater:
             ]
         return ship_pvp_cache
     
-    def _calc_recent_diff(self, old_cache: dict, latest_data: dict):
-        """计算每艘船的近期数据增量
-
-        将最新数据与本地缓存对比，差值经过精度修正后返回，
-        跳过有负增量或无战斗变化的船只
-
-        Args:
-            old_cache: 本地缓存的船只数据
-            latest_data: 最新的船只数据
-
-        Returns:
-            ship_id -> [battles_diff, wins_diff, ...] 的差值字典
-        """
-        diff_data = {}
-        for ship_id, new_values in latest_data.items():
-            if ship_id not in self.enabled_ship_ids:
-                continue
-
-            old_values = old_cache.get(ship_id, [0]*len(new_values))
-            ship_diff = [new_val - old_val for new_val, old_val in zip(new_values, old_values)]
-            ship_diff[-2] = ship_diff[-2] * 100
-            ship_diff[-1] = ship_diff[-1] * 1000
-            if any(d < 0 for d in ship_diff):
-                continue
-            if ship_diff[0] == 0:
-                continue
-            diff_data[ship_id] = ship_diff
-        return diff_data
-
-    def _get_local_cache(self, cursor: Cursor, account_id: int) -> Optional[dict]:
-        """获取用户本地的船只缓存数据
-
-        Args:
-            cursor: 数据库游标
-            account_id: 用户 ID
-
-        Returns:
-            船只缓存字典，无缓存时返回 None
-        """
-        if not self.game_version:
-            return None
-        
-        sql = """
-            SELECT 
-                cache, 
-                UNIX_TIMESTAMP(updated_at)
-            FROM T_user_cache 
-            WHERE account_id = %s;
-        """
-        cursor.execute(
-            sql,
-            [account_id]
-        )
-        data = cursor.fetchone()
-
-        if data and data[1] and self.version_start < data[1]:
-            if data[0]:
-                return json.loads(data[0])
-            
-        return None
-
     def _build_ranking_cache(
         self,
         pvp_data: dict
@@ -168,7 +100,7 @@ class UserCacheUpdater:
             hit_ratio = round(hits / shots * 100, 2) if shots != 0 else 0
             
             # 计算评分
-            personal_rating, damage_rating, frags_rating = RatingUtils.calc_ship_rating(
+            personal_rating, damage_rating, frags_rating = RatingAlgo.calc_ship_rating(
                 ship_data=[
                     round(pvp['wins'] / pvp['battles_count'] * 100, 4),
                     int(pvp['damage_dealt'] / pvp['battles_count']),
@@ -223,7 +155,7 @@ class UserCacheUpdater:
                 data[6],     # avg_frags_level
                 data[7],     # avg_exp
                 data[8],     # hit_ratio
-                data[9],    # max_exp
+                data[9],     # max_exp
                 data[10]     # max_damage
             ))
         
@@ -250,32 +182,6 @@ class UserCacheUpdater:
                 updated_at = NOW();
         """
         cursor.executemany(sql, values_to_insert)
-
-    def _insert_recent_diff_data(
-        self,
-        cursor: Cursor, 
-        account_id: int,
-        diff_data: dict
-    ) -> None:
-        """将船只近期数据变化写入暂存表
-
-        Args:
-            cursor: 数据库游标
-            diff_data: 近期增量数据
-            account_id: 用户 ID
-        """
-        if not diff_data:
-            return
-        
-        sql = """
-            INSERT INTO STAGING_ship_recent_data (
-                uuid, game_version, account_id, payload
-            ) VALUES (
-                %s, %s, %s, %s
-            );
-        """
-        cursor.execute(sql, [str(uuid.uuid4()), self.game_version, account_id, json.dumps(diff_data)])
-        return
 
     @staticmethod
     def _update_user_cache(
@@ -324,8 +230,7 @@ class UserCacheUpdater:
             4. 提取总体统计和船只缓存
             5. 更新排行榜缓存
             6. 写入 MySQL 各表
-            7. 计算近期增量并写入暂存表
-            8. 同步 Redis 排行榜
+            7. 同步 Redis 排行榜
 
         Args:
             mysql_connection: MySQL 数据库连接
@@ -386,18 +291,10 @@ class UserCacheUpdater:
                 if ship_pvp_cache == {}:
                     self._update_user_cache(cursor, account_id, None)
                 else:
-                    # 获取本地缓存
-                    local_cache = self._get_local_cache(cursor, account_id)
-                    
                     # 更新各项数据
                     self._update_user_cache(cursor, account_id, ship_pvp_cache)
                     self._upsert_leaderboard(cursor, ship_ranking_cache, account_id)
-                    
-                    # 处理近期数据变化
-                    if local_cache:
-                        diff_data = self._calc_recent_diff(local_cache, ship_pvp_cache)
-                        self._insert_recent_diff_data(cursor, account_id, diff_data)
-            
+
             mysql_connection.commit()
         except Exception as e:
             mysql_connection.rollback()

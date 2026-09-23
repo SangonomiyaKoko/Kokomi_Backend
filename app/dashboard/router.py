@@ -4,12 +4,11 @@ from fastapi.templating import Jinja2Templates
 
 from app.core import EnvConfig
 from .services import (
-    get_overview_data, 
-    get_celery_data, 
-    get_game_api_data, 
-    get_database_data, 
-    get_user_activity_data, 
-    get_error_logs_data, 
+    get_overview_data,
+    get_celery_data,
+    get_game_api_data,
+    get_user_activity_data,
+    get_error_logs_data,
     get_exception_detail
 )
 
@@ -58,11 +57,6 @@ async def api_stats(request: Request):
 @router.get("/celery")
 async def celery_stats(request: Request):
     return _render(request, "celery.html", "celery", await get_celery_data())
-
-
-@router.get("/database")
-async def database_stats(request: Request):
-    return _render(request, "database.html", "database", await get_database_data())
 
 
 @router.get("/update-plans")

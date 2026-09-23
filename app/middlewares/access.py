@@ -29,7 +29,9 @@ class VisitorManager:
         cls._tokens = JsonUtils.read('visitor_token')
     
     @classmethod
-    def add(cls, token: str, remark: str = "") -> bool:
+    def add(
+        cls, token: str, remark: str = ""
+    ) -> bool:
         """添加访客令牌"""
         if not token or token in cls._tokens:
             return False
@@ -39,7 +41,9 @@ class VisitorManager:
         return True
     
     @classmethod
-    def delete(cls, token: str) -> bool:
+    def delete(
+        cls, token: str
+    ) -> bool:
         """删除访客令牌"""
         if not token or token not in cls._tokens:
             return False
@@ -49,7 +53,9 @@ class VisitorManager:
         return True
     
     @classmethod
-    def contains(cls, token: str) -> bool:
+    def contains(
+        cls, token: str
+    ) -> bool:
         """检查令牌是否在访客列表中"""
         return token in cls._tokens
     
@@ -66,13 +72,21 @@ class SecurityManager:
         try:
             return EnvConfig.get_config()
         except RuntimeError:
-            raise HTTPException(status_code=500, detail="Configuration not initialized")
+            raise HTTPException(
+                status_code=500, 
+                detail="Configuration not initialized"
+            )
     
     @classmethod
-    def _validate_api_key(cls, api_key: Optional[str]) -> str:
+    def _validate_api_key(
+        cls, api_key: Optional[str]
+    ) -> str:
         """验证 API Key 并返回角色"""
         if not api_key:
-            raise HTTPException(status_code=403, detail="Missing Access Token")
+            raise HTTPException(
+                status_code=403, 
+                detail="Missing Access Token"
+            )
         
         config = cls._get_config()
         
@@ -88,46 +102,73 @@ class SecurityManager:
             raise HTTPException(status_code=403, detail="Invalid Access Token")
     
     @classmethod
-    async def require_root(cls, api_key: str = Security(_api_key_scheme)) -> bool:
+    async def require_root(
+        cls, api_key: str = Security(_api_key_scheme)
+    ) -> bool:
         """要求 Root 权限"""
         role = cls._validate_api_key(api_key)
         if role == Role.ROOT:
             return True
-        raise HTTPException(status_code=403, detail="Root permission required")
+        raise HTTPException(
+            status_code=403, 
+            detail="Root permission required"
+        )
     
     @classmethod
-    async def require_user(cls, api_key: str = Security(_api_key_scheme)) -> bool:
+    async def require_user(
+        cls, api_key: str = Security(_api_key_scheme)
+    ) -> bool:
         """要求 User 或 Root 权限"""
         role = cls._validate_api_key(api_key)
         if role in [Role.ROOT, Role.USER]:
             return True
-        raise HTTPException(status_code=403, detail="User permission required")
+        raise HTTPException(
+            status_code=403, 
+            detail="User permission required"
+        )
     
     @classmethod
-    async def require_user(cls, api_key: str = Security(_api_key_scheme)) -> bool:
+    async def require_user(
+        cls, api_key: str = Security(_api_key_scheme)
+    ) -> bool:
         """要求 User 或 Root 权限"""
         role = cls._validate_api_key(api_key)
         if role in [Role.ROOT, Role.USER]:
             return True
-        raise HTTPException(status_code=403, detail="User permission required")
+        raise HTTPException(
+            status_code=403, 
+            detail="User permission required"
+        )
     
     @classmethod
-    async def require_manager(cls, api_key: str = Security(_api_key_scheme)) -> bool:
+    async def require_manager(
+        cls, api_key: str = Security(_api_key_scheme)
+    ) -> bool:
         """要求 User 或 Root 权限"""
         role = cls._validate_api_key(api_key)
         if role in [Role.ROOT, Role.MANAGER]:
             return True
-        raise HTTPException(status_code=403, detail="User permission required")
+        raise HTTPException(
+            status_code=403, 
+            detail="User permission required"
+        )
     
     @classmethod
-    async def require_vistor(cls, api_key: str = Security(_api_key_scheme)) -> bool:
+    async def require_vistor(
+        cls, api_key: str = Security(_api_key_scheme)
+    ) -> bool:
         """要求 Visitor、User 或者 Root 权限"""
         role = cls._validate_api_key(api_key)
         if role in [Role.ROOT, Role.VISITOR]:
             return True
-        raise HTTPException(status_code=403, detail="Visitor permission required")
+        raise HTTPException(
+            status_code=403, 
+            detail="Visitor permission required"
+        )
     
     @classmethod
-    async def get_current_role(cls, api_key: str = Security(_api_key_scheme)) -> str:
+    async def get_current_role(
+        cls, api_key: str = Security(_api_key_scheme)
+    ) -> str:
         """获取当前用户角色"""
         return cls._validate_api_key(api_key)

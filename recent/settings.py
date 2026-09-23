@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from shard import FileUtils, ServicesName
@@ -12,7 +13,7 @@ if not (_root_dir / 'README.md').exists():
         f"Invalid working directory: {_root_dir}. "
         f"Please start the service from the project root directory."
     )
-    exit(1)
+    sys.exit(1)
 LOG_DIR = _root_dir / 'logs'
 DATA_DIR = _root_dir / 'data'
 INIT_DIR = _root_dir / 'init'
@@ -37,7 +38,7 @@ if (
     if not load_dotenv('env.dev'):
         # 开发环境下如果加载 env.dev 失败，直接退出
         print("[ERROR] Failed to load env.dev")
-        exit(1)
+        sys.exit(1)
 else:
     ENV_FILE = 'env.prod'
 
@@ -68,31 +69,29 @@ TOKEN: str = _data['token']
 REGION: str = _data['region']
 TIMEZONE: int = _data['timezone']
 
+# 加载 SQLite 数据库初始化文件
 CREATE_SQL = FileUtils.load_sql(
     fp=INIT_DIR / 'sqlite/recent.sql'
 )
 
 # 加载策略或配置文件
 _data = FileUtils.load_json(
-    fp=DATA_DIR / 'json/services_config.json'
-).get(ServicesName.RECENT, {})
-MEM_MONITOR = _data.get('MEM_MONITOR', False)
-REQUEST_TIMEOUT = _data.get('REQUEST_TIMEOUT', 5)
-REFRESH_INTERVAL = _data.get('REFRESH_INTERVAL', 60)
-_data = FileUtils.load_json(
-    fp=DATA_DIR / 'json/clan_season.json'
-)
-SEASON_CONFIG = (
-    _data.get('start'), 
-    _data.get('finish')
-)
-_data = FileUtils.load_json(
-    fp=DATA_DIR / 'json/proxy_strategy.json'
+    fp=DATA_DIR / 'json/proxy_strategy.json',
+    default={}
 )
 PROXY_CONFIG = (
     _data.get('mode', 'default'), 
     _data.get('points', [])
 )
+
+# 加载策略或配置文件
+_data = FileUtils.load_json(
+    fp=DATA_DIR / 'json/services_config.json',
+    default={}
+).get(ServicesName.RECENT, {})
+MEM_MONITOR = _data.get('MEM_MONITOR', False)
+REQUEST_TIMEOUT = _data.get('REQUEST_TIMEOUT', 5)
+REFRESH_INTERVAL = _data.get('REFRESH_INTERVAL', 60)
 
 
 __all__ = [
@@ -108,7 +107,6 @@ __all__ = [
     'REGION',
     'TIMEZONE',
     'CREATE_SQL',
-    'SEASON_CONFIG',
     'PROXY_CONFIG',
     'MEM_MONITOR',
     'REQUEST_TIMEOUT',

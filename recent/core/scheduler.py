@@ -1,16 +1,19 @@
 import gc
+import json
 import time
 import psutil
 import asyncio
 import traceback
 
+import redis
 import httpx
 import pymysql
-import redis
-from shard import ServicesName
+from shard import ClanBattleUtils
 
 from ..logger import logger, write_exception
 from ..settings import (
+    DATA_DIR,
+    TIMEZONE,
     MEM_MONITOR,
     SSL_CA_BUNDLE,
     REQUEST_TIMEOUT,
@@ -20,6 +23,16 @@ from ..settings import (
 )
 
 from .context import RunContext
+
+
+def read_season_data() -> dict:
+    """从本地 JSON 文件读取当前赛季配置数据"""
+    file_path = DATA_DIR / 'json/clan_season.json'
+    if not file_path.exists():
+        return {"id": 0, "start": None, "finish": None}
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def create_resources(run_ctx: RunContext) -> None:
@@ -39,6 +52,14 @@ def create_resources(run_ctx: RunContext) -> None:
         run_ctx.async_client = httpx.AsyncClient(
             timeout=REQUEST_TIMEOUT
         )
+
+    season = read_season_data()
+    run_ctx.period_start_ts = ClanBattleUtils.update_period(
+        tz=TIMEZONE,
+        season_start=season['start'],
+        season_finish=season['finish']
+    )
+
 
     # 设置当前服务状态
     run_ctx.set_status_key()

@@ -158,21 +158,6 @@ async def block_clan(
 
     return await BlacklistManagerAPI.block_clan(clan_id)
 
-@router.get("/database/meta/", summary="数据库统计指标")
-async def get_database_meta():
-    """数据库统计指标
-    
-    返回数据库的基本指标、最新游戏版本和今日错误数。
-
-    --- 
-
-    **权限要求**: `Root` / `Manager` **开发模式**: ❌ **维护模式**: ✅
-    """
-    if EnvConfig.DEV_MODE:
-        return JSONResponse.API_NodeNotAvailable
-    
-    return await MaintenanceAPI.get_database_meta()
-
 @router.get("/ship/stats/", summary="船只服务器数据")
 async def getShipStats():
     """船只服务器数据

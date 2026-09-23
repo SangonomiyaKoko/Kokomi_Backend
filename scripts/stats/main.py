@@ -29,23 +29,10 @@ from .db_ops import (
     read_ship_data,
     refresh_version,
     refersh_tracking_time,
-    refresh_database_meta,
-    archive_base_table,
-    anaylyze_mysql_tables
-)
-from .recent import (
-    ShipRecentAggregator,
-    get_agg_rows,
-    read_recent_data,
-    verify_ship_exist,
-    cleanup_done_rows,
-    aggregate_recent,
-    update_status,
-    insert_error
+    archive_base_table
 )
 from .updater import (
     get_pvp_cache,
-    refresh_table_meta,
     update_ship_pvp_stats,
     update_users_stats_table,
     update_battles_stats_table,
@@ -113,64 +100,6 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     # 没有船只信息或者版本信息
     if len(ship_ids) == 0 or game_version is None:
         return
-    
-    # 处理暂存的船只近期数据
-    recent_aggregator = ShipRecentAggregator(ship_ids)
-    try:
-        processed = 0
-        deleted = 0
-
-        with mysql_connection.cursor() as cursor:
-            # 检查存档表的完整性
-            verify_ship_exist(cursor, game_version, ship_ids)
-            
-            # 清理已处理数据
-            deleted = cleanup_done_rows(cursor)
-
-            # 获取数据范围
-            agg_rows = get_agg_rows(cursor)
-            if agg_rows > 0:
-                # 计算总批次数
-                total_batches = (agg_rows + BATCH_SIZE - 1) // BATCH_SIZE
-                
-                last_uuid = None
-                # 分批次读取用户缓存数据
-                logger.enable_tqdm()
-                for _ in progress_iterable(
-                    items=range(total_batches),
-                    entry='cache',
-                    logger=logger
-                ):
-                    # 从数据库获取一批原始缓存数据
-                    rows = read_recent_data(cursor, last_uuid, BATCH_SIZE)
-                    # 将这批数据添加到聚合器
-                    recent_aggregator.add_batch(rows)
-                    # 更新游标：本批次最后一条的 uuid
-                    if rows:
-                        last_uuid = rows[-1][0]
-                        processed += len(rows)
-                logger.disable_tqdm()
-
-                # 将数据写入数据库
-                aggregate_recent(cursor, recent_aggregator.get_ship_aggregator())
-                update_status(cursor, recent_aggregator.get_status_params())
-                insert_error(cursor, recent_aggregator.get_error_params())
-        
-        logger.info(
-            'Recent data aggregated - Processed: %s | Deleted: %s',
-            processed, deleted
-        )
-        
-        mysql_connection.commit()
-    except Exception as e:
-        mysql_connection.rollback()
-        error_name = type(e).__name__
-        logger.error(f"Database operation exception: {error_name}")
-        write_exception(
-            error_type="DatabaseError",
-            error_name=error_name,
-            error_info=traceback.format_exc()
-        )
 
     # 从 MySQL 读取原始数据并聚合计算
     try:
@@ -195,8 +124,6 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
                 # 将这批数据添加到聚合器
                 aggregator.add_batch(rows)
             logger.disable_tqdm() 
-
-            mysql_tables,mysql_rows,mysql_sizes = anaylyze_mysql_tables(cursor)
     except Exception as e:
         error_name = type(e).__name__
         logger.error(f"Database operation exception: {error_name}")
@@ -206,49 +133,6 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             error_info=traceback.format_exc()
         )
         return 
-
-    db_files = list(SQLITE_DIR.rglob("*.db"))
-    file_count = len(db_files)
-    total_size_kb = 0
-
-    file_names = [f.name for f in db_files]
-    if file_count > 0:
-        # 分批次读取用户缓存数据
-        logger.enable_tqdm()
-        for file in progress_iterable(
-            items=file_names,
-            entry='file',
-            logger=logger
-        ):
-            try:
-                file_path = Path(SQLITE_DIR / file)
-                total_size_kb += file_path.stat().st_size // 1024
-            except Exception:
-                continue
-        logger.disable_tqdm() 
-
-    if file_count == 0:
-        avg_size_kb = 0
-    else:
-        avg_size_kb = total_size_kb // file_count
-    if total_size_kb // 1024 // 1024 != 0:
-        total_size_gb = round(total_size_kb / 1024 / 1024, 2)
-    else:
-        total_size_gb = '< 1'
-
-    logger.info(
-        'Recent file summary - Files: %s | Size: %s GB | Avg: %s KB',
-        file_count, total_size_gb, avg_size_kb
-    )
-    
-    if mysql_sizes // 1024 // 1024 != 0:
-        mysql_size_gb = round(mysql_sizes / 1024 / 1024, 2)
-    else:
-        mysql_size_gb = '< 1'
-    logger.info(
-        'MySQL table summary - Tables: %s | Rows: %s | Size: %s GB',
-        mysql_tables, mysql_rows, mysql_size_gb
-    )
 
     # 更新 MySQL 统计表
     try:
@@ -265,17 +149,8 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             # 更新船只持有统计数据
             update_ship_pvp_stats(cursor, aggregator.compute_ownership_stats(ship_ids))
 
-            # 更新表的统计信息
-            refresh_table_meta(cursor, aggregator.aggregation_stats())
-
-            # 更新 SQLite 统计信息
-            refresh_database_meta(cursor, 'sqlite_files', file_count)
-            refresh_database_meta(cursor, 'sqlite_size_kb', total_size_kb )
-
-            # 更新 MySQL 统计信息
-            refresh_database_meta(cursor, 'mysql_tables', mysql_tables)
-            refresh_database_meta(cursor, 'mysql_rows', mysql_rows)
-            refresh_database_meta(cursor, 'mysql_size_kb', mysql_sizes)
+            # 输出本轮聚合统计概要
+            aggregator.log_aggregation_stats()
 
             # 记录更新时间
             refersh_tracking_time(cursor, 'ship_stats', 'update_time')

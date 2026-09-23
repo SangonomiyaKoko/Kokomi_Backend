@@ -1,4 +1,4 @@
-from shard import PolicyUtils
+from shard import UserPolicyUtils
 
 from ..core import UpdateContext
 from ..clients import FetchResult
@@ -129,7 +129,7 @@ class ValidationPolicy:
         if query_interval is None:
             return True
 
-        max_interval = PolicyUtils.max_user_inactive_interval()
+        max_interval = UserPolicyUtils.max_user_inactive_interval()
 
         return query_interval >= max_interval
 
@@ -144,7 +144,7 @@ class ValidationPolicy:
         if battle_interval is None:
             return True
         
-        max_interval = PolicyUtils.max_battle_inactive_interval()
+        max_interval = UserPolicyUtils.max_battle_inactive_interval()
 
         return battle_interval >= max_interval
 
@@ -163,6 +163,6 @@ class ValidationPolicy:
             else:
                 break
 
-        max_days = PolicyUtils.max_hidden_days()
+        max_days = UserPolicyUtils.max_hidden_days()
 
         return hidden_streak >= max_days

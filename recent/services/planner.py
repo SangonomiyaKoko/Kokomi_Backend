@@ -1,9 +1,8 @@
 from dataclasses import replace
 
-from shard import TimeUtils
+from shard import TimeUtils, SQLiteOPS
 
 from ..core import UpdateContext
-from ..db_ops import sqlite_read_only
 from ..repository import ShipDataRepository
 from ..models import (
     DataType,
@@ -13,7 +12,7 @@ from ..models import (
     FULL_UPDATE_MODES
 )
 from ..logger import logger
-from ..settings import REGION, TIMEZONE
+from ..settings import REGION, TIMEZONE, SQLITE_DIR
 
 
 class UpdatePlanner:
@@ -344,7 +343,8 @@ class UpdatePlanner:
             # 无有效战斗时间戳或时间过旧，不做近期计算
             return
 
-        with sqlite_read_only(ctx.account_id) as cursor:
+        user_db_path = SQLiteOPS.user_db_path(SQLITE_DIR, ctx.account_id)
+        with SQLiteOPS.read_only(user_db_path) as cursor:
             for mode, ship_id, ship_data, old_entry in recent_ships:
                 # 读取已有旧快照，用于计算各数据类型的差值
                 old_data = None

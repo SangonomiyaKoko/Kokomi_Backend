@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from shard import FileUtils, ServicesName
@@ -12,7 +13,7 @@ if not (_root_dir / 'README.md').exists():
         f"Invalid working directory: {_root_dir}. "
         f"Please start the service from the project root directory."
     )
-    exit(1)
+    sys.exit(1)
 LOG_DIR = _root_dir / 'logs'
 DATA_DIR = _root_dir / 'data'
 
@@ -31,7 +32,7 @@ if (
     if not load_dotenv('env.dev'):
         # 开发环境下如果加载 env.dev 失败，直接退出
         print("[ERROR] Failed to load env.dev")
-        exit(1)
+        sys.exit(1)
 else:
     ENV_FILE = 'env.prod'
 
@@ -68,8 +69,7 @@ MEM_MONITOR = _data.get('MEM_MONITOR', False)
 REFRESH_INTERVAL = _data.get('REFRESH_INTERVAL', 600)
 REQUEST_TIMEOUT = _data.get('REQUEST_TIMEOUT', 5)
 BATCH_SIZE = _data.get('BATCH_SIZE', 10_000)
-MIN_IMBALANCE_SCORE = _data.get('MIN_IMBALANCE_SCORE', 20)
-MAX_DISPATCH_PER_ROUND = _data.get('MAX_DISPATCH_PER_ROUND', 2000)
+MAX_DISPATCH_PER_ROUND = _data.get('MAX_DISPATCH_PER_ROUND', 1000)
 REFRESH_ADVANCE_SECONDS = _data.get('REFRESH_ADVANCE_SECONDS', 60)
 NEVER_REFRESHED_PRIORITY = _data.get('NEVER_REFRESHED_PRIORITY', 600)
 REBALANCE_ENABLED = _data.get('REBALANCE_ENABLED', True)

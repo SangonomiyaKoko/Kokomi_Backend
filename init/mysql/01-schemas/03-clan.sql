@@ -71,7 +71,6 @@ CREATE TABLE IF NOT EXISTS T_clan_users (
     is_enabled       BOOLEAN      DEFAULT TRUE,    -- 工会是否有效
     activity_level   TINYINT      DEFAULT 0,       -- 工会活跃等级
     member_count     INT          DEFAULT 0,       -- 成员数量
-    member_ids       JSON         DEFAULT NULL,    -- 成员 ID 列表
     next_refresh_at  TIMESTAMP    DEFAULT NULL,    -- 最低下次更新时间
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,

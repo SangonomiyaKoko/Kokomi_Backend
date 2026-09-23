@@ -2,6 +2,7 @@ import sys
 import uuid
 import logging
 from pathlib import Path
+from logging.handlers import RotatingFileHandler
 from typing import Callable, Optional, Iterator
 
 from tqdm import tqdm
@@ -14,6 +15,11 @@ LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
 
 # 日志时间格式
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
+
+# 服务日志的转存策略，各服务一致，不做按服务的配置
+# 超出 LOG_ROTATE_MAX_BYTES 即把活动日志改名为 .log.1，备份份数为 LOG_BACKUP_COUNT
+LOG_ROTATE_MAX_BYTES = 10 * 1024 * 1024
+LOG_BACKUP_COUNT = 1
 
 
 class TqdmAwareLogger(logging.Logger):
@@ -169,10 +175,26 @@ def _create_console_handler(level: int, date_fmt: str) -> logging.StreamHandler:
 
 
 def _create_file_handler(
-    path: Path, level: int, date_fmt: str
+    path: Path,
+    level: int,
+    date_fmt: str
 ) -> logging.FileHandler:
-    """创建文件 handler，仅记录指定 level 及以上的日志"""
-    handler = logging.FileHandler(path, mode='a', encoding='utf-8')
+    """创建文件 handler，仅记录指定 level 及以上的日志
+
+    按 LOG_ROTATE_MAX_BYTES 转存：写这条记录之前先判断是否会超出上限，超出则把
+    活动日志改名为 .log.1 再重开新文件。转存在写入日志的进程内完成，因此不存在
+    「转存期间被追加的日志丢失」的窗口，代价是同一份日志文件只能由一个进程写入。
+    """
+    handler = RotatingFileHandler(
+        path,
+        mode='a',
+        maxBytes=LOG_ROTATE_MAX_BYTES,
+        # 至少要留 1 份：为 0 时 RotatingFileHandler 只重开文件而不改名，
+        # 活动日志会无界增长，转存形同虚设
+        backupCount=max(1, LOG_BACKUP_COUNT),
+        encoding='utf-8'
+    )
+
     handler.setLevel(level)
     handler.setFormatter(
         logging.Formatter(
@@ -191,6 +213,12 @@ def create_logger(
 ) -> TqdmAwareLogger:
     """创建服务日志器"""
     console_level = _resolve_level(level)
+
+    # 日志目录由部署侧的初始化脚本（init/setup.py）创建，日志器自身只写入文件，
+    # 不创建任何目录：目录缺失属于部署错误，此处直接报错，避免日志静默丢失
+    scripts_dir = log_dir / 'scripts'
+    if not scripts_dir.is_dir():
+        raise FileNotFoundError(f'Log dir not found: {scripts_dir}')
 
     # 切换全局 logger 类，使 logging.getLogger 返回 TqdmAwareLogger
     # setLoggerClass 是全局状态，取完 logger 后立即还原，避免影响其他模块
@@ -216,7 +244,7 @@ def create_logger(
         '%Y-%m-%d %H:%M:%S'
     )
     file_handler = _create_file_handler(
-        path=Path(log_dir) / 'scripts' / f'{name}.log',
+        path=log_dir / 'scripts' / f'{name}.log',
         level=logging.WARNING,
         date_fmt='%Y-%m-%d %H:%M:%S'
     )

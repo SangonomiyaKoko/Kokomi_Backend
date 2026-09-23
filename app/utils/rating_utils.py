@@ -1,7 +1,7 @@
 class RatingUtils:
     """API 侧专用的评分计算
 
-    指标等级换算等通用能力由 shard.RatingUtils 提供，
+    指标等级换算等通用能力由 shard.RatingAlgo 提供，
     此处仅保留需要区分模式系数的评分计算。
     """
 

@@ -152,16 +152,6 @@ def refresh_version(cursor: Cursor, local: str | None, latest: dict):
         f"{local if local else 'NULL'} -> {latest['short']}"
     )
 
-def refresh_database_meta(cursor, key: str, value: int) -> None:
-    """更新 leaderboard_rows 的统计数据"""
-    sql = """
-        UPDATE T_database_meta 
-        SET 
-            metric_value = %s 
-        WHERE metric_key = %s;
-    """
-    cursor.execute(sql, [value, key])
-
 def refersh_tracking_time(cursor: Cursor, tracking_key: str, tracking_type: str):
     sql = f"""
         UPDATE T_tracking_meta 
@@ -193,14 +183,6 @@ def archive_base_table(cursor: Cursor) -> None:
         cursor.execute(sql)
         base_count = cursor.fetchone()[0]
 
-        sql = """
-            UPDATE T_table_meta 
-            SET 
-                metric_value = %s 
-            WHERE metric_key = %s;
-        """
-        cursor.execute(sql, [base_count, f'base_{index}s'])
-
         sql_range = f"""
             SELECT 
                 COALESCE(MIN({id_col}), 0), 
@@ -211,110 +193,21 @@ def archive_base_table(cursor: Cursor) -> None:
         min_id, max_id = cursor.fetchone()
 
         sql = """
-            UPDATE T_base_id 
-            SET 
-                min_id = %s, 
-                max_id = %s 
+            UPDATE T_base_id
+            SET
+                counts = %s,
+                min_id = %s,
+                max_id = %s
             WHERE meta = %s;
         """
-        cursor.execute(sql, [min_id, max_id, index])
+        cursor.execute(sql, [base_count, min_id, max_id, index])
 
         base_count_list[0] += base_count
         base_count_list[i] += base_count
 
         i += 1
 
-    sql = """
-        UPDATE T_table_meta 
-        SET metric_value = (
-            SELECT COUNT(*) 
-            FROM T_user_config 
-            WHERE user_level = 1
-        ) WHERE metric_key = 'recent_lv1';
-    """
-    cursor.execute(sql)
-    sql = """
-        UPDATE T_table_meta 
-        SET metric_value = (
-            SELECT COUNT(*) 
-            FROM T_user_config 
-            WHERE user_level = 2
-        ) WHERE metric_key = 'recent_lv2';
-    """
-    cursor.execute(sql)
-
-    today = TimeUtils.iso_time().date
-    sql = """
-        SELECT 1
-        FROM ARCH_base_count
-        WHERE stat_date = %s;
-    """
-    cursor.execute(sql, [today])
-    data = cursor.fetchone()
-    
-    if data is None:
-        sql = """
-            INSERT INTO ARCH_base_count (
-                stat_date, total_count, user_count, clan_count, ship_count
-            ) VALUES (
-                %s,%s,%s,%s,%s
-            )
-        """
-        cursor.execute(sql, [today]+base_count_list)
-    else:
-        sql = """
-            UPDATE ARCH_base_count 
-            SET 
-                total_count = %s, 
-                user_count = %s, 
-                clan_count = %s, 
-                ship_count = %s 
-            WHERE stat_date = %s;
-        """
-        cursor.execute(sql, base_count_list + [today])
-
     logger.info(
         'Base table archived - User: %s | Clan: %s | Ship: %s',
         base_count_list[1], base_count_list[2], base_count_list[3]
     )
-
-def anaylyze_mysql_tables(cursor) -> tuple:
-    cursor.execute("""
-        SELECT 
-            table_name
-        FROM information_schema.tables
-        WHERE table_schema = DATABASE();
-    """)
-
-    tables = []
-    table_count = 0
-    total_rows = 0
-    for row in cursor.fetchall():
-        # 排除 view
-        if row[0].startswith(('V_','_V_')):
-            continue
-        table_count += 1
-        tables.append(row[0])
-    for table in tables:
-        sql = f"ANALYZE TABLE {table};"
-        cursor.execute(sql)
-        if table not in ['T_ship_pvp_leaderboard', 'STAGING_ship_recent_data']:
-            sql = f"SELECT MAX(id) FROM {table};"
-            cursor.execute(sql)
-            data = cursor.fetchone()
-            total_rows += data[0] if data[0] else 0
-
-    sql = """
-        SELECT 
-            SUM(data_length + index_length)
-        FROM information_schema.tables
-        WHERE table_schema = DATABASE();
-    """
-    cursor.execute(sql)
-    data = cursor.fetchone()
-    if not data:
-        total_size_kb = 0
-    else:
-        total_size_kb = data[0] // 1024
-
-    return table_count, total_rows, total_size_kb

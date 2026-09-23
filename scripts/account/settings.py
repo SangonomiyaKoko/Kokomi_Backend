@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from shard import FileUtils, ServicesName
@@ -12,7 +13,7 @@ if not (_root_dir / 'README.md').exists():
         f"Invalid working directory: {_root_dir}. "
         f"Please start the service from the project root directory."
     )
-    exit(1)
+    sys.exit(1)
 LOG_DIR = _root_dir / 'logs'
 DATA_DIR = _root_dir / 'data'
 
@@ -31,7 +32,7 @@ if (
     if not load_dotenv('env.dev'):
         # 开发环境下如果加载 env.dev 失败，直接退出
         print("[ERROR] Failed to load env.dev")
-        exit(1)
+        sys.exit(1)
 else:
     ENV_FILE = 'env.prod'
 
@@ -66,17 +67,15 @@ REGION: str = _data['region']
 
 # 加载策略或配置文件
 _data = FileUtils.load_json(
-    fp=DATA_DIR / 'json/services_config.json'
+    fp=DATA_DIR / 'json/services_config.json',
+    default={}
 ).get(ServicesName.ACCOUNT, {})
 MEM_MONITOR = _data.get('MEM_MONITOR', False)
 REFRESH_INTERVAL = _data.get('REFRESH_INTERVAL', 60)
 BATCH_SIZE = _data.get('BATCH_SIZE', 10_000)
-MIN_IMBALANCE_SCORE = _data.get('MIN_IMBALANCE_SCORE', 20)
 MAX_DISPATCH_PER_ROUND = _data.get('MAX_DISPATCH_PER_ROUND', 1000)
 QUEUE_LOCK_TTL = _data.get('QUEUE_LOCK_TTL', 14400)
 REFRESH_ADVANCE_SECONDS = _data.get('REFRESH_ADVANCE_SECONDS', 60)
 NEVER_REFRESHED_PRIORITY = _data.get('NEVER_REFRESHED_PRIORITY', 600)
 ERROR_LOG_RETAIN_DAYS = _data.get('ERROR_LOG_RETAIN_DAYS', 7)
-ERROR_INDEX_MAX_LINES = _data.get('ERROR_INDEX_MAX_LINES', 1000)
-LOG_ROTATE_MAX_BYTES = _data.get('LOG_ROTATE_MAX_BYTES', 10485760)
 REBALANCE_ENABLED = _data.get('REBALANCE_ENABLED', True)

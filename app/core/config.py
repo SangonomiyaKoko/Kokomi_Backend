@@ -58,7 +58,7 @@ class EnvConfig:
     LOG_DIR: Path = Path('/app/logs')
     DATA_DIR: Path = Path('/app/data')
     INIT_DIR: Path = Path('/app/init')
-    SQLITE_DIR: Path = Path('/app/data/db')
+    SQLITE_DIR: Path = Path('/app/data/local')
 
     # Vortex 接口代理策略，格式为 (mode, points)，交由 shard.Endpoints 解析
     PROXY_CONFIG: tuple = ('default', [])
@@ -66,7 +66,9 @@ class EnvConfig:
     _config: Optional[RuntimeConfig] = None
 
     @classmethod
-    def _require_env(cls, key: str, default: Optional[str] = None) -> str:
+    def _require_env(
+        cls, key: str, default: Optional[str] = None
+    ) -> str:
         """获取环境变量（不存在会报错）"""
         value = os.getenv(key, default)
         if value is None:
@@ -74,12 +76,16 @@ class EnvConfig:
         return value
 
     @classmethod
-    def _require_env_optional(cls, key: str, default: Optional[str] = None) -> str:
+    def _require_env_optional(
+        cls, key: str, default: Optional[str] = None
+    ) -> str:
         """获取环境变量（可选）"""
         return os.getenv(key, default)
 
     @classmethod
-    def _require_json_file(cls, file_path: Path) -> dict:
+    def _require_json_file(
+        cls, file_path: Path
+    ) -> dict:
         """加载运行必要的 JSON 文件数据，文件缺失或解析失败时抛错"""
         data = FileUtils.load_json(fp=file_path, default=None)
         if data is None:
@@ -136,7 +142,7 @@ class EnvConfig:
         )
 
         custom_sqlite_dir = cls._require_env_optional("SQLITE_DIR")
-        cls.SQLITE_DIR = Path(custom_sqlite_dir) if custom_sqlite_dir else cls.DATA_DIR / 'db'
+        cls.SQLITE_DIR = Path(custom_sqlite_dir) if custom_sqlite_dir else cls.DATA_DIR / 'local'
 
     @classmethod
     def _init_region(cls):
@@ -150,7 +156,10 @@ class EnvConfig:
         cls.TIMEZONE = data.get("timezone", 0)
         cls.LOCATION = data.get('location', 'N/A')
         init_timestamp = data.get('init_time')
-        cls.INIT_TIME = datetime.fromtimestamp(init_timestamp, tz=timezone.utc).strftime("%Y-%m-%d") if init_timestamp else "N/A"
+        cls.INIT_TIME = datetime.fromtimestamp(
+            init_timestamp, 
+            tz=timezone.utc
+        ).strftime("%Y-%m-%d") if init_timestamp else "N/A"
 
         if cls.REGION not in ['asia', 'eu', 'na', 'ru', 'cn']:
             raise ValueError(f"Invalid region value: {cls.REGION}")
@@ -159,7 +168,10 @@ class EnvConfig:
     def _init_proxy(cls):
         """读取 Vortex 接口代理策略配置"""
         file_path = cls.DATA_DIR / 'json/proxy_strategy.json'
-        data = FileUtils.load_json(fp=file_path)
+        data = FileUtils.load_json(
+            fp=file_path, 
+            default={}
+        )
 
         cls.PROXY_CONFIG = (
             data.get('mode', 'default'),
@@ -169,8 +181,7 @@ class EnvConfig:
     @classmethod
     def init(cls, root_path: str) -> str:
         """
-        初始化所有配置
-        返回当前使用的环境文件名 (`env.dev` 或 `env.prod`)
+        初始化所有配置，返回当前使用的环境文件名 (`env.dev` 或 `env.prod`)
         """
         # 加载文件路径
         cls.ROOT_DIR = Path(root_path)

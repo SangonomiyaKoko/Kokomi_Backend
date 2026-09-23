@@ -1,8 +1,7 @@
 from typing import Optional
 
-from shard import RedisKeys
+from shard import RedisKeys, distributed_lock
 
-from ..db_ops import refresh_lock
 from ..core import RunContext, UpdateContext
 from ..clients import (
     FetchResult,
@@ -55,12 +54,14 @@ class UserDataProcessor:
 
         # 同步 MySQL，记录更新时间戳
         user_lock_key = RedisKeys.user_lock(ctx.account_id)
-        with refresh_lock(user_lock_key, run_ctx.redis_client) as locked:
+        with distributed_lock(user_lock_key, run_ctx.redis_client) as locked:
             if not locked:
                 return UpdateResult.failed(FailedReason.ACQUIRE_LOCK_FAILED)
             
             update_timestamp = UserStatsSyncer.refresh(
-                run_ctx.mysql_connection, ctx.account_id, fetch_result.account, True
+                conn=run_ctx.mysql_connection, 
+                account_id=ctx.account_id, 
+                api_result=fetch_result.account
             )
             if isinstance(update_timestamp, str):
                 return UpdateResult.failed(FailedReason.MYSQL_REFRESH_FAILED)

@@ -7,7 +7,6 @@ import math
 from app.core import EnvConfig
 from app.middlewares import RedisClient
 from app.models import PlatformModel
-from app.utils import JsonUtils
 
 from .metrics import ServiceMetrics
 
@@ -69,54 +68,6 @@ def _dev_game_api():
     }
 
 
-def _dev_database():
-    return {
-        "db_cards": [
-            {
-                "title": "MySQL Main Database",
-                "kpis": [
-                    {"icon": "📋", "label": "Tables", "value": "--"},
-                    {"icon": "💿", "label": "Total Size", "value": "--"},
-                    {"icon": "📊", "label": "Total Rows", "value": "--"},
-                ]
-            },
-            {
-                "title": "SQLite Snapshot DB",
-                "kpis": [
-                    {"icon": "📁", "label": "Files", "value": "--"},
-                    {"icon": "💿", "label": "Total Size", "value": "--"},
-                    {"icon": "📏", "label": "Avg Size", "value": "--"},
-                ]
-            },
-            {
-                "title": "Runtime Environment",
-                "kpis": [
-                    {"icon": "🏆", "label": "Clan Season", "value": "--"},
-                    {"icon": "🎯", "label": "Game Version", "value": "--"},
-                ]
-            },
-            {
-                "title": "Core Entity Totals",
-                "kpis": [
-                    {"icon": "👤", "label": "Users", "value": "--"},
-                    {"icon": "🏠", "label": "Clans", "value": "--"},
-                    {"icon": "🚢", "label": "Ships", "value": "--"},
-                ]
-            },
-            {
-                "title": "PVP Cache Stats",
-                "kpis": [
-                    {"icon": "👥", "label": "Cached Users", "value": "--"},
-                    {"icon": "📝", "label": "Ship Entries", "value": "--"},
-                    {"icon": "⚔️", "label": "Total Battles", "value": "--"},
-                    {"icon": "🏅", "label": "Leaderboard", "value": "--"},
-                ]
-            },
-        ],
-        "archive_chart_json": json.dumps({"labels": [], "values": []}),
-    }
-
-
 def _dev_user_activity():
     return {
         "planned_users": 0,
@@ -127,23 +78,6 @@ def _dev_user_activity():
         "hourly_chart_json": json.dumps({"labels": [], "user_values": [], "clan_values": []}),
     }
 
-
-def _meta_int(meta: dict, key: str) -> int:
-    return int(meta.get(key, 0))
-
-def _format_file_size(size_bytes: int) -> tuple[str, str]:
-    """
-    将字节数格式化为最合适的单位。
-    返回 (数值字符串, 单位字符串) 如 ('1.2', 'GB')
-    """
-    if size_bytes < 1024:
-        return str(size_bytes), "B"
-    elif size_bytes < 1024 ** 2:
-        return f"{size_bytes / 1024:.1f}", "KB"
-    elif size_bytes < 1024 ** 3:
-        return f"{size_bytes / (1024 ** 2):.1f}", "MB"
-    else:
-        return f"{size_bytes / (1024 ** 3):.2f}", "GB"
 
 async def get_overview_data() -> Dict[str, Any]:
     """概览页数据"""
@@ -398,112 +332,6 @@ async def get_game_api_data() -> Dict[str, Any]:
     }
 
 
-async def get_database_data() -> Dict[str, Any]:
-    """Database 页面数据"""
-    if _is_dev_mode():
-        return _dev_database()
-
-    # 数据库元信息（MySQL + SQLite 合并在同一张表）
-    dbm_resp = await PlatformModel.read_database_meta()
-    if dbm_resp['code'] == 1000:
-        dbm = dbm_resp['data']
-    else:
-        dbm = {}
-
-    def _dbm_int(key):
-        return int(dbm.get(key, 0))
-
-    mysql_size_bytes = _dbm_int('mysql_size_kb') * 1024
-    mysql_size_str, mysql_size_unit = _format_file_size(mysql_size_bytes)
-    sqlite_files = _dbm_int('sqlite_files')
-    sqlite_size_bytes = _dbm_int('sqlite_size_kb') * 1024
-    sqlite_size_str, sqlite_size_unit = _format_file_size(sqlite_size_bytes)
-    sqlite_avg_bytes = 0 if sqlite_files == 0 else int(sqlite_size_bytes / sqlite_files)
-    sqlite_avg_str, sqlite_avg_unit = _format_file_size(sqlite_avg_bytes)
-
-    # Clan Season
-    season = JsonUtils.read('clan_season')
-
-    # Game Version
-    ver_resp = await PlatformModel.read_latest_version()
-    game_version = ver_resp['data'] if ver_resp['code'] == 1000 else 'N/A'
-
-    # Table Meta
-    meta_resp = await PlatformModel.read_table_meta()
-    if meta_resp['code'] == 1000:
-        meta = meta_resp['data']
-    else:
-        meta = {}
-
-    # 归档趋势数据（实体总数）
-    archive_resp = await PlatformModel.read_archive_base_count()
-    archive_labels = []
-    archive_values = []
-    if archive_resp['code'] == 1000:
-        rows = archive_resp['data']
-        max_points = 60
-        if len(rows) <= max_points:
-            archive_labels = [r[0] for r in rows]
-            archive_values = [r[1] for r in rows]
-        else:
-            step = (len(rows) - 1) / (max_points - 1)
-            for i in range(max_points):
-                idx = min(int(round(i * step)), len(rows) - 1)
-                archive_labels.append(rows[idx][0])
-                archive_values.append(rows[idx][1])
-
-    return {
-        "db_cards": [
-            {
-                "title": "MySQL Main Database",
-                "kpis": [
-                    {"icon": "📋", "label": "Tables", "value": f"{_dbm_int('mysql_tables'):,}"},
-                    {"icon": "💿", "label": "Total Size", "value": mysql_size_str, "sub": mysql_size_unit},
-                    {"icon": "📊", "label": "Total Rows", "value": f"{_dbm_int('mysql_rows'):,}"},
-                ]
-            },
-            {
-                "title": "SQLite Snapshot DB",
-                "kpis": [
-                    {"icon": "📁", "label": "Files", "value": f"{sqlite_files:,}"},
-                    {"icon": "💿", "label": "Total Size", "value": sqlite_size_str, "sub": sqlite_size_unit},
-                    {"icon": "📏", "label": "Avg Size", "value": sqlite_avg_str, "sub": sqlite_avg_unit},
-                ]
-            },
-            {
-                "title": "Runtime Environment",
-                "kpis": [
-                    {"icon": "🏆", "label": "Clan Season", "value": str(season.get('id', 'N/A'))},
-                    {"icon": "🎯", "label": "Game Version", "value": game_version if game_version else 'N/A'},
-                ]
-            },
-            {
-                "title": "Core Entity Totals",
-                "kpis": [
-                    {"icon": "👤", "label": "Users", "value": f"{_meta_int(meta, 'base_users'):,}"},
-                    {"icon": "🏠", "label": "Clans", "value": f"{_meta_int(meta, 'base_clans'):,}"},
-                    {"icon": "🚢", "label": "Ships", "value": f"{_meta_int(meta, 'base_ships'):,}"},
-                ]
-            },
-            {
-                "title": "PVP Cache Stats",
-                "kpis": [
-                    {"icon": "👥", "label": "Cached Users", "value": f"{_meta_int(meta, 'total_users'):,}"},
-                    {"icon": "📝", "label": "Ship Entries", "value": f"{_meta_int(meta, 'ship_entries'):,}"},
-                    {"icon": "⚔️", "label": "Total Battles", "value": f"{_meta_int(meta, 'total_battles'):,}"},
-                    {"icon": "🏅", "label": "Leaderboard", "value": f"{_meta_int(meta, 'leaderboard_rows'):,}"},
-                ]
-            },
-        ],
-        "archive_chart_json": json.dumps({
-            "title": "Entity Count Trend (User + Clan + Ship)",
-            "yAxisName": "Total Entities",
-            "labels": archive_labels,
-            "values": archive_values,
-        })
-    }
-
-
 async def get_user_activity_data() -> Dict[str, Any]:
     """User Activity 页面数据"""
     if _is_dev_mode():
@@ -517,19 +345,13 @@ async def get_user_activity_data() -> Dict[str, Any]:
         'within_quarter': 'Within Quarter',
     }
 
-    # planned_users / planned_clans
-    meta_resp = await PlatformModel.read_table_meta()
-    if meta_resp['code'] == 1000:
-        meta = meta_resp['data']
-    else:
-        meta = {}
-
     # 用户等级分布
+    # 临时固定为 0：数据源 T_table_meta 的 base_users / recent_lv1 / recent_lv2 已停写
     level_legend = ['None', 'Standard', 'Plus']
     level_data = [
-        {'name': 'None', 'value': meta.get('base_users', 0)}, 
-        {'name': 'Standard', 'value': meta.get('recent_lv1', 0)}, 
-        {'name': 'Plus', 'value': meta.get('recent_lv2', 0)}
+        {'name': 'None', 'value': 0},
+        {'name': 'Standard', 'value': 0},
+        {'name': 'Plus', 'value': 0}
     ]
 
     # 刷新计划分布（合并 user + clan）
@@ -563,8 +385,9 @@ async def get_user_activity_data() -> Dict[str, Any]:
             hourly_clans.append(pc)
 
     return {
-        "planned_users": _meta_int(meta, 'planned_users'),
-        "planned_clans": _meta_int(meta, 'planned_clans'),
+        # 临时固定为 0：数据源 T_table_meta 的 planned_users / planned_clans 已停写
+        "planned_users": 0,
+        "planned_clans": 0,
         "user_level_chart_json": json.dumps({
             "title": "User Level Distribution",
             "legend": level_legend,

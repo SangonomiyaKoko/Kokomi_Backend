@@ -21,7 +21,6 @@ from ..models import (
 )
 from ..settings import (
     TIMEZONE,
-    SEASON_CONFIG,
     REFRESH_INTERVAL
 )
 
@@ -90,12 +89,6 @@ class RunContext:
 
     def __post_init__(self) -> None:
         self.run_counter = RunCounter()
-        self.period_start_ts = TimeUtils.cb_update_period(
-            tz=TIMEZONE,
-            season_start=SEASON_CONFIG[0],
-            season_finish=SEASON_CONFIG[1]
-        )
-
     @property
     def failure_rate(self) -> int:
         """返回本次循环执行的任务失败率"""

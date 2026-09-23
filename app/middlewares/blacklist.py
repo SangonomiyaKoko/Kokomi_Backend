@@ -27,7 +27,9 @@ class BlacklistManager:
         cls._clans = data.get("clan", [])
     
     @classmethod
-    def add_user(cls, user_id: int):
+    def add_user(
+        cls, user_id: int
+    ):
         """添加用户黑名单，并保存至本地
         
         Args:
@@ -43,7 +45,9 @@ class BlacklistManager:
         return
     
     @classmethod
-    def del_user(cls, user_id: int):
+    def del_user(
+        cls, user_id: int
+    ):
         """将用户从黑名单中移除"""
         if user_id in cls._users:
             del cls._users[user_id]
@@ -52,7 +56,9 @@ class BlacklistManager:
         return
     
     @classmethod
-    def add_clan(cls, clan_id: int):
+    def add_clan(
+        cls, clan_id: int
+    ):
         """添加工会黑名单，并保存至本地
         
         Args:
@@ -68,7 +74,9 @@ class BlacklistManager:
         return
     
     @classmethod
-    def del_clan(cls, clan_id: int):
+    def del_clan(
+        cls, clan_id: int
+    ):
         """将用户从黑名单中移除"""
         if clan_id in cls._clans:
             del cls._clans[clan_id]
@@ -77,7 +85,9 @@ class BlacklistManager:
         return
     
     @classmethod
-    def is_user_blocked(cls, user_id: int) -> bool:
+    def is_user_blocked(
+        cls, user_id: int
+    ) -> bool:
         """传入的用户 ID 是否在黑名单
         
         Args:
@@ -89,7 +99,9 @@ class BlacklistManager:
         return user_id in cls._users
     
     @classmethod
-    def is_clan_blocked(cls, clan_id: int) -> bool:
+    def is_clan_blocked(
+        cls, clan_id: int
+    ) -> bool:
         """传入的公会 ID 是否在黑名单
         
         Args:

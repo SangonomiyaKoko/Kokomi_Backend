@@ -48,7 +48,7 @@ class SQLiteConnection:
 
     @classmethod
     @contextmanager
-    def read_only_cursor(cls, account_id: int) -> Iterator[Cursor]:
+    def read_only(cls, account_id: int) -> Iterator[Cursor]:
         """SQLite 上下文管理器，仅读取"""
         db_path = cls._sqlite_file(account_id)
         if not db_path.exists():
@@ -63,7 +63,7 @@ class SQLiteConnection:
 
     @classmethod
     @contextmanager
-    def auto_transaction_cursor(cls, account_id: int) -> Iterator[Cursor]:
+    def auto_transaction(cls, account_id: int) -> Iterator[Cursor]:
         """SQLite 自动事务上下文管理器"""
         db_path = cls._sqlite_file(account_id)
         if not db_path.exists():

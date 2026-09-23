@@ -1,52 +1,8 @@
-from contextlib import contextmanager
-from typing import Any, Iterator
-
-from pymysql import Connection
 from pymysql.cursors import Cursor
 from shard import CommonConfig
 
-from .logger import logger
 
-
-@contextmanager
-def mysql_read_only(
-    conn: Connection, desc: Any = None
-) -> Iterator[Cursor]:
-    """MySQL 上下文管理器，仅读取"""
-    try:
-        with conn.cursor() as cur:
-            yield cur
-    except Exception as e:
-        error_name = type(e).__name__
-        logger.error(
-            '%sDatabase read error: %s'
-            , f'{desc} | ' if desc else ''
-            , error_name
-        )
-        raise
-
-@contextmanager
-def mysql_transaction(
-    conn: Connection, desc: Any = None
-) -> Iterator[Cursor]:
-    """MySQL 事务上下文管理器"""
-    try:
-        with conn.cursor() as cur:
-            yield cur
-    except Exception as e:
-        conn.rollback()
-        error_name = type(e).__name__
-        logger.error(
-            '%sDatabase operation error: %s'
-            , f'{desc} | ' if desc else ''
-            , error_name
-        )
-        raise
-    else:
-        conn.commit()
-
-
-class MySQLRepository:
+class BasicDataRepository:
 
     @staticmethod
     def load_max_id(cursor: Cursor) -> int:
@@ -84,37 +40,69 @@ class MySQLRepository:
     def get_existing_members(
         cursor: Cursor, 
         clan_id: int
-    ) -> tuple:
-        """获取公会当前的成员列表和更新时间"""
+    ) -> list:
+        """获取本地储存的工会内用户 ID 列表"""
         sql = """
-            SELECT 
-                member_ids, 
-                UNIX_TIMESTAMP(updated_at) 
-            FROM T_clan_users 
+            SELECT account_id 
+            FROM T_user_clan 
             WHERE clan_id = %s;
         """
         cursor.execute(sql, [clan_id])
-        return cursor.fetchone()
+        return [row[0] for row in cursor.fetchall()]
 
     @staticmethod
-    def get_existing_users(
-        cursor: Cursor, 
+    def get_existing_ids(
+        cursor: Cursor,
         user_ids: list[int]
-    ) -> set:
-        """获取公会当前的成员列表和更新时间"""
+    ) -> list:
+        """读取存在于数据库的用户 ID 列表"""
+        if not user_ids:
+            return []
+
         placeholders = ",".join(["%s"] * len(user_ids))
         sql = f"""
-            SELECT account_id 
-            FROM T_user_base 
+            SELECT account_id
+            FROM T_user_base
             WHERE account_id IN ({placeholders});
         """
         cursor.execute(sql, user_ids)
-        return {row[0] for row in cursor.fetchall()}
+        return [
+            row[0] for row in cursor.fetchall()
+        ]
 
     @staticmethod
-    def init_new_users(cursor: Cursor, account_ids: list, users: dict) -> None:
+    def get_existing_users(
+        cursor: Cursor,
+        user_ids: list[int]
+    ) -> dict:
+        """读取存在于数据库用户的 clan 信息
+
+        Returns:
+            {account_id: (clan_id, is_null), ...}
+            is_null 标记该用户公会信息是否未曾更新
+        """
+        if not user_ids:
+            return {}
+
+        placeholders = ",".join(["%s"] * len(user_ids))
+        sql = f"""
+            SELECT
+                account_id,
+                clan_id,
+                updated_at IS NULL
+            FROM T_user_clan
+            WHERE account_id IN ({placeholders});
+        """
+        cursor.execute(sql, user_ids)
+        return {
+            row[0]: (row[1], row[2])
+            for row in cursor.fetchall()
+        }
+
+    @staticmethod
+    def init_new_users(cursor: Cursor, missing_users: dict[int, str]) -> None:
         """为新用户创建基础表记录"""
-        
+        account_ids = list(missing_users.keys())
         if not account_ids:
             return
 
@@ -123,11 +111,14 @@ class MySQLRepository:
         params = []
         for account_id in account_ids:
             values_list.append("(%s, %s)")
-            params.extend([account_id, users[account_id]])
+            params.extend([account_id, missing_users[account_id]])
         
         sql = f"""
-            INSERT INTO T_user_base (account_id, username) 
-            VALUES {','.join(values_list)};
+            INSERT INTO T_user_base (
+                account_id, username
+            ) VALUES 
+                {','.join(values_list)}
+            ;
         """
         cursor.execute(sql, params)
 
@@ -140,8 +131,10 @@ class MySQLRepository:
                 params.append(account_id)
             
             sql = f"""
-                INSERT INTO {table_name} (account_id) 
-                VALUES {','.join(values_list)};
+                INSERT INTO {table_name} (
+                    account_id
+                ) VALUES 
+                    {','.join(values_list)};
             """
             cursor.execute(sql, params)
 
@@ -150,15 +143,6 @@ class MySQLRepository:
         cursor: Cursor, stats_data: dict
     ) -> None:
         """ 将 RefreshPlanStats 的统计数据写入数据库"""
-        # 更新统计总数：planned_clans
-        sql = """
-            UPDATE T_table_meta 
-            SET 
-                metric_value = %s 
-            WHERE metric_key = %s;
-        """
-        cursor.execute(sql, [stats_data['planned_count'], 'planned_clans'])
-
         # 更新各刷新状态的公会数
         sql = """
             UPDATE T_refresh_stats 
@@ -177,7 +161,7 @@ class MySQLRepository:
                 updated_at = NOW() 
             WHERE clan_level = %s;
         """
-        cursor.executemany(sql, stats_data['activity_distribution'])
+        cursor.executemany(sql, stats_data['distribution'])
 
         # 更新每小时的计划公会数（planned_hour 1~24）
         sql = """
@@ -195,6 +179,6 @@ class MySQLRepository:
                 UPDATE T_clan_users 
                 SET 
                     next_refresh_at = next_refresh_at - INTERVAL %s HOUR 
-                WHERE account_id = %s;
+                WHERE clan_id = %s;
             """
             cursor.executemany(sql, stats_data['all_migrations'])

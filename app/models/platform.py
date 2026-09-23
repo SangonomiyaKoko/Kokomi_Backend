@@ -6,51 +6,6 @@ from app.response import JSONResponse
 class PlatformModel:
     @ExceptionLogger.handle_database_exception_async
     async def read_table_meta():
-        """读取数据库元信息（T_table_meta 表）"""
-        async with MySQLManager.read_only_cursor() as cur:
-            sql = """
-                SELECT
-                    metric_key,
-                    metric_value
-                FROM T_table_meta;
-            """
-            await cur.execute(sql)
-            rows = await cur.fetchall()
-            data = {row[0]: row[1] for row in rows}
-            return JSONResponse.success(data)
-        
-    @ExceptionLogger.handle_database_exception_async
-    async def read_database_meta():
-        """读取数据库元信息（T_database_meta 表）"""
-        async with MySQLManager.read_only_cursor() as cur:
-            sql = """
-                SELECT
-                    metric_key,
-                    metric_value
-                FROM T_database_meta;
-            """
-            await cur.execute(sql)
-            rows = await cur.fetchall()
-            data = {row[0]: row[1] for row in rows}
-            return JSONResponse.success(data)
-        
-    @ExceptionLogger.handle_database_exception_async
-    async def read_latest_version():
-        async with MySQLManager.read_only_cursor() as cur:
-            sql = """
-                SELECT 
-                    short_name 
-                FROM T_game_version 
-                WHERE is_latest = TRUE 
-                LIMIT 1;
-            """
-            await cur.execute(sql)
-            data = await cur.fetchone()
-
-            return JSONResponse.success(data[0] if data else None)
-        
-    @ExceptionLogger.handle_database_exception_async
-    async def read_table_meta():
         async with MySQLManager.read_only_cursor() as cur:
             sql = """
                 SELECT 
@@ -63,26 +18,6 @@ class PlatformModel:
             data = {}
             for row in rows:
                 data[row[0]] = row[1]
-            return JSONResponse.success(data)
-
-    @ExceptionLogger.handle_database_exception_async
-    async def read_archive_base_count():
-        """读取 ARCH_base_count 归档表的实体总数每日变化
-
-        Returns:
-            success → {code: 1000, data: [(stat_date, total_count), ...]}
-        """
-        async with MySQLManager.read_only_cursor() as cur:
-            sql = """   
-                SELECT
-                    stat_date,
-                    total_count
-                FROM ARCH_base_count
-                ORDER BY stat_date ASC;
-            """
-            await cur.execute(sql)
-            rows = await cur.fetchall()
-            data = [(row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]), row[1]) for row in rows]
             return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async
@@ -111,26 +46,6 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = [(row[0], row[1], row[2]) for row in rows]
-            return JSONResponse.success(data)
-
-    @ExceptionLogger.handle_database_exception_async
-    async def read_clan_activity_distribution():
-        """读取用户活跃度分布 (0-3) 从 T_clan_activity
-
-        Returns:
-            success → {code: 1000, data: [(activity_level, cnt), ...]}
-        """
-        async with MySQLManager.read_only_cursor() as cur:
-            sql = """
-                SELECT
-                    clan_level,
-                    clan_count
-                FROM T_clan_activity
-                ORDER BY clan_level;
-            """
-            await cur.execute(sql)
-            rows = await cur.fetchall()
-            data = [(row[0], row[1]) for row in rows]
             return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async

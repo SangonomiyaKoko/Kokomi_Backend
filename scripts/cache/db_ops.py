@@ -1,25 +1,9 @@
 from pymysql.cursors import Cursor
 
-from shard import RatingUtils
+from shard import RatingAlgo
 
 from .settings import MAX_REFRESH_BATCH
 
-
-def read_game_version(cursor: Cursor) -> tuple:
-    sql = """
-        SELECT 
-            short_name,
-            UNIX_TIMESTAMP(created_at) 
-        FROM T_game_version 
-        WHERE is_latest = TRUE 
-        LIMIT 1;
-    """
-    cursor.execute(sql)
-    version = cursor.fetchone()
-    if not version:
-        return None, None
-    else:
-        return version[0], version[1]
 
 def read_enabled_ship_ids(cursor: Cursor) -> list:
     sql = f"""
@@ -124,7 +108,7 @@ def get_ship_leaderboard(cursor: Cursor, ship_id: int, account_ids: list[str]):
         account_id = str(row[0])
         result[account_id] = [
             row[1], row[2], row[3], row[4], row[5], 
-            round(row[6], 2), RatingUtils.get_metric_level(row[6], 'win_rate'),
+            round(row[6], 2), RatingAlgo.get_metric_level(row[6], 'win_rate'),
             row[7], row[8], row[9], row[10],
             row[11], row[12], row[13], row[14], row[15]
         ]

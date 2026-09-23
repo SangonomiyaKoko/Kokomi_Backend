@@ -2,10 +2,9 @@ import traceback
 from dataclasses import replace
 
 from sqlite3 import Cursor
-from shard import TimeUtils
+from shard import TimeUtils, SQLiteOPS
 
 from ..core import UpdateContext
-from ..db_ops import sqlite_transaction, ensure_database
 from ..params import LocalDataEntry
 from ..repository import (
     ShipLatestRepository,
@@ -22,7 +21,7 @@ from ..models import (
     FULL_UPDATE_MODES
 )
 from ..logger import logger, write_exception
-from ..settings import REGION, TIMEZONE
+from ..settings import CREATE_SQL, REGION, TIMEZONE, SQLITE_DIR
 
 from .policy import ValidationPolicy
 
@@ -40,13 +39,14 @@ class UserDataLoader:
         if pre.is_disabled:
             return UpdateResult.disabled(pre.reason)
 
+        user_db_path = SQLiteOPS.user_db_path(SQLITE_DIR, ctx.account_id)
         # 确保 SQLite 数据库文件存在并已初始化
-        if not ensure_database(ctx.account_id):
+        if not SQLiteOPS.ensure_database(user_db_path, CREATE_SQL):
             return UpdateResult.failed(FailedReason.DB_OPERATION_FAILED)
 
         # 从本地数据库中加载用户缓存数据
         try:
-            with sqlite_transaction(ctx.account_id) as cursor:
+            with SQLiteOPS.transaction(user_db_path) as cursor:
                 # 加载更新所必要的数据
                 load_result = cls._load_data(cursor, ctx)
                 if not load_result:

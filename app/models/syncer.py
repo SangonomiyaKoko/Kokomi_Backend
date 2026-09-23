@@ -1,7 +1,7 @@
 from aiomysql.cursors import Cursor
 from typing import Optional
 
-from shard import CommonConfig, ParseUtils, PolicyUtils
+from shard import CommonConfig, ParseUtils, UserPolicyUtils
 
 from app.core import EnvConfig
 from app.constants import ClanColor
@@ -127,10 +127,10 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            interval_seconds = PolicyUtils.user_hidden_policy(user_level)
+            interval_seconds = UserPolicyUtils.user_hidden_policy(user_level)
             await cursor.execute(sql, [interval_seconds, account_id])
         else:
-            interval_seconds = PolicyUtils.user_normal_policy(
+            interval_seconds = UserPolicyUtils.user_normal_policy(
                 timestamp=current_timestamp,
                 user_level=user_level,
                 activity_level=activity_level,
@@ -250,7 +250,7 @@ class UserStatsSyncer:
             account_id=account_id,
             response=api_result
         )
-        activity_level = PolicyUtils.user_activity_level(
+        activity_level = UserPolicyUtils.user_activity_level(
             timestamp=current_timestamp,
             lbt=user_data['last_battle_at']
         )

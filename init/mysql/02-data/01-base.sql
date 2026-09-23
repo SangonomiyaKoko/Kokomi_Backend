@@ -29,12 +29,6 @@ VALUES
     ('clan'),
     ('ship');
 
-INSERT INTO T_metric_level_thresholds 
-    (metric_id, threshold)
-VALUES
-    (3, 0.8), (3, 0.95), (3, 1.0), (3, 1.1), (3, 1.2), (3, 1.4), (3, 1.7),
-    (4, 0.2), (4, 0.3), (4, 0.6), (4, 1.0), (4, 1.3), (4, 1.5), (4, 2.0);
-
 INSERT INTO T_tracking_meta 
     (tracking_key, tracking_type) 
 VALUES

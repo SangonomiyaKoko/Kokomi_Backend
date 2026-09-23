@@ -145,7 +145,7 @@ class MySQLManager:
 
     @classmethod
     @asynccontextmanager
-    async def auto_transaction_cursor(cls):
+    async def auto_transaction(cls):
         """### 自动管理事务（返回游标）
 
         正常退出时自动提交事务+释放连接回连接池, 异常退出时自动回滚事务+丢弃连接
@@ -177,7 +177,7 @@ class MySQLManager:
 
     @classmethod
     @asynccontextmanager
-    async def read_only_cursor(cls):
+    async def read_only(cls):
         """### 只读查询（返回游标）
 
         不使用事务，仅允许查询操作，退出直接释放连接
@@ -197,48 +197,48 @@ class MySQLManager:
         finally:
             await cls._release_conn_only(conn)
 
-    @classmethod
-    @asynccontextmanager
-    async def manual_transaction_conn(cls):
-        """### 手动管理事务（返回连接）
+    # @classmethod
+    # @asynccontextmanager
+    # async def manual_transaction_conn(cls):
+    #     """### 手动管理事务（返回连接）
         
-        正常退出时自动检测事务状态，若未提交/回滚则自动回滚并警告，异常退出时自动回滚并丢弃连接
+    #     正常退出时自动检测事务状态，若未提交/回滚则自动回滚并警告，异常退出时自动回滚并丢弃连接
 
-        注意：事务结束必须 commit/rollback，若忘记则退出时自动回滚
+    #     注意：事务结束必须 commit/rollback，若忘记则退出时自动回滚
 
-        ```
-        async with MySQLManager.manual_transaction_conn() as conn:
-            async with conn.cursor() as cur:
-                cur: Cursor
-                sql = "..."
-                await cur.execute(sql)
-                await conn.commit()  # 手动提交
-        ```
-        """
-        conn = await cls._acquire_healthy_conn()
-        try:
-            yield conn
-        except Exception:
-            # 异常 → 回滚并丢弃连接
-            try:
-                await conn.rollback()
-            except Exception:
-                pass
-            await cls._discard_conn(conn)
-            api_logger.warning("Manual transaction rolled back due to exception")
-            raise
-        else:
-            # 正常退出 → 检测事务状态
-            try:
-                async with conn.cursor() as cur:
-                    cur: Cursor
-                    await cur.execute("SELECT @@in_transaction")
-                    row = await cur.fetchone()
-                    if row and row[0] == 1:
-                        api_logger.warning("Manual transaction was not committed/rolled back, auto-rolling back!")
-                        await conn.rollback()
-            except Exception as e:
-                api_logger.error(f"Failed to check/rollback transaction on exit: {e}")
-            finally:
-                # 正常释放连接
-                await cls._release_conn_only(conn)
+    #     ```
+    #     async with MySQLManager.manual_transaction_conn() as conn:
+    #         async with conn.cursor() as cur:
+    #             cur: Cursor
+    #             sql = "..."
+    #             await cur.execute(sql)
+    #             await conn.commit()  # 手动提交
+    #     ```
+    #     """
+    #     conn = await cls._acquire_healthy_conn()
+    #     try:
+    #         yield conn
+    #     except Exception:
+    #         # 异常 → 回滚并丢弃连接
+    #         try:
+    #             await conn.rollback()
+    #         except Exception:
+    #             pass
+    #         await cls._discard_conn(conn)
+    #         api_logger.warning("Manual transaction rolled back due to exception")
+    #         raise
+    #     else:
+    #         # 正常退出 → 检测事务状态
+    #         try:
+    #             async with conn.cursor() as cur:
+    #                 cur: Cursor
+    #                 await cur.execute("SELECT @@in_transaction")
+    #                 row = await cur.fetchone()
+    #                 if row and row[0] == 1:
+    #                     api_logger.warning("Manual transaction was not committed/rolled back, auto-rolling back!")
+    #                     await conn.rollback()
+    #         except Exception as e:
+    #             api_logger.error(f"Failed to check/rollback transaction on exit: {e}")
+    #         finally:
+    #             # 正常释放连接
+    #             await cls._release_conn_only(conn)

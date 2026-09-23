@@ -1,8 +1,8 @@
 from .rating import RatingAlgo
-from .balance import BalanceAlgo
+from .level import LevelAlgo
 
 
 __all__ = [
     'RatingAlgo',
-    'BalanceAlgo'
+    'LevelAlgo'
 ]

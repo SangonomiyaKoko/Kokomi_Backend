@@ -1,4 +1,4 @@
-from shard import RatingUtils
+from shard import RatingAlgo
 
 from app.schemas import ShipProcessedData
 
@@ -44,13 +44,13 @@ def format_overall(processed_data: ShipProcessedData, show_eggshell: bool = Fals
     result['avg_frags'] = '{:.2f}'.format(processed_data['frags']/processed_data['battles'])
     result['avg_exp'] = '{:,}'.format(int(processed_data['exp']/processed_data['battles'])).replace(',', ' ')
 
-    result['level']['win_rate'] = RatingUtils.get_metric_level(processed_data['wins']/processed_data['battles']*100, 'win_rate')
+    result['level']['win_rate'] = RatingAlgo.get_metric_level(processed_data['wins']/processed_data['battles']*100, 'win_rate')
     
     if processed_data['v_battles'] == 0:
         return result
     
     result['rating'] = int(processed_data['p_rating']/processed_data['v_battles'])
-    result['level']['avg_damage'] = RatingUtils.get_metric_level(processed_data['d_rating']/processed_data['v_battles'], 'damage')
-    result['level']['avg_frags'] = RatingUtils.get_metric_level(processed_data['f_rating']/processed_data['v_battles'], 'frags')
+    result['level']['avg_damage'] = RatingAlgo.get_metric_level(processed_data['d_rating']/processed_data['v_battles'], 'damage')
+    result['level']['avg_frags'] = RatingAlgo.get_metric_level(processed_data['f_rating']/processed_data['v_battles'], 'frags')
 
     return result

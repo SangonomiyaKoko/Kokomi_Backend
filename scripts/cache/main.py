@@ -25,7 +25,6 @@ from .updater import UserCacheUpdater
 from .db_ops import (
     get_update_ids,
     read_ship_data,
-    read_game_version,
     get_ship_leaderboard,
     read_enabled_ship_ids
 )
@@ -64,9 +63,6 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             # 加载符合排行榜统计船只的数据
             ship_data = read_ship_data(cursor)
 
-            # 读取最新版本信息
-            game_version, version_start = read_game_version(cursor)
-        
     except Exception as e:
         error_name = type(e).__name__
         logger.error(f"Database operation exception: {error_name}")
@@ -79,7 +75,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     
     if len_update_ids > 0:
         # 主更新循环
-        updater = UserCacheUpdater(enabled_ship_ids, ship_data, game_version, version_start)
+        updater = UserCacheUpdater(enabled_ship_ids, ship_data)
         logger.enable_tqdm()
         for update_data in progress_iterable(
             items=update_ids,

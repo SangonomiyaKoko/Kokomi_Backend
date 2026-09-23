@@ -148,6 +148,29 @@ CREATE TABLE IF NOT EXISTS T_user_cache (
     UNIQUE INDEX idx_due_aid (is_due, account_id)
 );
 
+-- 储存用户所有船只数据
+CREATE TABLE IF NOT EXISTS T_user_ships (
+    id               INT          AUTO_INCREMENT,
+
+    account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
+    user_level       TINYINT      DEFAULT 0,       -- 标记用户水平，为 0 表示数据过少无法评分
+    ship_count       INT          DEFAULT 0,       -- payload 中船只数量
+    payload          BLOB         DEFAULT NULL,    -- 压缩后的船只数据
+
+    -- 用于标记用户待更新的时间戳，为 0 表示不需要更新, > 0 表示需要更新
+    -- 程序读取所有需要更新用户的 pending_at 值并按从早到晚的优先级顺序更新
+    pending_at       INT          DEFAULT 0,
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_aid (account_id),
+
+    INDEX idx_pending_aid (pending_at, account_id)
+);
+
 -- 用户配置表
 -- 存储用户的个性化配置，如等级、存储限制等
 CREATE TABLE IF NOT EXISTS T_user_config (

@@ -10,7 +10,11 @@ class ServicesName:
     SEASON = 'ClanSeason'
     STATS = 'ServerStats'
 
-    # Celery 不标记状态，而是通过消息挤压量判断健康度
+    
+    CACHE_V2 = 'UserCache_V2'
+
+    # 不标记状态
+    API = 'API'
     CELERY = 'Celery'
 
     @classmethod
@@ -44,7 +48,8 @@ class CommonConfig:
         "T_user_cache",
         "T_user_random",
         "T_user_ranked",
-        "T_user_config"
+        "T_user_config",
+        "T_user_ships"
     ]
     CLAN_INIT_TABLE_LIST = [
         "T_clan_users",
@@ -52,11 +57,21 @@ class CommonConfig:
         "T_clan_team"
     ]
     SHIP_INIT_TABLE_LIST = [
+        "T_ship_record",
         "T_ship_pvp_stats",
         "T_ship_stats_by_battles",
         "T_ship_stats_by_users",
         "T_ship_rating_distribution"
     ]
+
+    RANKING_BATTLES_LIMIT = {
+        6: 40,
+        7: 40,
+        8: 40,
+        9: 50,
+        10: 60,
+        11: 60
+    }
 
 
 class RedisKeys:

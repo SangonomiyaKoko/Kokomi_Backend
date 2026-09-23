@@ -2,6 +2,8 @@ import traceback
 from typing import Optional
 
 from shard import (
+    MySQLOPS,
+    SQLiteOPS,
     RedisKeys, 
     TimeUtils, 
     StringUtils, 
@@ -9,12 +11,6 @@ from shard import (
 )
 
 from ..core import RunContext, UpdateContext
-from ..db_ops import (
-    mysql_transaction, 
-    mysql_read_only, 
-    sqlite_transaction, 
-    remove_file
-)
 from ..models import UpdateResult, RunnerResult
 from ..repository import (
     BasicDataRepository,
@@ -26,7 +22,7 @@ from ..repository import (
     UserSummaryRepository
 )
 from ..logger import logger, write_exception
-from ..settings import DATA_DIR
+from ..settings import DATA_DIR, SQLITE_DIR
 
 from .loader import UserDataLoader
 from .updater import UpdateEvaluate
@@ -124,7 +120,7 @@ class UserUpdateRunner:
         ctx = UpdateContext(account_id=account_id)
 
         # 读取用户在 MySQL 中记录
-        with mysql_read_only(run_ctx.mysql_connection, account_id) as cursor:
+        with MySQLOPS.read_only(run_ctx.mysql_connection) as cursor:
             record, stats = BasicDataRepository.load_user_record(cursor, account_id)
             ctx.user_record = record
             ctx.user_stats = stats
@@ -150,7 +146,7 @@ class UserUpdateRunner:
         if result.is_disabled:
             logger.debug(f'{account_id} | DISABLED - {result.reason_text}')
             # 关闭用户的 Recent 功能权限
-            with mysql_transaction(run_ctx.mysql_connection, account_id) as cursor:
+            with MySQLOPS.transaction(run_ctx.mysql_connection) as cursor:
                 BasicDataRepository.disable_user(cursor, account_id)
     
             # 记录时间和原因到操作日志中
@@ -167,7 +163,7 @@ class UserUpdateRunner:
                 f.write(line)
     
             # 清理 SQLite 数据库文件
-            remove_file(account_id)
+            SQLiteOPS.remove_user_db(SQLITE_DIR, DATA_DIR, account_id)
 
             return RunnerResult.DISABLED
         
@@ -179,7 +175,8 @@ class UserUpdateRunner:
     ) -> None:
         """提交用户更新计划"""
         plan = ctx.update_plan
-        with sqlite_transaction(ctx.account_id) as cursor:
+        user_db_path = SQLiteOPS.user_db_path(SQLITE_DIR, ctx.account_id)
+        with SQLiteOPS.transaction(user_db_path) as cursor:
             ShipDataRepository.refresh(cursor, plan.ship_data)
             ShipMapRepository.refresh(cursor, plan.ship_map)
             ShipLatestRepository.refresh(cursor, plan.ship_latest)

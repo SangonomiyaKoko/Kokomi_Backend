@@ -32,8 +32,7 @@ DB_CONFIG = {
     'autocommit': False
 }
 sql = """
--- 1. 新增公会队伍表，结构需与 init/mysql/01-schemas/03-clan.sql 保持一致
-CREATE TABLE IF NOT EXISTS T_clan_team (
+CREATE TABLE T_clan_team (
     id               INT          AUTO_INCREMENT,
 
     clan_id          BIGINT       NOT NULL,        -- 10位的非连续数字
@@ -49,29 +48,104 @@ CREATE TABLE IF NOT EXISTS T_clan_team (
     UNIQUE KEY uk_cid (clan_id)
 );
 
--- 1.1 以 T_clan_base 为准迁移 clan_id，保证两表数据一一对应
 INSERT INTO T_clan_team (clan_id)
 SELECT clan_id
 FROM T_clan_base;
 
--- 2. 删除 T_clan_stats.team_data
 ALTER TABLE T_clan_stats
     DROP COLUMN team_data;
 
--- 3. 删除 T_ship_base 中已废弃的列
 ALTER TABLE T_ship_base
     DROP COLUMN rarity_id,
     DROP COLUMN premium,
     DROP COLUMN special;
 
--- 4. 调整 T_clan_stats.public_rating 类型为 FLOAT
+ALTER TABLE T_clan_users
+    DROP COLUMN member_ids;
+
 ALTER TABLE T_clan_stats
     MODIFY COLUMN public_rating FLOAT DEFAULT 1100;
 
--- 5. 删除 T_clan_stats 中已废弃的列
+ALTER TABLE T_base_id
+    ADD COLUMN counts INT DEFAULT 0 AFTER meta;
+
 ALTER TABLE T_clan_stats
     DROP COLUMN stage_battles,
     DROP COLUMN stage_victories;
+
+DROP TABLE T_table_meta;
+DROP TABLE T_metric_level_thresholds;
+DROP FUNCTION F_get_metric_level;
+DROP FUNCTION F_clan_next_refresh_at;
+DROP FUNCTION F_user_next_refresh_at;
+"""
+
+sql = """
+CREATE TABLE T_ship_leaderboard (
+    account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
+    ship_id          BIGINT       NOT NULL,        -- 1-11位的非连续数字
+
+    battles          INT          NOT NULL,        -- 战斗场次
+    rating           FLOAT        NOT NULL,        -- 综合评分
+    win_rate         FLOAT        NOT NULL,        -- 胜率
+    solo_rate        FLOAT        NOT NULL,        -- 单野率
+    avg_damage       INT          NOT NULL,        -- 场均伤害
+    avg_frags        FLOAT        NOT NULL,        -- 场均击毁
+    avg_exp          INT          NOT NULL,        -- 场均经验
+    hit_ratio        FLOAT        NOT NULL,        -- 命中率
+    max_exp          INT          NOT NULL,        -- 最高经验
+    max_damage       INT          NOT NULL,        -- 最高伤害
+
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (ship_id, account_id)
+)
+PARTITION BY HASH (ship_id)
+PARTITIONS 16;
+
+CREATE TABLE T_ship_record (
+    id               INT          AUTO_INCREMENT,
+
+    ship_id          BIGINT       UNIQUE,          -- 1-11位的非连续数字
+    exp              INT          NOT NULL DEFAULT 0,
+    frags            INT          NOT NULL DEFAULT 0,
+    planes           INT          NOT NULL DEFAULT 0,
+    damage           INT          NOT NULL DEFAULT 0,
+    scouting         INT          NOT NULL DEFAULT 0,
+    potential        INT          NOT NULL DEFAULT 0,
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id)
+);
+INSERT INTO T_ship_record (ship_id)
+SELECT ship_id
+FROM T_ship_base;
+
+CREATE TABLE T_user_ships (
+    id               INT          AUTO_INCREMENT,
+
+    account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
+    user_level       TINYINT      DEFAULT 0,       -- 标记用户水平，为 0 表示数据过少无法评分
+    ship_count       INT          DEFAULT 0,       -- payload 中船只数量
+    payload          BLOB         DEFAULT NULL,    -- 压缩后的船只数据
+
+    -- 用于标记用户待更新的时间戳，为 0 表示不需要更新, > 0 表示需要更新
+    -- 程序读取所有需要更新用户的 pending_at 值并按从早到晚的优先级顺序更新
+    pending_at       INT          DEFAULT 0,
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_aid (account_id),
+
+    INDEX idx_pending_aid (pending_at, account_id)
+);
+INSERT INTO T_user_ships (account_id)
+SELECT account_id
+FROM T_user_base;
 """
 
 def main():

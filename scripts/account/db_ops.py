@@ -1,49 +1,4 @@
-from contextlib import contextmanager
-from typing import Any, Iterator
-
-from pymysql import Connection
 from pymysql.cursors import Cursor
-
-from .logger import logger
-
-
-@contextmanager
-def mysql_read_only(
-    conn: Connection, desc: Any = None
-) -> Iterator[Cursor]:
-    """MySQL 上下文管理器，仅读取"""
-    
-    try:
-        with conn.cursor() as cur:
-            yield cur
-    except Exception as e:
-        error_name = type(e).__name__
-        logger.error(
-            '%sDatabase read error: %s'
-            , f'{desc} | ' if desc else ''
-            , error_name
-        )
-        raise
-
-@contextmanager
-def mysql_transaction(
-    conn: Connection, desc: Any = None
-) -> Iterator[Cursor]:
-    """MySQL 事务上下文管理器"""
-    try:
-        with conn.cursor() as cur:
-            yield cur
-    except Exception as e:
-        conn.rollback()
-        error_name = type(e).__name__
-        logger.error(
-            '%sDatabase operation error: %s'
-            , f'{desc} | ' if desc else ''
-            , error_name
-        )
-        raise
-    else:
-        conn.commit()
 
 
 class BasicDataRepository:
@@ -85,15 +40,6 @@ class BasicDataRepository:
         cursor: Cursor, stats_data: dict
     ) -> None:
         """ 将 RefreshPlanStats 的统计数据写入数据库"""
-        # 更新统计总数：planned_users
-        sql = """
-            UPDATE T_table_meta 
-            SET 
-                metric_value = %s 
-            WHERE metric_key = %s;
-        """
-        cursor.execute(sql, [stats_data['planned_count'], 'planned_users'])
-
         # 更新各刷新状态的人数
         sql = """
             UPDATE T_refresh_stats 

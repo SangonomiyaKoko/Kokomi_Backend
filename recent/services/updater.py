@@ -1,6 +1,6 @@
 from dataclasses import replace
 
-from shard import TimeUtils, PolicyUtils
+from shard import TimeUtils, UserPolicyUtils
 
 from ..core import UpdateContext, RunContext
 from ..models import (
@@ -97,7 +97,7 @@ class UpdateEvaluate:
         # 保底更新检查：当上游未按时触发刷新时，基于用户等级的容忍超时时间兜底触发更新
         next_refresh_at = ctx.user_record.next_refresh_at
         if next_refresh_at and not stats.is_hidden:
-            timeout = PolicyUtils.recent_fallback_timeout(ctx.user_record.user_level)
+            timeout = UserPolicyUtils.recent_fallback_timeout(ctx.user_record.user_level)
             if ctx.current_timestamp > next_refresh_at + timeout:
                 # 触发强制更新策略
                 return UpdateResult.other(UpdatedReason.FALLBACK_REFRESH)

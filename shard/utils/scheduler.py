@@ -1,8 +1,8 @@
 import math
 
 
-class BalanceAlgo:
-    """刷新计划调度与均衡相关公用算法"""
+class SchedulerUtils:
+    """刷新计划调度与均衡相关公用函数"""
 
     @staticmethod
     def calc_imbalance_score(counts: list) -> float:
@@ -70,7 +70,7 @@ class BalanceAlgo:
                 continue
 
             # 过滤轻微波动
-            score = BalanceAlgo.calc_imbalance_score(interval_counts)
+            score = SchedulerUtils.calc_imbalance_score(interval_counts)
             if score >= min_score:
                 intervals.append((left, hour))
 
@@ -83,7 +83,7 @@ class BalanceAlgo:
         """对区间内的桶做负载均衡（只能提前，就近填谷）
 
         从最左侧桶开始，若低于目标平均值，则从右侧最近的富余桶借用元素。
-        返回所有需要提前的迁移记录 [(entity_id, advance_hours), ...]
+        返回所有需要提前的迁移记录 [(advance_hours, entity_id), ...]
         """
         n = len(buckets_slice)
         if n <= 1:

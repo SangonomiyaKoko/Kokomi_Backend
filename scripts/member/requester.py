@@ -50,7 +50,7 @@ class APIRequester:
                 error_name=error_name,
                 error_info=traceback.format_exc()
             )
-            logger.error(f'{clan_id} | ERROR - {error_name} - {error_id}')
+            logger.error(f'{clan_id} | {error_name} - {error_id}')
             return None
 
     @staticmethod
@@ -71,6 +71,7 @@ class APIRequester:
                     return data['items']
 
                 return 'Game_API_Error'
+            
             return f'HTTP_STATUS_{resp.status_code}'
         except Exception as e:
             return f'ERROR_{type(e).__name__}'
